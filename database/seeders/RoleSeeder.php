@@ -43,18 +43,7 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($rolesData as $roleData) {
-            $role = Role::firstOrCreate(['name' => $roleData['name']], $roleData);
-            
-            $user = User::firstOrCreate([
-                'username' => $roleData['name'],
-            ], [
-                'name' => ucwords(str_replace('-', ' ', $roleData['slug'])),
-                'email' => $roleData['name'] . '@sijaga.gov.id',
-                'password' => Hash::make('123'),
-                'is_active' => 1,
-            ]);
-
-            $user->assignRole($role);
+            Role::firstOrCreate(['name' => $roleData['name']], $roleData);
         }
     }
 }

@@ -1,0 +1,374 @@
+:root {
+  --ink: #0f2a3f;
+  --ink-soft: #4a6478;
+  --teal-1: #0ea5a3;
+  --teal-2: #22c1a4;
+  --blue-1: #3b82f6;
+  --blue-2: #60a5fa;
+  --sun: #ffb648;
+  --coral: #ff7a6e;
+  --card-bg: rgba(255,255,255,0.72);
+  --card-border: rgba(255,255,255,0.9);
+}
+
+.sigap-auth-body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  position: relative;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(34,193,164,0.28), transparent 42%),
+    radial-gradient(circle at 88% 12%, rgba(59,130,246,0.24), transparent 45%),
+    radial-gradient(circle at 82% 88%, rgba(255,182,72,0.22), transparent 45%),
+    radial-gradient(circle at 8% 85%, rgba(255,122,110,0.18), transparent 40%),
+    linear-gradient(160deg, #f4fbfa 0%, #eef6fb 45%, #f7f4ff 100%);
+  padding: 24px;
+  font-family: 'Poppins', sans-serif;
+  color: var(--ink);
+}
+
+.sigap-auth-body * {
+  box-sizing: border-box;
+}
+
+/* ===== Mesh blobs animated ===== */
+.sigap-auth-body .blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.55;
+  z-index: 0;
+  pointer-events: none;
+  animation: drift 22s ease-in-out infinite;
+}
+.sigap-auth-body .blob-a { width:420px; height:420px; top:-120px; left:-140px; background:radial-gradient(circle, var(--teal-2), transparent 70%); animation-duration: 26s;}
+.sigap-auth-body .blob-b { width:380px; height:380px; bottom:-140px; right:-120px; background:radial-gradient(circle, var(--blue-2), transparent 70%); animation-duration: 30s; animation-delay:-6s;}
+.sigap-auth-body .blob-c { width:260px; height:260px; top:55%; left:48%; background:radial-gradient(circle, var(--sun), transparent 70%); opacity:0.28; animation-duration: 24s; animation-delay:-3s;}
+
+@keyframes drift {
+  0%,100%{ transform: translate(0,0) scale(1); }
+  33%{ transform: translate(30px,-25px) scale(1.06); }
+  66%{ transform: translate(-25px,20px) scale(0.96); }
+}
+
+/* ===== Dotted grid texture ===== */
+.sigap-auth-body .grid-texture {
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(rgba(15,42,63,0.10) 1.4px, transparent 1.4px);
+  background-size: 26px 26px;
+  z-index: 0;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 90%);
+}
+
+/* ===== Floating security icons ===== */
+.sigap-auth-body .float-icon {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+  color: var(--ink);
+  opacity: 0.16;
+  animation: floaty 8s ease-in-out infinite;
+}
+.sigap-auth-body .float-icon i { display: block; }
+.sigap-auth-body .fi-1 { top:10%;  left:8%;   font-size:2.6rem; color:var(--teal-1); animation-duration:9s; }
+.sigap-auth-body .fi-2 { top:18%;  left:82%;  font-size:2rem;   color:var(--blue-1); animation-duration:7.5s; animation-delay:-1.5s; }
+.sigap-auth-body .fi-3 { top:72%;  left:12%;  font-size:1.8rem; color:var(--coral); animation-duration:10s; animation-delay:-3s; }
+.sigap-auth-body .fi-4 { top:80%;  left:78%;  font-size:2.4rem; color:var(--sun); animation-duration:8.5s; animation-delay:-2s; }
+.sigap-auth-body .fi-5 { top:45%;  left:4%;   font-size:1.5rem; color:var(--blue-2); animation-duration:11s; animation-delay:-4.5s; }
+.sigap-auth-body .fi-6 { top:40%;  left:93%;  font-size:1.6rem; color:var(--teal-2); animation-duration:9.5s; animation-delay:-1s; }
+.sigap-auth-body .fi-7 { top:6%;   left:46%;  font-size:1.4rem; color:var(--coral); animation-duration:8s; animation-delay:-2.5s; }
+.sigap-auth-body .fi-8 { top:88%;  left:46%;  font-size:1.7rem; color:var(--blue-1); animation-duration:10.5s; animation-delay:-5s; }
+
+@keyframes floaty {
+  0%,100%{ transform: translateY(0) rotate(0deg); }
+  50%{ transform: translateY(-22px) rotate(8deg); }
+}
+
+@media (max-width: 767px) {
+  .sigap-auth-body .float-icon { opacity:0.11; }
+  .sigap-auth-body .fi-1 { font-size:1.8rem; } .sigap-auth-body .fi-2 { font-size:1.5rem; } .sigap-auth-body .fi-4 { font-size:1.7rem; }
+  .sigap-auth-body .fi-6, .sigap-auth-body .fi-7 { display:none; }
+}
+
+/* ===== Card ===== */
+.sigap-auth-body .login-wrap {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 960px;
+}
+
+.sigap-auth-body .login-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow:
+    0 30px 60px -20px rgba(15,42,63,0.25),
+    0 10px 25px -10px rgba(15,42,63,0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: rise 0.75s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes rise {
+  from{ opacity:0; transform: translateY(28px) scale(0.98); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+
+/* left brand panel */
+.sigap-auth-body .brand-panel {
+  position: relative;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255,255,255,0.18), transparent 45%),
+    linear-gradient(150deg, var(--teal-1) 0%, var(--blue-1) 70%, #2c5fd6 100%);
+  color: #fff;
+  padding: 3rem 2.5rem;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.sigap-auth-body .brand-panel::before {
+  content: "";
+  position: absolute;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  top: -80px; right: -90px;
+}
+.sigap-auth-body .brand-panel::after {
+  content: "";
+  position: absolute;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  bottom: -50px; left: -40px;
+}
+
+.sigap-auth-body .brand-badge {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.sigap-auth-body .brand-panel h1 {
+  font-weight: 700;
+  font-size: 1.85rem;
+  line-height: 1.25;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.sigap-auth-body .brand-panel p {
+  font-weight: 300;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.86);
+  max-width: 340px;
+}
+
+.sigap-auth-body .feature-list {
+  list-style: none;
+  padding: 0; margin: 1.75rem 0 0;
+}
+.sigap-auth-body .feature-list li {
+  display: flex; align-items: center; gap: 0.65rem;
+  font-size: 0.86rem;
+  font-weight: 400;
+  margin-bottom: 0.65rem;
+  color: rgba(255,255,255,0.92);
+}
+.sigap-auth-body .feature-list i {
+  font-size: 1rem;
+  background: rgba(255,255,255,0.2);
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.sigap-auth-body .status-pill {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.78rem;
+  width: fit-content;
+}
+.sigap-auth-body .status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #3cf0b5;
+  box-shadow: 0 0 0 0 rgba(60,240,181,0.6);
+  animation: pulse 1.8s infinite;
+}
+@keyframes pulse {
+  0%{ box-shadow:0 0 0 0 rgba(60,240,181,0.55); }
+  70%{ box-shadow:0 0 0 8px rgba(60,240,181,0); }
+  100%{ box-shadow:0 0 0 0 rgba(60,240,181,0); }
+}
+
+/* right form panel */
+.sigap-auth-body .form-panel {
+  padding: 3rem 2.6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sigap-auth-body .form-panel h2 {
+  font-weight: 700;
+  font-size: 1.6rem;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.01em;
+}
+.sigap-auth-body .form-panel .subtitle {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  font-weight: 300;
+  margin-bottom: 1.8rem;
+}
+
+.sigap-auth-body .form-label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.sigap-auth-body .input-modern {
+  position: relative;
+}
+.sigap-auth-body .input-modern .form-control {
+  border-radius: 14px;
+  border: 1.5px solid rgba(15,42,63,0.12);
+  padding: 0.75rem 1rem 0.75rem 2.8rem;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 400;
+  background: rgba(255,255,255,0.7);
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.sigap-auth-body .input-modern .form-control:focus {
+  border-color: var(--teal-1);
+  box-shadow: 0 0 0 4px rgba(14,165,163,0.14);
+  background: #fff;
+}
+.sigap-auth-body .input-modern .form-control.is-invalid {
+  border-color: var(--coral) !important;
+  background-image: none;
+}
+.sigap-auth-body .input-modern .form-control.is-invalid:focus {
+  box-shadow: 0 0 0 4px rgba(255,122,110,0.14);
+}
+.sigap-auth-body .input-modern i.icon-left {
+  position: absolute;
+  left: 1rem; top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  pointer-events: none;
+  transition: color .2s ease;
+}
+.sigap-auth-body .input-modern .form-control:focus ~ i.icon-left {
+  color: var(--teal-1);
+}
+.sigap-auth-body .toggle-pass {
+  position: absolute;
+  right: 0.9rem; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 5;
+}
+.sigap-auth-body .toggle-pass:hover { color: var(--ink); }
+
+.sigap-auth-body .form-check-input:checked {
+  background-color: var(--teal-1);
+  border-color: var(--teal-1);
+}
+.sigap-auth-body .form-check-label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.sigap-auth-body .btn-login {
+  background: linear-gradient(120deg, var(--teal-1), var(--blue-1));
+  border: none;
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+  letter-spacing: 0.01em;
+  box-shadow: 0 12px 24px -8px rgba(14,165,163,0.55);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.sigap-auth-body .btn-login:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px -8px rgba(14,165,163,0.65);
+  filter: brightness(1.04);
+  color: #fff;
+}
+.sigap-auth-body .btn-login:active { transform: translateY(0); }
+
+.sigap-auth-body .divider-text {
+  display: flex; align-items: center; gap: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  margin: 1.5rem 0;
+}
+.sigap-auth-body .divider-text::before, .sigap-auth-body .divider-text::after {
+  content: ""; flex: 1; height: 1px;
+  background: rgba(15,42,63,0.12);
+}
+
+.sigap-auth-body .link-forgot {
+  font-size: 0.83rem;
+  color: var(--blue-1);
+  text-decoration: none;
+  font-weight: 500;
+}
+.sigap-auth-body .link-forgot:hover { text-decoration: underline; color: var(--teal-1); }
+
+.sigap-auth-body .footer-note {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-top: 1.6rem;
+}
+.sigap-auth-body .footer-note i { color: var(--teal-1); }
+
+@media (max-width: 991.98px) {
+  .sigap-auth-body .brand-panel { padding: 2.2rem 2rem; }
+  .sigap-auth-body .form-panel { padding: 2.2rem 1.9rem; }
+}
+
+@media (max-width: 767.98px) {
+  .sigap-auth-body .login-card { border-radius: 22px; }
+  .sigap-auth-body .brand-panel {
+    min-height: auto;
+    padding: 2rem 1.6rem 1.6rem;
+  }
+  .sigap-auth-body .brand-panel .feature-list { display: none; }
+  .sigap-auth-body .brand-panel h1 { font-size: 1.35rem; }
+  .sigap-auth-body .brand-panel p { font-size: 0.85rem; max-width: 100%; }
+  .sigap-auth-body .form-panel { padding: 1.8rem 1.5rem 2.1rem; }
+}
+
+@media (max-width: 420px) {
+  .sigap-auth-body .brand-badge { width: 48px; height: 48px; font-size: 1.35rem; }
+  .sigap-auth-body .form-panel h2 { font-size: 1.35rem; }
+}

@@ -27,6 +27,7 @@ return new class extends Migration
             $table->ulid('id')->primary(); // permission id
             $table->string('name');
             $table->string('guard_name');
+            $table->enum('is_active', [0, 1])->default(1);
             $table->timestamps();
 
             $table->unique(['name', 'guard_name']);
@@ -42,7 +43,11 @@ return new class extends Migration
                 $table->index($columnNames['team_foreign_key'], 'roles_team_foreign_key_index');
             }
             $table->string('name');
+            $table->string('slug')->index();
+            $table->string('type_role')->index();
+            $table->text('description')->nullable();
             $table->string('guard_name');
+            $table->enum('is_active', [0, 1])->default(1);
             $table->timestamps();
             if ($teams || config('permission.testing')) {
                 $table->unique([$columnNames['team_foreign_key'], 'name', 'guard_name']);

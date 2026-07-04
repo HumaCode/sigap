@@ -19,4 +19,9 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 class Permission extends SpatiePermission
 {
     use HasUlids;
+
+    public function menus()
+    {
+        return $this->belongsToMany(\App\Models\Menu::class);
+    }
 }

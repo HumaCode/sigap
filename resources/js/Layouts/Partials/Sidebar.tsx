@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -9,6 +9,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
+    const { menus } = usePage<any>().props;
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -38,23 +39,36 @@ export default function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                     </div>
                 </div>
 
-                <div className="nav-section-label">Menu Utama</div>
-                <Link href={route('dashboard')} className={`nav-item-custom ${route().current('dashboard') ? 'active' : ''}`}>
-                    <i className="bi bi-grid-1x2-fill"></i> Dashboard
-                </Link>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-hdd-network"></i> Daftar Situs</Link>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-exclamation-octagon"></i> Insiden <span className="nav-badge">7</span></Link>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-graph-up-arrow"></i> Laporan Uptime</Link>
+                {menus && Object.keys(menus).map(category => (
+                    <div key={category}>
+                        <div className="nav-section-label">{category}</div>
+                        {menus[category].map((item: any) => {
+                            let href = '#';
+                            let isActive = false;
+                            
+                            try {
+                                if (item.url && item.url !== '#') {
+                                    if (typeof route !== 'undefined' && route().has(item.url)) {
+                                        href = route(item.url);
+                                        isActive = route().current(item.url);
+                                    }
+                                }
+                            } catch (e) {
+                                // Biarkan href='#', jika route belum ada
+                            }
 
-                <div className="nav-section-label">Deteksi</div>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-bug-fill"></i> Log Deteksi Konten</Link>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-journal-code"></i> Kamus Kata Kunci</Link>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-shield-exclamation"></i> Keamanan Situs</Link>
-
-                <div className="nav-section-label">Sistem</div>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-people"></i> Pengguna &amp; Peran</Link>
-                <Link href="#" className="nav-item-custom"><i className="bi bi-bell"></i> Notifikasi</Link>
-                <Link href={route('profile.edit')} className="nav-item-custom"><i className="bi bi-gear"></i> Pengaturan</Link>
+                            return (
+                                <Link 
+                                    key={item.id} 
+                                    href={href} 
+                                    className={`nav-item-custom ${isActive ? 'active' : ''}`}
+                                >
+                                    {item.icon && <i className={item.icon}></i>} {item.name}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                ))}
 
                 <div className="sidebar-footer">
                     <div className="pic-mini">

@@ -1,4 +1,5 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface PopupLoaderProps {
     isOpen: boolean;
@@ -8,9 +9,16 @@ interface PopupLoaderProps {
 }
 
 export default function PopupLoader({ isOpen, status, message, icon }: PopupLoaderProps) {
-    if (!isOpen) return null;
+    const [mounted, setMounted] = useState(false);
 
-    return (
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!isOpen || !mounted) return null;
+
+    return createPortal(
         <div className="popup-loader-overlay">
             <div className={`popup-loader-card ${status}`}>
                 <div className="popup-icon-top">
@@ -120,6 +128,7 @@ export default function PopupLoader({ isOpen, status, message, icon }: PopupLoad
                     100% { transform: scale(1); opacity: 1; }
                 }
             `}</style>
-        </div>
+        </div>,
+        document.body
     );
 }

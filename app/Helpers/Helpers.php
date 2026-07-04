@@ -1,4 +1,7 @@
-<?php 
+<?php
+
+use Illuminate\Support\Facades\Cache;
+use App\Models\Menu;
 
 if (!function_exists('tgl_indo')) {
     function tgl_indo($tgl, $tampil_hari = false, $tampil_jam = false)

@@ -123,6 +123,7 @@ body.authenticated-body {
 
 /* Main column */
 .main-col{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.content-area{ padding:1.5rem; flex:1; }
 
 /* Topbar */
 .topbar{
@@ -199,6 +200,7 @@ body.authenticated-body {
 
 @media (max-width: 767.98px){
   .search-box{ display:none; }
+  .content-area{ padding:1rem; }
 }
 
 @media (max-width: 420px){

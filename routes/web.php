@@ -10,6 +10,7 @@ Route::get('/', function () {
 });
 
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\IncidentController;
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -21,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     Route::resource('sites', SiteController::class)->except(['create', 'edit', 'show']);
+    Route::resource('incidents', IncidentController::class)->except(['create', 'edit', 'show']);
 });
 
 require __DIR__.'/auth.php';

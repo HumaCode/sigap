@@ -41,11 +41,11 @@ class MenuSeeder extends Seeder
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
-                'name' => 'Insiden',
+                'name' => 'Insiden Keamanan',
                 'url' => 'incidents.index',
-                'category' => 'Menu Utama',
-                'icon' => 'bi bi-exclamation-octagon',
-                'orders' => 3,
+                'category' => 'Pemantauan',
+                'icon' => 'bi bi-shield-exclamation',
+                'orders' => 2,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [

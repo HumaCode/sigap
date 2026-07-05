@@ -7,6 +7,7 @@ import KeywordModal from './Partials/KeywordModal';
 import '../../../css/keyword.css';
 import Pagination from '@/Components/Pagination'; // Assuming Pagination is a generic component
 import EmptyState from '@/Components/EmptyState';
+import ConfirmModal from '@/Components/ConfirmModal';
 
 interface Keyword {
     id: string;
@@ -54,6 +55,8 @@ export default function Index({
     const [showModal, setShowModal] = useState(false);
     const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [keywordToDelete, setKeywordToDelete] = useState<Keyword | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Debounce search
     useEffect(() => {
@@ -80,13 +83,17 @@ export default function Index({
         setShowModal(true);
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm('Yakin ingin menghapus kata kunci ini?')) {
-            router.delete(route('keywords.destroy', id), {
-                preserveScroll: true,
-                onSuccess: () => toast.success('Berhasil', 'Kata kunci berhasil dihapus.'),
-            });
-        }
+    const handleDelete = () => {
+        if (!keywordToDelete) return;
+        setIsDeleting(true);
+        router.delete(route('keywords.destroy', keywordToDelete.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Berhasil', 'Kata kunci berhasil dihapus.');
+                setKeywordToDelete(null);
+            },
+            onFinish: () => setIsDeleting(false)
+        });
     };
 
     const toggleStatus = (keyword: Keyword) => {
@@ -237,7 +244,7 @@ export default function Index({
                                     <td style={{ fontSize: '0.8rem', color: 'var(--ink-faint)' }}>{kw.created_at}</td>
                                     <td style={{ textAlign: 'right' }}>
                                         <button className="action-btn" title="Ubah" onClick={() => handleEdit(kw)}><i className="bi bi-pencil"></i></button>
-                                        <button className="action-btn danger" title="Hapus" onClick={() => handleDelete(kw.id)}><i className="bi bi-trash"></i></button>
+                                        <button className="action-btn danger" title="Hapus" onClick={() => setKeywordToDelete(kw)}><i className="bi bi-trash"></i></button>
                                     </td>
                                 </tr>
                             )) : (
@@ -266,6 +273,15 @@ export default function Index({
                 show={showModal} 
                 onClose={() => setShowModal(false)} 
                 keyword={selectedKeyword} 
+            />
+
+            <ConfirmModal 
+                show={!!keywordToDelete}
+                title="Hapus Kata Kunci?"
+                message={`Apakah Anda yakin ingin menghapus kata kunci "${keywordToDelete?.keyword}"? Tindakan ini tidak dapat dibatalkan.`}
+                onConfirm={handleDelete}
+                onCancel={() => !isDeleting && setKeywordToDelete(null)}
+                isProcessing={isDeleting}
             />
         </AuthenticatedLayout>
     );

@@ -6,6 +6,7 @@ import AddSiteModal from './Partials/AddSiteModal';
 import DetailSiteModal from './Partials/DetailSiteModal';
 import ConfirmModal from '@/Components/ConfirmModal';
 import { toast } from '@/Components/DynamicToast';
+import EmptyState from '@/Components/EmptyState';
 
 export default function Index(props: any) {
     const sites = props.sites || { data: [], meta: { total: 0, from: 0, to: 0, last_page: 1 } };
@@ -220,9 +221,14 @@ export default function Index(props: any) {
                         </thead>
                         <tbody>
                             {!sites.data || sites.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="text-center py-4">Tidak ada data situs.</td>
-                                </tr>
+                                <EmptyState 
+                                    icon="bi-globe"
+                                    title="Belum Ada Situs"
+                                    description="Daftar situs yang dipantau masih kosong. Daftarkan situs Anda untuk mulai memantau uptime secara real-time."
+                                    actionLabel="Daftarkan Situs"
+                                    onAction={() => { setSelectedSite(null); setShowModal(true); }}
+                                    colSpan={7}
+                                />
                             ) : sites.data.map((site: any) => (
                                 <tr key={site.id}>
                                     <td>
@@ -257,7 +263,13 @@ export default function Index(props: any) {
                 {/* Mobile card list */}
                 <div className="mobile-cards">
                     {!sites.data || sites.data.length === 0 ? (
-                        <div className="text-center py-4">Tidak ada data situs.</div>
+                        <EmptyState 
+                            icon="bi-globe"
+                            title="Belum Ada Situs"
+                            description="Daftar situs yang dipantau masih kosong. Daftarkan situs Anda untuk mulai memantau uptime secara real-time."
+                            actionLabel="Daftarkan Situs"
+                            onAction={() => { setSelectedSite(null); setShowModal(true); }}
+                        />
                     ) : sites.data.map((site: any) => (
                         <div className="site-card-mobile" key={site.id}>
                             <div className="top-row">

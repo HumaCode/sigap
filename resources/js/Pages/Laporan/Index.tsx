@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
 import { useState, useEffect, useMemo } from 'react';
 import '../../../css/laporan.css';
+import EmptyState from '@/Components/EmptyState';
 
 interface LaporanProps extends PageProps {
     sites: { data: any[]; links: any[]; meta: any };
@@ -288,9 +289,11 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                         </div>
                     ))}
                     {sites.data.length === 0 && (
-                        <div className="text-center py-5 text-muted">
-                            Tidak ada data situs.
-                        </div>
+                        <EmptyState 
+                            icon="bi-graph-down"
+                            title="Belum Ada Laporan Uptime"
+                            description="Tidak ada data situs terpantau untuk menampilkan laporan uptime saat ini."
+                        />
                     )}
                 </div>
 

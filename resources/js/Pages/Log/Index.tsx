@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { toast } from '@/Components/DynamicToast';
 import DetailLogModal from './Partials/DetailLogModal';
 import '../../../css/detection.css';
+import EmptyState from '@/Components/EmptyState';
 
 interface LogProps extends PageProps {
     logs: { data: any[]; links: any[]; meta: any };
@@ -197,9 +198,11 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                             </div>
                         )
                     }) : (
-                        <div className="text-center py-5 text-muted">
-                            Tidak ada log deteksi ditemukan.
-                        </div>
+                        <EmptyState 
+                            icon="bi-receipt-cutoff"
+                            title="Belum Ada Log Deteksi"
+                            description="Riwayat log pemindaian konten masih kosong. Seluruh aktivitas deteksi sisipan konten mencurigakan akan muncul di sini."
+                        />
                     )}
                 </div>
             </div>

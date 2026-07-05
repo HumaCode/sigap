@@ -4,6 +4,7 @@ import { PageProps } from '@/types';
 import { useState } from 'react';
 import '../../../css/incidents.css';
 import DetailIncidentModal from './Partials/DetailIncidentModal';
+import EmptyState from '@/Components/EmptyState';
 
 interface IncidentProps extends PageProps {
     incidents: { data: any[]; links: any[]; meta: any };
@@ -198,36 +199,11 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                 {/* List */}
                 <div>
                     {incidents.data.length === 0 ? (
-                        <div className="p-5 text-center d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '300px' }}>
-                            <div className="empty-state-icon mb-4" style={{ position: 'relative' }}>
-                                <div className="pulse-ring" style={{
-                                    position: 'absolute', top: '-10px', left: '-10px', right: '-10px', bottom: '-10px',
-                                    borderRadius: '50%', background: 'rgba(14, 165, 163, 0.1)', animation: 'pulse 2s infinite'
-                                }}></div>
-                                <div className="pulse-ring delay" style={{
-                                    position: 'absolute', top: '-20px', left: '-20px', right: '-20px', bottom: '-20px',
-                                    borderRadius: '50%', background: 'rgba(14, 165, 163, 0.05)', animation: 'pulse 2s infinite 1s'
-                                }}></div>
-                                <i className="bi bi-shield-check" style={{ fontSize: '3.5rem', color: 'var(--teal-1)', position: 'relative', zIndex: 1, animation: 'float 3s ease-in-out infinite' }}></i>
-                            </div>
-                            <h5 style={{ fontWeight: 600, color: 'var(--ink-dark)' }}>Sistem Aman & Terkendali</h5>
-                            <p style={{ color: 'var(--ink-soft)', fontSize: '0.9rem', maxWidth: '300px', margin: '0 auto' }}>
-                                Belum ada insiden yang terdeteksi. Sistem pemantauan terus berjalan di latar belakang.
-                            </p>
-                            <style>
-                                {`
-                                @keyframes pulse {
-                                    0% { transform: scale(0.8); opacity: 0.8; }
-                                    100% { transform: scale(1.5); opacity: 0; }
-                                }
-                                @keyframes float {
-                                    0% { transform: translateY(0px); }
-                                    50% { transform: translateY(-8px); }
-                                    100% { transform: translateY(0px); }
-                                }
-                                `}
-                            </style>
-                        </div>
+                        <EmptyState 
+                            icon="bi-shield-check"
+                            title="Sistem Aman & Terkendali"
+                            description="Belum ada insiden keamanan yang terdeteksi. Mesin pemantau terus berjalan secara real-time di latar belakang."
+                        />
                     ) : (
                         incidents.data.map((incident) => {
                             const { icon, bg } = getIcon(incident.type);

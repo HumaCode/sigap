@@ -88,12 +88,31 @@
 }
 
 .action-btn{
-  width:32px; height:32px; border-radius:9px; border:1px solid var(--line);
-  background:rgba(255,255,255,0.6); display:inline-flex; align-items:center; justify-content:center;
-  color:var(--ink-soft); font-size:0.9rem; margin-left:0.25rem;
+  width:34px; height:34px; border-radius:10px; border:none;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:0.95rem; margin-left:0.35rem; transition: all 0.2s ease;
 }
-.action-btn:hover{ background:rgba(14,165,163,0.1); color:var(--teal-1); }
-.action-btn.danger:hover{ background:rgba(255,122,110,0.12); color:#e0453a; }
+
+.action-btn.info {
+  background: rgba(14,165,163,0.1); color: var(--teal-1);
+}
+.action-btn.info:hover {
+  background: var(--teal-1); color: #fff; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(14,165,163,0.25);
+}
+
+.action-btn.edit {
+  background: rgba(59,130,246,0.1); color: var(--blue-1);
+}
+.action-btn.edit:hover {
+  background: var(--blue-1); color: #fff; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59,130,246,0.25);
+}
+
+.action-btn.danger {
+  background: rgba(239,68,68,0.1); color: #ef4444;
+}
+.action-btn.danger:hover {
+  background: #ef4444; color: #fff; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(239,68,68,0.25);
+}
 
 /* ===== Mobile card list ===== */
 .site-card-mobile{

@@ -4,6 +4,7 @@ import { PageProps } from '@/types';
 import Sidebar from './Partials/Sidebar';
 import Topbar from './Partials/Topbar';
 import Footer from './Partials/Footer';
+import DynamicToast from '@/Components/DynamicToast';
 import '../../css/global.css';
 import '../global.js';
 
@@ -54,6 +55,7 @@ export default function Authenticated({
                     <Footer />
                 </div>
             </div>
+            <DynamicToast />
         </>
     );
 }

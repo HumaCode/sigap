@@ -965,3 +965,38 @@ Echo.private(`site.${siteId}`)
 - **Retensi data**: `uptime_checks` diagregasi harian setelah 90 hari; `content_snapshots` raw content hanya disimpan saat ada perubahan.
 - **False positive handling**: sediakan tombol "Tandai sebagai false positive" di incident agar dictionary/rule bisa disesuaikan dari waktu ke waktu.
 - **Multi-tenant ready**: struktur `created_by`/role di `users` memungkinkan tiap OPD punya akun sendiri untuk melihat situs mereka saja (scope via policy).
+
+---
+
+## 13. Progress Perkembangan (Task List)
+
+### Kamus Kata Kunci (Keyword Dictionary)
+- [x] Ganti dialog `confirm()` bawaan browser dengan custom `ConfirmModal` untuk hapus kata kunci.
+- [x] Tampilkan efek spinner dan tulisan *"Sedang proses..."* saat menyimpan data.
+- [x] Tampilkan notifikasi toast custom (`DynamicToast`) setelah operasi berhasil.
+- [x] Update tabel data secara instan tanpa reload halaman penuh (*full page reload*).
+- [x] Tambahkan tombol reload di breadcrumb untuk mereset filter dan pencarian secara dinamis.
+- [x] Integrasikan komponen `EmptyState` yang menarik saat tidak ada kata kunci yang cocok.
+
+### Komponen State Kosong (Empty State)
+- [x] Buat komponen `EmptyState` kustom yang modern dengan ikon dan tombol aksi.
+- [x] Implementasikan komponen `EmptyState` di halaman **Daftar Situs**.
+- [x] Implementasikan komponen `EmptyState` di halaman **Laporan Uptime**.
+- [x] Implementasikan komponen `EmptyState` di halaman **Insiden Keamanan**.
+- [x] Implementasikan komponen `EmptyState` di halaman **Log Deteksi Konten**.
+
+### Keamanan Situs (Site Security) - *Fase 4*
+- [x] Migrasi database dan modeling tabel `site_securities`.
+- [x] Struktur backend lengkap (Controller, Service, Repository, Resource, Request).
+- [x] Implementasikan pembagian halaman di frontend menggunakan `PaginateResource`.
+- [x] Desain halaman interaktif premium menggunakan React (`KeamananSitus/Index.tsx`) dan CSS terpisah (`security.css`).
+- [x] Tambahkan accordion untuk detail pemeriksaan keamanan (`Partials/SecurityRow.tsx`).
+- [x] Tambahkan tombol *"Pindai Ulang Semua"* di toolbar utama halaman.
+- [x] Tambahkan tombol *"Pindai Ulang"* per website langsung di baris header (tanpa perlu membuka/expand accordion).
+- [x] Integrasikan `EmptyState` jika data pencarian/filter kosong.
+- [ ] **Implementasi mesin pemindai riil (*Actual Scan Engine*)** pada `SiteSecurityService` menggunakan HTTP client untuk memeriksa header CSP/HSTS, serta probe file `.env`/`.git` yang terekspos secara nyata.
+
+### Real-time & Fitur Tambahan - *Fase 5 & 6*
+- [ ] **Notifikasi Telegram/Email**: Integrasikan ke akun PIC instansi saat status website down/kritis.
+- [ ] **Laravel Reverb (WebSocket)**: Broadcast status monitoring ke dashboard secara realtime.
+- [ ] **Bukti Visual (Screenshot)**: Hubungkan modul screenshot (Browsershot) saat insiden terdeteksi.

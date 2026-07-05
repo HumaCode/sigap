@@ -125,18 +125,6 @@ export default function Index({ securities, filters, stats }: IndexProps) {
         });
     };
 
-    const handleScanSingle = (siteId: string) => {
-        router.post(route('security.scan'), { site_id: siteId }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast.success('Pindaian Selesai', 'Situs berhasil dipindai ulang.');
-            },
-            onError: () => {
-                toast.error('Gagal', 'Gagal memindai ulang situs.');
-            }
-        });
-    };
-
     return (
         <AuthenticatedLayout>
             <Head title="Keamanan Situs" />
@@ -269,7 +257,6 @@ export default function Index({ securities, filters, stats }: IndexProps) {
                             <SecurityRow 
                                 key={security.id} 
                                 security={security} 
-                                onScanSingle={handleScanSingle}
                             />
                         ))
                     ) : (

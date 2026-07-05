@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { router } from '@inertiajs/react';
+import { toast } from '@/Components/DynamicToast';
 
 interface CheckItem {
     key: string;
@@ -24,11 +26,25 @@ interface SecurityRowProps {
         checks: CheckItem[];
         last_scanned_at: string;
     };
-    onScanSingle: (siteId: string) => void;
 }
 
-export default function SecurityRow({ security, onScanSingle }: SecurityRowProps) {
+export default function SecurityRow({ security }: SecurityRowProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
+
+    const handleScan = () => {
+        setIsScanning(true);
+        router.post(route('security.scan'), { site_id: security.site_id }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Pindaian Selesai', `Situs ${security.site.name} berhasil dipindai ulang.`);
+            },
+            onError: () => {
+                toast.error('Gagal', `Gagal memindai ulang situs ${security.site.name}.`);
+            },
+            onFinish: () => setIsScanning(false)
+        });
+    };
 
     const getCategoryIcon = (category: string, name: string) => {
         const nameLower = name.toLowerCase();
@@ -107,6 +123,22 @@ export default function SecurityRow({ security, onScanSingle }: SecurityRowProps
                 </div>
 
                 {getIssueBadge()}
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleScan();
+                    }}
+                    disabled={isScanning}
+                    className="btn-scan-single ms-2"
+                    title="Pindai Ulang Situs Ini"
+                >
+                    {isScanning ? (
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '14px', height: '14px', borderWidth: '1.5px', color: 'var(--teal-1)' }}></span>
+                    ) : (
+                        <i className="bi bi-arrow-repeat"></i>
+                    )}
+                </button>
                 
                 <i className="bi bi-chevron-down chevron-toggle ms-2"></i>
             </div>
@@ -121,12 +153,17 @@ export default function SecurityRow({ security, onScanSingle }: SecurityRowProps
                         <button 
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onScanSingle(security.site_id);
+                                handleScan();
                             }}
+                            disabled={isScanning}
                             className="btn btn-sm btn-light border-0 d-flex align-items-center gap-1 py-1 px-2"
                             style={{ fontSize: '0.72rem', color: 'var(--teal-1)', fontWeight: 600, background: 'rgba(14,165,163,0.06)', borderRadius: '6px' }}
                         >
-                            <i className="bi bi-arrow-repeat"></i> Pindai Ulang
+                            {isScanning ? (
+                                <><span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style={{ width: '12px', height: '12px' }}></span> Memindai...</>
+                            ) : (
+                                <><i className="bi bi-arrow-repeat"></i> Pindai Ulang</>
+                            )}
                         </button>
                     </div>
 

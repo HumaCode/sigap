@@ -15,6 +15,8 @@ use App\Repositories\Interfaces\DetectionLogRepositoryInterface;
 use App\Repositories\DetectionLogRepository;
 use App\Repositories\Interfaces\KeywordRepositoryInterface;
 use App\Repositories\KeywordRepository;
+use App\Repositories\Interfaces\SiteSecurityRepositoryInterface;
+use App\Repositories\SiteSecurityRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UptimeReportRepositoryInterface::class, UptimeReportRepository::class);
         $this->app->bind(DetectionLogRepositoryInterface::class, DetectionLogRepository::class);
         $this->app->bind(KeywordRepositoryInterface::class, KeywordRepository::class);
+        $this->app->bind(SiteSecurityRepositoryInterface::class, SiteSecurityRepository::class);
     }
 
     /**

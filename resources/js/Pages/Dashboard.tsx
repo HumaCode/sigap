@@ -1,17 +1,51 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import '../../css/dashboard.css';
 import { PageProps } from '@/types';
 
 export default function Dashboard() {
     const user = usePage<PageProps>().props.auth.user;
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const formattedDate = currentTime.toLocaleDateString('id-ID', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const formattedTime = currentTime.toLocaleTimeString('id-ID', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
     
     return (
         <AuthenticatedLayout>
             <Head title="Dashboard" />
 
-            <div className="page-title">Selamat siang, {user.name.split(' ')[0]} 👋</div>
-            <p className="page-sub">Berikut ringkasan status monitoring seluruh situs instansi hari ini.</p>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <div className="page-title d-flex align-items-center gap-2 mb-2" style={{ margin: 0 }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
+                            <i className="bi bi-grid-1x2-fill"></i>
+                        </div>
+                        Selamat siang, {user.name.split(' ')[0]} 👋
+                    </div>
+                    <p className="page-sub mb-0 ms-1">Berikut ringkasan status monitoring seluruh situs instansi hari ini.</p>
+                </div>
+                <div className="glass-card" style={{ padding: '0.6rem 1.2rem', borderRadius: '14px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue-1)', fontSize: '1.2rem' }}>
+                        <i className="bi bi-clock-history"></i>
+                    </div>
+                    <div className="text-end">
+                        <div style={{ fontWeight: 700, color: 'var(--ink-dark)', fontSize: '1.1rem', letterSpacing: '0.02em' }}>{formattedTime}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--ink-soft)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{formattedDate}</div>
+                    </div>
+                </div>
+            </div>
 
             {/* Stat cards */}
             <div className="row g-3 mb-3">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
+import { toast } from '@/Components/DynamicToast';
 
 interface DetailIncidentModalProps {
     show: boolean;
@@ -35,9 +36,18 @@ export default function DetailIncidentModal({ show, onClose, incident }: DetailI
             preserveScroll: true,
             onSuccess: () => {
                 setIsUpdating(false);
+                let statusText = 'Diperbarui';
+                if (status === 'false_positive') statusText = 'Bukan Insiden';
+                if (status === 'acknowledged') statusText = 'Sedang Ditinjau';
+                if (status === 'resolved') statusText = 'Selesai';
+                
+                toast.success('Status Diperbarui', `Insiden berhasil ditandai sebagai ${statusText}.`);
                 onClose();
             },
-            onError: () => setIsUpdating(false)
+            onError: () => {
+                setIsUpdating(false);
+                toast.error('Gagal', 'Terjadi kesalahan saat memperbarui status insiden.');
+            }
         });
     };
 

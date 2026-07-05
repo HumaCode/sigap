@@ -27,7 +27,7 @@ class IncidentRepository implements IncidentRepositoryInterface
         return $query->latest()->paginate($perPage);
     }
 
-    public function findById(int $id)
+    public function findById(string $id)
     {
         return Incident::with('site')->findOrFail($id);
     }
@@ -37,14 +37,14 @@ class IncidentRepository implements IncidentRepositoryInterface
         return Incident::create($data);
     }
 
-    public function update(int $id, array $data)
+    public function update(string $id, array $data)
     {
         $incident = $this->findById($id);
         $incident->update($data);
         return $incident;
     }
 
-    public function delete(int $id)
+    public function delete(string $id)
     {
         $incident = $this->findById($id);
         return $incident->delete();

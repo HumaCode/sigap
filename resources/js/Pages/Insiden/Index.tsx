@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
 import { useState } from 'react';
@@ -252,33 +252,36 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                     )}
                 </div>
 
-                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 px-3 py-3" style={{ borderTop: '1px solid var(--line)' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--ink-faint)' }}>Menampilkan {incidents.data.length} dari {incidents.meta.total} insiden</span>
-                    {/* Pagination Links */}
-                    <div className="d-flex gap-1">
-                        {incidents.meta.links.map((link: any, index: number) => {
-                            if (link.url === null) {
+                {/* Pagination */}
+                {incidents.meta && incidents.meta.last_page > 1 && (
+                    <div className="pagination-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem 1.5rem', borderTop: '1px solid var(--line)' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--ink-faint)' }}>Menampilkan {incidents.meta.from} - {incidents.meta.to} dari {incidents.meta.total} insiden</span>
+                        <div className="d-flex gap-1">
+                            {incidents.meta.links && incidents.meta.links.map((link: any, index: number) => {
+                                if (link.label === '...') {
+                                    return (
+                                        <span key={index} className="pg-btn" style={{ background: 'transparent', border: 'none', cursor: 'default', color: 'var(--ink-soft)' }}>
+                                            ...
+                                        </span>
+                                    );
+                                }
+                                
                                 return (
-                                    <button
-                                        key={index}
-                                        className="btn btn-sm btn-light disabled"
-                                        style={{ fontSize: '0.8rem', border: '1px solid var(--line)', background: 'transparent' }}
+                                    <Link 
+                                        key={index} 
+                                        href={link.url || '#'}
+                                        className={`pg-btn ${link.active ? 'active' : ''} ${!link.url ? 'opacity-50' : ''}`}
+                                        style={!link.url ? { pointerEvents: 'none' } : {}}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
+                                        preserveState
+                                        preserveScroll
+                                        data={{ search: searchTerm, status: statusFilter }}
                                     />
                                 );
-                            }
-                            return (
-                                <button
-                                    key={index}
-                                    className={`btn btn-sm ${link.active ? 'btn-primary' : 'btn-light'}`}
-                                    style={{ fontSize: '0.8rem', border: '1px solid var(--line)', background: link.active ? 'var(--teal-1)' : 'transparent', color: link.active ? '#fff' : 'var(--ink-soft)', borderColor: link.active ? 'var(--teal-1)' : 'var(--line)' }}
-                                    onClick={() => router.get(link.url, { search: searchTerm, status: statusFilter }, { preserveState: true })}
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                />
-                            );
-                        })}
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Modals */}

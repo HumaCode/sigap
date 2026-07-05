@@ -83,8 +83,13 @@ export default function Index(props: any) {
             
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
                 <div>
-                    <div className="page-title">Daftar Situs</div>
-                    <p className="page-sub mb-0">Kelola seluruh situs OPD yang dipantau — {sites.meta ? sites.meta.total : 0} situs terdaftar.</p>
+                    <div className="page-title d-flex align-items-center gap-2 mb-2" style={{ margin: 0 }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
+                            <i className="bi bi-hdd-network"></i>
+                        </div>
+                        Daftar Situs
+                    </div>
+                    <p className="page-sub mb-0 ms-1">Kelola seluruh situs OPD yang dipantau — {sites.meta ? sites.meta.total : 0} situs terdaftar.</p>
                 </div>
 
                 <div className="d-flex align-items-center gap-3">

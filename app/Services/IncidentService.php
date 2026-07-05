@@ -18,7 +18,7 @@ class IncidentService
         return $this->repository->getPaginatedIncidents($perPage, $filters);
     }
 
-    public function getIncidentById(int $id)
+    public function getIncidentById(string $id)
     {
         return $this->repository->findById($id);
     }
@@ -28,12 +28,12 @@ class IncidentService
         return $this->repository->create($data);
     }
 
-    public function updateIncident(int $id, array $data)
+    public function updateIncident(string $id, array $data)
     {
         return $this->repository->update($id, $data);
     }
 
-    public function deleteIncident(int $id)
+    public function deleteIncident(string $id)
     {
         return $this->repository->delete($id);
     }

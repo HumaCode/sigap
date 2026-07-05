@@ -994,7 +994,7 @@ Echo.private(`site.${siteId}`)
 - [x] Tambahkan tombol *"Pindai Ulang Semua"* di toolbar utama halaman.
 - [x] Tambahkan tombol *"Pindai Ulang"* per website langsung di baris header (tanpa perlu membuka/expand accordion).
 - [x] Integrasikan `EmptyState` jika data pencarian/filter kosong.
-- [ ] **Implementasi mesin pemindai riil (*Actual Scan Engine*)** pada `SiteSecurityService` menggunakan HTTP client untuk memeriksa header CSP/HSTS, serta probe file `.env`/`.git` yang terekspos secara nyata.
+- [x] **Implementasi mesin pemindai riil (*Actual Scan Engine*)** pada `SiteSecurityService` menggunakan HTTP client untuk memeriksa header CSP/HSTS, serta probe file `.env`/`.git` yang terekspos secara nyata.
 
 ### Real-time & Fitur Tambahan - *Fase 5 & 6*
 - [ ] **Notifikasi Telegram/Email**: Integrasikan ke akun PIC instansi saat status website down/kritis.

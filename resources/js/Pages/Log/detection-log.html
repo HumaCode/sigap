@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGAP Web — Log Deteksi Konten</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+:root{
+  --ink: #0f2a3f;
+  --ink-soft: #4a6478;
+  --ink-faint: #7c93a3;
+  --teal-1: #0ea5a3;
+  --teal-2: #22c1a4;
+  --blue-1: #3b82f6;
+  --blue-2: #60a5fa;
+  --sun: #ffb648;
+  --coral: #ff7a6e;
+  --violet: #8b7bf0;
+  --card-bg: rgba(255,255,255,0.78);
+  --card-border: rgba(255,255,255,0.9);
+  --line: rgba(15,42,63,0.08);
+  --sidebar-w: 264px;
+}
+*{box-sizing:border-box;}
+html,body{ margin:0; padding:0; font-family:'Poppins', sans-serif; color:var(--ink); }
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 6% 8%, rgba(34,193,164,0.14), transparent 38%),
+    radial-gradient(circle at 96% 4%, rgba(59,130,246,0.12), transparent 40%),
+    radial-gradient(circle at 92% 92%, rgba(255,182,72,0.12), transparent 42%),
+    radial-gradient(circle at 4% 90%, rgba(255,122,110,0.10), transparent 38%),
+    linear-gradient(160deg, #f5fbfa 0%, #eef6fb 45%, #f8f6ff 100%);
+  overflow-x:hidden;
+}
+.ambient{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.blob{ position:absolute; border-radius:50%; filter:blur(60px); opacity:0.45; animation:drift 28s ease-in-out infinite; }
+.blob-a{ width:420px;height:420px; top:-140px; left:-120px; background:radial-gradient(circle,var(--teal-2),transparent 70%); }
+.blob-b{ width:380px;height:380px; bottom:-160px; right:-100px; background:radial-gradient(circle,var(--blue-2),transparent 70%); animation-delay:-8s; }
+@keyframes drift{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(24px,-18px) scale(1.05); } }
+.grid-texture{
+  position:absolute; inset:0;
+  background-image: radial-gradient(rgba(15,42,63,0.07) 1.3px, transparent 1.3px);
+  background-size:28px 28px;
+  mask-image: radial-gradient(ellipse 65% 60% at 50% 30%, black 30%, transparent 85%);
+}
+.float-deco{ position:absolute; opacity:0.09; color:var(--ink); animation:floaty 10s ease-in-out infinite; }
+.fd-1{ top:8%; left:74%; font-size:2.4rem; color:var(--teal-1); }
+.fd-2{ top:60%; left:4%; font-size:2rem; color:var(--blue-1); animation-delay:-3s; }
+.fd-3{ top:85%; left:70%; font-size:1.8rem; color:var(--sun); animation-delay:-5s; }
+.fd-4{ top:30%; left:92%; font-size:1.6rem; color:var(--coral); animation-delay:-2s; }
+@keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-16px) rotate(6deg); } }
+@media (max-width:991.98px){ .float-deco{ display:none; } }
+
+.app-shell{ position:relative; z-index:1; display:flex; min-height:100vh; }
+.sidebar{
+  width:var(--sidebar-w); flex-shrink:0;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--line);
+  padding: 1.5rem 1.15rem;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+  display:flex; flex-direction:column;
+  transition: transform .3s ease;
+}
+.brand-mini{ display:flex; align-items:center; gap:0.65rem; margin-bottom:2rem; padding:0 0.35rem; }
+.brand-mini .badge-icon{
+  width:40px; height:40px; border-radius:12px;
+  background:linear-gradient(135deg,var(--teal-1),var(--blue-1));
+  display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.15rem; flex-shrink:0;
+}
+.brand-mini strong{ font-size:1.05rem; letter-spacing:-0.01em; }
+.brand-mini span{ font-size:0.7rem; color:var(--ink-soft); display:block; }
+.nav-section-label{ font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); font-weight:600; margin:1.1rem 0 0.5rem 0.5rem; }
+.nav-item-custom{
+  display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0.75rem; border-radius:12px;
+  color:var(--ink-soft); font-size:0.87rem; font-weight:500; text-decoration:none; margin-bottom:0.2rem;
+  transition: background .18s ease, color .18s ease; position:relative;
+}
+.nav-item-custom i{ font-size:1.05rem; width:20px; text-align:center; }
+.nav-item-custom:hover{ background:rgba(14,165,163,0.08); color:var(--ink); }
+.nav-item-custom.active{
+  background:linear-gradient(120deg, rgba(14,165,163,0.14), rgba(59,130,246,0.12));
+  color:var(--teal-1); font-weight:600;
+}
+.nav-item-custom.active::before{
+  content:""; position:absolute; left:-1.15rem; top:50%; transform:translateY(-50%);
+  width:3px; height:60%; border-radius:3px; background:var(--teal-1);
+}
+.nav-badge{ margin-left:auto; background:var(--coral); color:#fff; font-size:0.68rem; font-weight:600; padding:0.1rem 0.45rem; border-radius:999px; }
+.sidebar-footer{ margin-top:auto; padding-top:1rem; border-top:1px solid var(--line); }
+.pic-mini{ display:flex; align-items:center; gap:0.6rem; }
+.avatar-mini{
+  width:38px;height:38px;border-radius:11px; flex-shrink:0;
+  background:linear-gradient(135deg,var(--sun),var(--coral));
+  display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:0.85rem;
+}
+.pic-mini small{ display:block; color:var(--ink-faint); font-size:0.72rem; }
+.main-col{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar{
+  position:sticky; top:0; z-index:10;
+  background:rgba(245,251,250,0.7);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom:1px solid var(--line); padding:0.9rem 1.5rem; display:flex; align-items:center; gap:1rem;
+}
+.btn-burger{
+  display:none; border:none; background:rgba(15,42,63,0.06); width:40px; height:40px;
+  border-radius:11px; align-items:center; justify-content:center; color:var(--ink); font-size:1.1rem;
+}
+.search-box{ position:relative; flex:1; max-width:360px; }
+.search-box input{
+  border-radius:12px; border:1.5px solid var(--line); padding:0.55rem 1rem 0.55rem 2.5rem;
+  font-size:0.86rem; background:rgba(255,255,255,0.65); width:100%; font-family:'Poppins',sans-serif;
+}
+.search-box input:focus{ outline:none; border-color:var(--teal-1); box-shadow:0 0 0 4px rgba(14,165,163,0.12); background:#fff; }
+.search-box i{ position:absolute; left:0.85rem; top:50%; transform:translateY(-50%); color:var(--ink-faint); }
+.topbar-actions{ display:flex; align-items:center; gap:0.6rem; margin-left:auto; }
+.icon-btn{
+  width:42px; height:42px; border-radius:12px; border:1px solid var(--line);
+  background:rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center;
+  color:var(--ink-soft); position:relative; font-size:1.05rem; flex-shrink:0;
+}
+.icon-btn .dot-alert{ position:absolute; top:6px; right:7px; width:8px; height:8px; border-radius:50%; background:var(--coral); box-shadow:0 0 0 2px #fff; }
+.status-live{
+  display:flex; align-items:center; gap:0.5rem; background: rgba(14,165,163,0.1); border:1px solid rgba(14,165,163,0.25);
+  border-radius:999px; padding:0.4rem 0.85rem; font-size:0.78rem; font-weight:500; color:var(--teal-1); white-space:nowrap;
+}
+.live-dot{ width:7px; height:7px; border-radius:50%; background:var(--teal-1); animation:pulse 1.8s infinite; }
+@keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(14,165,163,0.55); } 70%{ box-shadow:0 0 0 7px rgba(14,165,163,0); } 100%{ box-shadow:0 0 0 0 rgba(14,165,163,0); } }
+.content-area{ padding:1.5rem; flex:1; }
+.page-title{ font-weight:700; font-size:1.45rem; letter-spacing:-0.01em; margin-bottom:0.15rem; }
+.page-sub{ color:var(--ink-soft); font-size:0.88rem; font-weight:300; margin-bottom:1.6rem; }
+.glass-card{
+  background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px;
+  box-shadow:0 20px 45px -24px rgba(15,42,63,0.2);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+
+/* ===== Stat pills ===== */
+.stat-pill{ padding:1rem 1.2rem; display:flex; align-items:center; gap:0.8rem; }
+.stat-pill .icon-circle{ width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; color:#fff; flex-shrink:0; }
+.stat-pill .val{ font-weight:700; font-size:1.15rem; line-height:1; }
+.stat-pill .lbl{ font-size:0.76rem; color:var(--ink-soft); }
+
+/* ===== Toolbar ===== */
+.toolbar{ padding:1.1rem 1.3rem; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; }
+.search-local{ position:relative; flex:1; min-width:200px; max-width:300px; }
+.search-local input{
+  border-radius:12px; border:1.5px solid var(--line); padding:0.6rem 1rem 0.6rem 2.4rem;
+  font-size:0.85rem; width:100%; background:rgba(255,255,255,0.6); font-family:'Poppins',sans-serif;
+}
+.search-local input:focus{ outline:none; border-color:var(--teal-1); box-shadow:0 0 0 4px rgba(14,165,163,0.12); background:#fff; }
+.search-local i{ position:absolute; left:0.85rem; top:50%; transform:translateY(-50%); color:var(--ink-faint); }
+.filter-chip{
+  font-size:0.78rem; padding:0.48rem 0.9rem; border-radius:12px; border:1.5px solid var(--line);
+  background:rgba(255,255,255,0.55); color:var(--ink-soft); font-weight:500;
+  display:flex; align-items:center; gap:0.4rem; cursor:pointer; transition:.15s ease; white-space:nowrap;
+}
+.filter-chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+.filter-chip:hover:not(.active){ background:rgba(14,165,163,0.08); color:var(--ink); }
+
+/* ===== Live feed indicator ===== */
+.live-feed-header{
+  display:flex; align-items:center; gap:0.6rem; padding:0.9rem 1.3rem; border-bottom:1px solid var(--line);
+}
+.scan-pulse{ position:relative; width:10px; height:10px; }
+.scan-pulse::before{
+  content:""; position:absolute; inset:0; border-radius:50%; background:var(--teal-1);
+}
+.scan-pulse::after{
+  content:""; position:absolute; inset:-5px; border-radius:50%; border:2px solid var(--teal-1);
+  animation: radar 1.6s ease-out infinite;
+}
+@keyframes radar{ 0%{ transform:scale(0.4); opacity:1; } 100%{ transform:scale(1.8); opacity:0; } }
+
+/* ===== Detection log item ===== */
+.log-item{
+  display:flex; gap:1rem; padding:1.05rem 1.3rem; border-bottom:1px solid var(--line);
+  transition: background .8s ease, opacity .5s ease;
+}
+.log-item:last-child{ border-bottom:none; }
+.log-item.new-entry{ background: rgba(14,165,163,0.08); }
+.log-icon{
+  width:42px; height:42px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  font-size:1.05rem; color:#fff;
+}
+.log-title{ font-weight:600; font-size:0.88rem; margin:0 0 0.15rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+.cat-tag{
+  font-size:0.66rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; text-transform:uppercase; letter-spacing:0.03em;
+}
+.cat-judol{ background:rgba(255,122,110,0.16); color:#c8332a; }
+.cat-obat{ background:rgba(139,123,240,0.14); color:var(--violet); }
+.cat-phising{ background:rgba(255,182,72,0.18); color:#a3650a; }
+.cat-hidden{ background:rgba(59,130,246,0.14); color:var(--blue-1); }
+.cat-newpage{ background:rgba(14,165,163,0.12); color:var(--teal-1); }
+
+.log-context{
+  font-family:'DM Mono', monospace; font-size:0.76rem; background:rgba(15,42,63,0.04);
+  border:1px solid var(--line); border-radius:8px; padding:0.45rem 0.7rem; color:var(--ink-soft);
+  margin:0.4rem 0; overflow-x:auto; white-space:nowrap;
+}
+.log-context mark{ background:rgba(255,122,110,0.3); color:#c8332a; border-radius:3px; padding:0 2px; font-weight:600; }
+.log-meta{ display:flex; flex-wrap:wrap; gap:0.9rem; font-size:0.73rem; color:var(--ink-faint); }
+.log-meta span{ display:flex; align-items:center; gap:0.3rem; }
+.log-right{ display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem; flex-shrink:0; }
+.status-badge{ font-size:0.68rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:999px; white-space:nowrap; }
+.st-new{ background:rgba(255,122,110,0.13); color:#e0453a; }
+.st-reviewed{ background:rgba(255,182,72,0.16); color:#b3720a; }
+.st-blocked{ background:rgba(15,42,63,0.08); color:var(--ink-soft); }
+.st-false{ background:rgba(124,147,163,0.14); color:var(--ink-faint); }
+.log-actions{ display:flex; gap:0.3rem; }
+.mini-action{
+  width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:rgba(255,255,255,0.6);
+  display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:0.8rem;
+}
+.mini-action:hover{ background:rgba(14,165,163,0.1); color:var(--teal-1); }
+
+/* ===== Responsive ===== */
+@media (max-width: 991.98px){
+  .sidebar{ position:fixed; left:0; top:0; z-index:1050; transform:translateX(-100%); box-shadow:0 0 40px rgba(0,0,0,0.15); }
+  .sidebar.show{ transform:translateX(0); }
+  .btn-burger{ display:flex; }
+  .sidebar-backdrop{ display:none; position:fixed; inset:0; background:rgba(15,42,63,0.35); z-index:1040; }
+  .sidebar-backdrop.show{ display:block; }
+  .search-box{ max-width:none; }
+  .topbar{ padding:0.85rem 1rem; }
+}
+@media (max-width: 767.98px){
+  .content-area{ padding:1rem; }
+  .page-title{ font-size:1.25rem; }
+  .search-box{ display:none; }
+  .toolbar{ padding:1rem; }
+  .log-item{ padding:1rem; flex-wrap:wrap; }
+  .log-right{ flex-direction:row; align-items:center; width:100%; justify-content:space-between; margin-top:0.5rem; }
+  .log-context{ white-space:pre-wrap; }
+}
+@media (max-width: 420px){
+  .topbar-actions .status-live span{ display:none; }
+  .status-live{ padding:0.4rem 0.6rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="ambient">
+  <div class="blob blob-a"></div>
+  <div class="blob blob-b"></div>
+  <div class="grid-texture"></div>
+  <div class="float-deco fd-1"><i class="bi bi-shield-check"></i></div>
+  <div class="float-deco fd-2"><i class="bi bi-activity"></i></div>
+  <div class="float-deco fd-3"><i class="bi bi-broadcast"></i></div>
+  <div class="float-deco fd-4"><i class="bi bi-globe2"></i></div>
+</div>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand-mini">
+      <div class="badge-icon"><i class="bi bi-shield-lock-fill"></i></div>
+      <div>
+        <strong>SIGAP Web</strong>
+        <span>Monitoring Situs Instansi</span>
+      </div>
+    </div>
+
+    <div class="nav-section-label">Menu Utama</div>
+    <a href="dashboard.html" class="nav-item-custom"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+    <a href="sites.html" class="nav-item-custom"><i class="bi bi-hdd-network"></i> Daftar Situs</a>
+    <a href="incidents.html" class="nav-item-custom"><i class="bi bi-exclamation-octagon"></i> Insiden <span class="nav-badge">7</span></a>
+    <a href="uptime-report.html" class="nav-item-custom"><i class="bi bi-graph-up-arrow"></i> Laporan Uptime</a>
+
+    <div class="nav-section-label">Deteksi</div>
+    <a href="#" class="nav-item-custom active"><i class="bi bi-bug-fill"></i> Log Deteksi Konten</a>
+    <a href="#" class="nav-item-custom"><i class="bi bi-journal-code"></i> Kamus Kata Kunci</a>
+    <a href="#" class="nav-item-custom"><i class="bi bi-shield-exclamation"></i> Keamanan Situs</a>
+
+    <div class="nav-section-label">Sistem</div>
+    <a href="#" class="nav-item-custom"><i class="bi bi-people"></i> Pengguna &amp; Peran</a>
+    <a href="#" class="nav-item-custom"><i class="bi bi-bell"></i> Notifikasi</a>
+    <a href="#" class="nav-item-custom"><i class="bi bi-gear"></i> Pengaturan</a>
+
+    <div class="sidebar-footer">
+      <div class="pic-mini">
+        <div class="avatar-mini">FL</div>
+        <div>
+          <span style="font-size:0.85rem; font-weight:600;">fLINK</span>
+          <small>Admin OPD Kominfo</small>
+        </div>
+        <i class="bi bi-box-arrow-right ms-auto" style="color:var(--ink-faint); cursor:pointer;"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-col">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <button class="btn-burger" id="burgerBtn"><i class="bi bi-list"></i></button>
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Cari situs, insiden, kata kunci...">
+      </div>
+      <div class="topbar-actions">
+        <div class="status-live"><span class="live-dot"></span><span>Realtime aktif</span></div>
+        <button class="icon-btn"><i class="bi bi-bell"></i><span class="dot-alert"></span></button>
+        <button class="icon-btn d-none d-sm-flex"><i class="bi bi-question-circle"></i></button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-area">
+      <div class="page-title">Log Deteksi Konten</div>
+      <p class="page-sub">Riwayat mesin pemindai mendeteksi sisipan kata kunci, tautan, dan konten mencurigakan.</p>
+
+      <!-- Stat pills -->
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="glass-card stat-pill">
+            <div class="icon-circle" style="background:linear-gradient(135deg,var(--teal-1),var(--teal-2));"><i class="bi bi-search"></i></div>
+            <div><div class="val">4.812</div><div class="lbl">Halaman dipindai hari ini</div></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="glass-card stat-pill">
+            <div class="icon-circle" style="background:linear-gradient(135deg,var(--coral),#ff9d6e);"><i class="bi bi-bug"></i></div>
+            <div><div class="val">14</div><div class="lbl">Deteksi ditemukan</div></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="glass-card stat-pill">
+            <div class="icon-circle" style="background:linear-gradient(135deg,var(--violet),#a78bfa);"><i class="bi bi-capsule"></i></div>
+            <div><div class="val">5</div><div class="lbl">Kategori obat terlarang</div></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="glass-card stat-pill">
+            <div class="icon-circle" style="background:linear-gradient(135deg,var(--sun),#ff9d6e);"><i class="bi bi-dice-5"></i></div>
+            <div><div class="val">7</div><div class="lbl">Kategori judi online</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <!-- Live feed header -->
+        <div class="live-feed-header">
+          <span class="scan-pulse"></span>
+          <span style="font-size:0.85rem; font-weight:500; color:var(--ink-soft);">Pemindaian berjalan otomatis — entri baru akan muncul di atas secara real-time</span>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-local">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Cari kata kunci, URL, situs...">
+          </div>
+          <div class="filter-chip active" data-filter="all">Semua</div>
+          <div class="filter-chip" data-filter="judol"><span style="width:6px;height:6px;border-radius:50%;background:#c8332a;display:inline-block;"></span>Judi Online</div>
+          <div class="filter-chip" data-filter="obat"><span style="width:6px;height:6px;border-radius:50%;background:var(--violet);display:inline-block;"></span>Obat Terlarang</div>
+          <div class="filter-chip" data-filter="hidden"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue-1);display:inline-block;"></span>Teks Tersembunyi</div>
+          <div class="filter-chip" data-filter="newpage"><span style="width:6px;height:6px;border-radius:50%;background:var(--teal-1);display:inline-block;"></span>Halaman Baru</div>
+        </div>
+
+        <!-- Log feed -->
+        <div id="logFeed">
+
+          <div class="log-item">
+            <div class="log-icon" style="background:linear-gradient(135deg,#ff7a6e,#ff9d6e);"><i class="bi bi-dice-5"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <p class="log-title">Kata kunci judi online terdeteksi <span class="cat-tag cat-judol">Judi Online</span></p>
+              <div class="log-context">...kumpulan berita resmi tahun 2023. <mark>situs slot gacor maxwin daftar sekarang</mark> juga tersedia untuk...</div>
+              <div class="log-meta">
+                <span><i class="bi bi-globe2"></i> PPID Kota Pekalongan</span>
+                <span><i class="bi bi-link-45deg"></i> /berita/arsip-2023</span>
+                <span><i class="bi bi-clock"></i> 2 menit lalu</span>
+              </div>
+            </div>
+            <div class="log-right">
+              <span class="status-badge st-new">Baru</span>
+              <div class="log-actions">
+                <button class="mini-action" title="Blokir"><i class="bi bi-slash-circle"></i></button>
+                <button class="mini-action" title="Bukan spam"><i class="bi bi-flag"></i></button>
+                <button class="mini-action" title="Lihat detail"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-item">
+            <div class="log-icon" style="background:linear-gradient(135deg,var(--violet),#a78bfa);"><i class="bi bi-capsule"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <p class="log-title">Promosi obat terlarang pada teks tersembunyi <span class="cat-tag cat-obat">Obat Terlarang</span></p>
+              <div class="log-context">&lt;span style="display:none"&gt;<mark>jual obat aborsi asli cod</mark> hubungi wa...&lt;/span&gt;</div>
+              <div class="log-meta">
+                <span><i class="bi bi-globe2"></i> Portal Utama Kota Pekalongan</span>
+                <span><i class="bi bi-link-45deg"></i> /artikel/2021/kesehatan</span>
+                <span><i class="bi bi-clock"></i> 18 menit lalu</span>
+              </div>
+            </div>
+            <div class="log-right">
+              <span class="status-badge st-reviewed">Ditinjau</span>
+              <div class="log-actions">
+                <button class="mini-action" title="Blokir"><i class="bi bi-slash-circle"></i></button>
+                <button class="mini-action" title="Bukan spam"><i class="bi bi-flag"></i></button>
+                <button class="mini-action" title="Lihat detail"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-item">
+            <div class="log-icon" style="background:linear-gradient(135deg,var(--blue-1),var(--blue-2));"><i class="bi bi-eye-slash"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <p class="log-title">Teks tersembunyi (font-size: 0) ditemukan <span class="cat-tag cat-hidden">Teks Tersembunyi</span></p>
+              <div class="log-context">&lt;p style="<mark>font-size:0;color:#fff</mark>"&gt;bandar togel terpercaya 2026&lt;/p&gt;</div>
+              <div class="log-meta">
+                <span><i class="bi bi-globe2"></i> SIAKAD Terpadu</span>
+                <span><i class="bi bi-link-45deg"></i> /halaman-arsip/lama</span>
+                <span><i class="bi bi-clock"></i> 34 menit lalu</span>
+              </div>
+            </div>
+            <div class="log-right">
+              <span class="status-badge st-new">Baru</span>
+              <div class="log-actions">
+                <button class="mini-action" title="Blokir"><i class="bi bi-slash-circle"></i></button>
+                <button class="mini-action" title="Bukan spam"><i class="bi bi-flag"></i></button>
+                <button class="mini-action" title="Lihat detail"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-item">
+            <div class="log-icon" style="background:linear-gradient(135deg,var(--teal-1),var(--teal-2));"><i class="bi bi-file-earmark-plus"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <p class="log-title">Halaman baru terindeks tidak ada di sitemap resmi <span class="cat-tag cat-newpage">Halaman Baru</span></p>
+              <div class="log-context">URL ditemukan via Google Search Console: <mark>/wp-content/uploads/promo-page-x92z.html</mark></div>
+              <div class="log-meta">
+                <span><i class="bi bi-globe2"></i> RAPBD Information System</span>
+                <span><i class="bi bi-google"></i> Sinyal dari indeks pencarian</span>
+                <span><i class="bi bi-clock"></i> 1 jam lalu</span>
+              </div>
+            </div>
+            <div class="log-right">
+              <span class="status-badge st-new">Baru</span>
+              <div class="log-actions">
+                <button class="mini-action" title="Blokir"><i class="bi bi-slash-circle"></i></button>
+                <button class="mini-action" title="Bukan spam"><i class="bi bi-flag"></i></button>
+                <button class="mini-action" title="Lihat detail"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-item">
+            <div class="log-icon" style="background:linear-gradient(135deg,var(--sun),#ff9d6e);"><i class="bi bi-link-45deg"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <p class="log-title">Tautan keluar menuju domain phising <span class="cat-tag cat-phising">Phising</span></p>
+              <div class="log-context">&lt;a href="<mark>httpx://verifikasi-akun-resmi.tk</mark>"&gt;verifikasi sekarang&lt;/a&gt;</div>
+              <div class="log-meta">
+                <span><i class="bi bi-globe2"></i> SIPEKA</span>
+                <span><i class="bi bi-link-45deg"></i> /pengumuman/info-terbaru</span>
+                <span><i class="bi bi-clock"></i> 2 jam lalu</span>
+              </div>
+            </div>
+            <div class="log-right">
+              <span class="status-badge st-blocked">Diblokir</span>
+              <div class="log-actions">
+                <button class="mini-action" title="Blokir"><i class="bi bi-slash-circle"></i></button>
+                <button class="mini-action" title="Bukan spam"><i class="bi bi-flag"></i></button>
+                <button class="mini-action" title="Lihat detail"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-item">
+            <div class="log-icon" style="background:linear-gradient(135deg,#ff7a6e,#ff9d6e);"><i class="bi bi-dice-5"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <p class="log-title">Kata kunci "maxwin" ditemukan, terverifikasi konteks sah <span class="cat-tag cat-judol">Judi Online</span></p>
+              <div class="log-context">...kompetisi olahraga meraih <mark>kemenangan maksimal (maxwin)</mark> pada laga final...</div>
+              <div class="log-meta">
+                <span><i class="bi bi-globe2"></i> SIAKAD Terpadu</span>
+                <span><i class="bi bi-link-45deg"></i> /berita/olahraga/final-liga</span>
+                <span><i class="bi bi-clock"></i> 5 jam lalu</span>
+              </div>
+            </div>
+            <div class="log-right">
+              <span class="status-badge st-false">Bukan Spam</span>
+              <div class="log-actions">
+                <button class="mini-action" title="Blokir"><i class="bi bi-slash-circle"></i></button>
+                <button class="mini-action" title="Bukan spam"><i class="bi bi-flag"></i></button>
+                <button class="mini-action" title="Lihat detail"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 px-3 py-3" style="border-top:1px solid var(--line);">
+          <span style="font-size:0.8rem; color:var(--ink-faint);">Menampilkan 6 dari 341 entri log</span>
+          <button class="btn btn-sm" style="font-size:0.8rem; color:var(--teal-1); font-weight:600;">Muat lebih banyak →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  const burger = document.getElementById('burgerBtn');
+
+  function toggleSidebar(open){
+    sidebar.classList.toggle('show', open);
+    backdrop.classList.toggle('show', open);
+  }
+  burger.addEventListener('click', () => toggleSidebar(true));
+  backdrop.addEventListener('click', () => toggleSidebar(false));
+
+  document.querySelectorAll('.nav-item-custom').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      const href = el.getAttribute('href');
+      if (href === '#'){ e.preventDefault(); }
+      if (window.matchMedia('(max-width: 991.98px)').matches) toggleSidebar(false);
+    });
+  });
+
+  document.querySelectorAll('.filter-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  // Simulate a new real-time detection entry arriving
+  function simulateNewEntry(){
+    const feed = document.getElementById('logFeed');
+    const entry = document.createElement('div');
+    entry.className = 'log-item new-entry';
+    entry.innerHTML = `
+      <div class="log-icon" style="background:linear-gradient(135deg,#ff7a6e,#ff9d6e);"><i class="bi bi-dice-5"></i></div>
+      <div class="flex-grow-1 min-w-0">
+        <p class="log-title">Kata kunci judi online terdeteksi <span class="cat-tag cat-judol">Judi Online</span></p>
+        <div class="log-context">...halaman arsip lama menyisipkan <mark>link togel online terpercaya</mark> di bagian footer...</div>
+        <div class="log-meta">
+          <span><i class="bi bi-globe2"></i> SPBE Kota Pekalongan</span>
+          <span><i class="bi bi-link-45deg"></i> /arsip/2020/galeri</span>
+          <span><i class="bi bi-clock"></i> Baru saja</span>
+        </div>
+      </div>
+      <div class="log-right">
+        <span class="status-badge st-new">Baru</span>
+        <div class="log-actions">
+          <button class="mini-action" title="Blokir"><i class="bi bi-slash-circle"></i></button>
+          <button class="mini-action" title="Bukan spam"><i class="bi bi-flag"></i></button>
+          <button class="mini-action" title="Lihat detail"><i class="bi bi-eye"></i></button>
+        </div>
+      </div>
+    `;
+    feed.prepend(entry);
+    setTimeout(()=> entry.classList.remove('new-entry'), 2500);
+  }
+
+  // Demo: munculkan 1 entri baru setelah beberapa detik untuk menunjukkan sifat realtime
+  setTimeout(simulateNewEntry, 6000);
+</script>
+
+</body>
+</html>

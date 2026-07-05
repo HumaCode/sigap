@@ -11,6 +11,7 @@ Route::get('/', function () {
 
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\UptimeReportController;
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -23,6 +24,10 @@ Route::middleware('auth')->group(function () {
     
     Route::resource('sites', SiteController::class)->except(['create', 'edit', 'show']);
     Route::resource('incidents', IncidentController::class)->except(['create', 'edit', 'show']);
+    
+    Route::get('/uptime-reports', [\App\Http\Controllers\UptimeReportController::class, 'index'])->name('reports.uptime');
+    Route::get('/detection-logs', [\App\Http\Controllers\DetectionLogController::class, 'index'])->name('logs.detection');
+    Route::patch('/detection-logs/{id}/status', [\App\Http\Controllers\DetectionLogController::class, 'updateStatus'])->name('logs.detection.status');
 });
 
 require __DIR__.'/auth.php';

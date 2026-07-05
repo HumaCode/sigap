@@ -9,6 +9,10 @@ use App\Repositories\Interfaces\SiteRepositoryInterface;
 use App\Repositories\SiteRepository;
 use App\Repositories\Interfaces\IncidentRepositoryInterface;
 use App\Repositories\IncidentRepository;
+use App\Repositories\Interfaces\UptimeReportRepositoryInterface;
+use App\Repositories\UptimeReportRepository;
+use App\Repositories\Interfaces\DetectionLogRepositoryInterface;
+use App\Repositories\DetectionLogRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(SiteRepositoryInterface::class, SiteRepository::class);
         $this->app->bind(IncidentRepositoryInterface::class, IncidentRepository::class);
+        $this->app->bind(UptimeReportRepositoryInterface::class, UptimeReportRepository::class);
+        $this->app->bind(DetectionLogRepositoryInterface::class, DetectionLogRepository::class);
     }
 
     /**

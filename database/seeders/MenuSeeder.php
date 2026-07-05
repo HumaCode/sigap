@@ -63,7 +63,7 @@ class MenuSeeder extends Seeder
                 'url' => 'logs.detection',
                 'category' => 'Deteksi',
                 'icon' => 'bi bi-bug-fill',
-                'orders' => 5,
+                'orders' => 1,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [

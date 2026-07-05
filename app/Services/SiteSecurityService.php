@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Repositories\Interfaces\SiteSecurityRepositoryInterface;
 use App\Models\Site;
+use App\Models\Keyword;
+use App\Models\DetectionLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -53,6 +55,88 @@ class SiteSecurityService
             $url = 'https://' . $url;
         }
 
+        $parsedUrl = parse_url($url);
+        $host = $parsedUrl['host'] ?? null;
+        
+        $isReachable = false;
+        $reachabilityError = 'Situs tidak dapat dihubungi atau offline.';
+
+        if ($host) {
+            $ip = @gethostbyname($host);
+            $isValidIp = filter_var($host, FILTER_VALIDATE_IP);
+            
+            if ($isValidIp || ($ip && $ip !== $host)) {
+                // Host resolved. Try a quick request with 5s timeout and verifying disabled
+                try {
+                    $response = Http::withoutVerifying()->timeout(5)->get($url);
+                    $isReachable = true;
+                } catch (\Exception $e) {
+                    $reachabilityError = 'Koneksi gagal: ' . $e->getMessage();
+                }
+            } else {
+                $reachabilityError = 'Domain tidak terdaftar atau gagal melakukan resolusi DNS.';
+            }
+        } else {
+            $reachabilityError = 'Format URL tidak valid.';
+        }
+
+        // If site is completely unreachable, fail all checks with clear reason
+        if (!$isReachable) {
+            $failDesc = 'Pemindaian gagal: ' . $reachabilityError;
+            $failFix = 'Pastikan situs online, domain aktif, dan web server berjalan.';
+            
+            $checks[] = [
+                'key' => 'env',
+                'title' => 'Deteksi File .env Terekspos',
+                'status' => 'fail',
+                'desc' => $failDesc,
+                'fix' => $failFix
+            ];
+            $checks[] = [
+                'key' => 'git',
+                'title' => 'Deteksi Direktori .git Terekspos',
+                'status' => 'fail',
+                'desc' => $failDesc,
+                'fix' => $failFix
+            ];
+            $checks[] = [
+                'key' => 'csp',
+                'title' => 'Header Content-Security-Policy (CSP)',
+                'status' => 'fail',
+                'desc' => $failDesc,
+                'fix' => $failFix
+            ];
+            $checks[] = [
+                'key' => 'xframe',
+                'title' => 'Header X-Frame-Options (Clickjacking)',
+                'status' => 'fail',
+                'desc' => $failDesc,
+                'fix' => $failFix
+            ];
+            $checks[] = [
+                'key' => 'hsts',
+                'title' => 'Header Strict-Transport-Security (HSTS)',
+                'status' => 'fail',
+                'desc' => $failDesc,
+                'fix' => $failFix
+            ];
+            $checks[] = [
+                'key' => 'ssl',
+                'title' => 'Pemeriksaan Sertifikat SSL',
+                'status' => 'fail',
+                'desc' => $failDesc,
+                'fix' => 'Pastikan domain aktif dan port 443 terbuka.'
+            ];
+
+            return $this->siteSecurityRepository->updateOrCreateForSite($siteId, [
+                'score' => 0,
+                'grade' => 'F',
+                'issues_count' => 6,
+                'checks' => $checks,
+                'last_scanned_at' => now(),
+            ]);
+        }
+
         // 1. Probe Exposed Files (.env, .git)
         $envStatus = 'ok';
         $envDesc = 'File konfigurasi (.env) tidak dapat diakses dari luar.';
@@ -60,7 +144,7 @@ class SiteSecurityService
         try {
             // Request /.env file
             $envUrl = rtrim($url, '/') . '/.env';
-            $response = Http::timeout(5)->get($envUrl);
+            $response = Http::withoutVerifying()->timeout(5)->get($envUrl);
             if ($response->successful() && (Str::contains($response->body(), 'DB_') || Str::contains($response->body(), 'APP_ENV'))) {
                 $envStatus = 'fail';
                 $envDesc = 'PERINGATAN KRITIS: File konfigurasi (.env) terdeteksi terekspos ke publik dan dapat diunduh langsung!';
@@ -69,7 +153,7 @@ class SiteSecurityService
                 $issuesCount++;
             }
         } catch (\Exception $e) {
-            // Timeout or connection error, default to ok or check offline
+            // Ignore connection errors since reachability was verified
         }
 
         $gitStatus = 'ok';
@@ -78,7 +162,7 @@ class SiteSecurityService
         try {
             // Request /.git/config or check directory
             $gitUrl = rtrim($url, '/') . '/.git/config';
-            $response = Http::timeout(5)->get($gitUrl);
+            $response = Http::withoutVerifying()->timeout(5)->get($gitUrl);
             if ($response->successful() && Str::contains($response->body(), '[core]')) {
                 $gitStatus = 'fail';
                 $gitDesc = 'PERINGATAN KRITIS: Direktori repositori (.git) terdeteksi terekspos. Struktur source code dan riwayat commit dapat diunduh!';
@@ -87,7 +171,7 @@ class SiteSecurityService
                 $issuesCount++;
             }
         } catch (\Exception $e) {
-            // Ignore connection issues
+            // Ignore connection errors
         }
 
         // Add file probe checks
@@ -120,7 +204,7 @@ class SiteSecurityService
         $hstsFix = 'Tambahkan header Strict-Transport-Security: max-age=31536000; includeSubDomains pada respons HTTPS.';
 
         try {
-            $response = Http::timeout(5)->head($url);
+            $response = Http::withoutVerifying()->timeout(5)->head($url);
             $headers = array_change_key_case($response->headers(), CASE_LOWER);
 
             if (isset($headers['content-security-policy'])) {
@@ -150,8 +234,9 @@ class SiteSecurityService
                 $issuesCount++;
             }
         } catch (\Exception $e) {
-            // Connection failed: reduce score slightly for unreachable sites or apply warning
-            $score -= 10;
+            // If header request fails but site was verified, still treat security headers as missing warnings
+            $score -= 30;
+            $issuesCount += 3;
         }
 
         $checks[] = [
@@ -180,9 +265,6 @@ class SiteSecurityService
         $sslStatus = 'ok';
         $sslDesc = 'Sertifikat SSL valid dan aman.';
         $sslFix = null;
-
-        $parsedUrl = parse_url($url);
-        $host = $parsedUrl['host'] ?? null;
 
         if ($host) {
             try {
@@ -265,12 +347,98 @@ class SiteSecurityService
             $grade = 'F';
         }
 
-        return $this->siteSecurityRepository->updateOrCreateForSite($siteId, [
+        $securityResult = $this->siteSecurityRepository->updateOrCreateForSite($siteId, [
             'score' => $score,
             'grade' => $grade,
             'issues_count' => $issuesCount,
             'checks' => $checks,
             'last_scanned_at' => now(),
         ]);
+
+        // Auto-scan for keywords and save findings to detection_logs
+        if ($isReachable) {
+            $this->scanForKeywords($site, $url);
+        }
+
+        return $securityResult;
+    }
+
+    /**
+     * Scan site homepage for active keywords and auto-save new findings to detection_logs.
+     * Skips duplicates that were already logged within the last 7 days.
+     */
+    private function scanForKeywords(Site $site, string $url): void
+    {
+        $keywords = Keyword::where('is_active', true)->get();
+        if ($keywords->isEmpty()) {
+            return;
+        }
+
+        try {
+            $response = Http::withoutVerifying()
+                ->timeout(8)
+                ->withHeaders(['User-Agent' => 'SIGAP-SecurityScanner/1.0'])
+                ->get($url);
+
+            if (!$response->successful()) {
+                return;
+            }
+
+            $htmlBody = $response->body();
+            // Strip script/style tags for cleaner text matching
+            $cleanText = preg_replace('/<(script|style)[^>]*>.*?<\/\1>/si', '', $htmlBody);
+            $plainText = strip_tags($cleanText);
+
+        } catch (\Exception $e) {
+            return;
+        }
+
+        foreach ($keywords as $keyword) {
+            $matched   = false;
+            $matchedKw = $keyword->keyword;
+
+            if ($keyword->type === 'regex') {
+                // Regex match
+                $pattern = $matchedKw;
+                if (@preg_match($pattern, $plainText) === 1) {
+                    $matched = true;
+                }
+            } else {
+                // Plain case-insensitive match
+                if (Str::contains(Str::lower($plainText), Str::lower($matchedKw))) {
+                    $matched = true;
+                }
+            }
+
+            if (!$matched) {
+                continue;
+            }
+
+            // Avoid duplicate logs within 7 days
+            $alreadyLogged = DetectionLog::where('site_id', $site->id)
+                ->where('title', 'like', '%' . $matchedKw . '%')
+                ->where('created_at', '>=', now()->subDays(7))
+                ->exists();
+
+            if ($alreadyLogged) {
+                continue;
+            }
+
+            // Extract surrounding context snippet (~100 chars around match)
+            $pos     = stripos($plainText, $matchedKw);
+            $start   = max(0, $pos - 60);
+            $snippet = '...' . substr($plainText, $start, 160) . '...';
+            $context = '<mark>' . e($matchedKw) . '</mark> ditemukan dalam konten halaman: ' . e($snippet);
+
+            DetectionLog::create([
+                'site_id'  => $site->id,
+                'title'    => 'Kata kunci "' . $matchedKw . '" terdeteksi saat pemindaian keamanan',
+                'category' => $keyword->category,
+                'context'  => $context,
+                'url_path' => '/',
+                'status'   => 'new',
+                'source'   => 'Security Scanner',
+            ]);
+        }
     }
 }

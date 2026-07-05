@@ -23,16 +23,42 @@ class SiteSecurityController extends Controller
             $request->input('per_page', 10)
         );
 
+        $allSecurities = SiteSecurity::all();
+        $totalSec = $allSecurities->count();
+        
+        $exposedEnv = 0;
+        $missingCsp = 0;
+        $sslWarning = 0;
+
+        foreach ($allSecurities as $sec) {
+            if (is_array($sec->checks)) {
+                foreach ($sec->checks as $c) {
+                    $key = $c['key'] ?? '';
+                    $status = $c['status'] ?? '';
+                    $desc = $c['desc'] ?? '';
+                    if (str_contains($desc, 'Pemindaian gagal')) {
+                        continue;
+                    }
+                    if ($key === 'env' && $status === 'fail') {
+                        $exposedEnv++;
+                    }
+                    if ($key === 'csp' && $status === 'warn') {
+                        $missingCsp++;
+                    }
+                    if ($key === 'ssl' && ($status === 'warn' || $status === 'fail')) {
+                        $sslWarning++;
+                    }
+                }
+            }
+        }
+
         $stats = [
-            'avg_score' => round(SiteSecurity::avg('score') ?? 0),
-            'env_exposed' => SiteSecurity::where('checks', 'like', '%"status":"fail"%')->count(),
-            'csp_missing' => SiteSecurity::where('checks', 'like', '%"key":"csp"%"status":"warn"%')
-                ->orWhere('checks', 'like', '%"status":"warn"%"key":"csp"%')
-                ->count(),
-            'ssl_warning' => SiteSecurity::where('checks', 'like', '%"key":"ssl"%"status":"warn"%')
-                ->orWhere('checks', 'like', '%"status":"warn"%"key":"ssl"%')
-                ->count(),
+            'avg_score' => $totalSec > 0 ? round($allSecurities->avg('score')) : 0,
+            'env_exposed' => $exposedEnv,
+            'csp_missing' => $missingCsp,
+            'ssl_warning' => $sslWarning,
         ];
+
 
         return Inertia::render('KeamananSitus/Index', [
             'securities' => new PaginateResource($securities, SiteSecurityResource::class),

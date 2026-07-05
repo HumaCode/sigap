@@ -267,7 +267,6 @@ export default function Index({ securities, filters, stats }: IndexProps) {
                                 description="Tidak ada laporan keamanan situs yang cocok dengan kata kunci atau filter terpilih."
                                 actionLabel="Pindai Ulang Semua"
                                 onAction={handleScanAll}
-                                colSpan={1}
                             />
                         </div>
                     )}

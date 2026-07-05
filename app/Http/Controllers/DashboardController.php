@@ -58,6 +58,10 @@ class DashboardController extends Controller
                 foreach ($sec->checks as $c) {
                     $key = $c['key'] ?? '';
                     $status = $c['status'] ?? '';
+                    $desc = $c['desc'] ?? '';
+                    if (str_contains($desc, 'Pemindaian gagal')) {
+                        continue;
+                    }
                     if ($key === 'env' && $status === 'fail') {
                         $exposedEnv++;
                     }

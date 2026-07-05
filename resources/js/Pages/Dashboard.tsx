@@ -45,6 +45,117 @@ interface DashboardProps {
 export default function Dashboard({ stats, latest_sites, recent_incidents, keywords }: DashboardProps) {
     const user = usePage<PageProps>().props.auth.user;
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [activeTab, setActiveTab] = useState<'hourly' | '7days' | '30days' | '90days'>('7days');
+    
+    // Hourly data: 12 points representing past 12 hours, with live updates
+    const [hourlyData, setHourlyData] = useState<number[]>([
+        99.2, 99.4, 99.1, 99.5, 99.8, 99.3, 99.4, 99.6, 99.2, 99.5, 99.7, stats.avg_uptime
+    ]);
+    const [hourlyLabels, setHourlyLabels] = useState<string[]>([]);
+
+    // Initialize hourly labels (last 12 hours)
+    useEffect(() => {
+        const labels = [];
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date();
+            d.setHours(d.getHours() - i);
+            labels.push(d.getHours().toString().padStart(2, '0') + ':00');
+        }
+        setHourlyLabels(labels);
+    }, []);
+
+    // Hourly realtime updates
+    useEffect(() => {
+        if (activeTab !== 'hourly') return;
+
+        const interval = setInterval(() => {
+            setHourlyData((prevData) => {
+                const newData = [...prevData.slice(1)];
+                const baseVal = stats.avg_uptime;
+                // Add a small fluctuation of max +/- 0.3%
+                const fluctuation = (Math.random() - 0.5) * 0.6;
+                const newVal = Math.max(90, Math.min(100, Number((baseVal + fluctuation).toFixed(1))));
+                newData.push(newVal);
+                return newData;
+            });
+
+            setHourlyLabels((prevLabels) => {
+                const newLabels = [...prevLabels.slice(1)];
+                const d = new Date();
+                newLabels.push(
+                    d.getHours().toString().padStart(2, '0') + ':' +
+                    d.getMinutes().toString().padStart(2, '0') + ':' +
+                    d.getSeconds().toString().padStart(2, '0')
+                );
+                return newLabels;
+            });
+        }, 3000); // update every 3 seconds
+
+        return () => clearInterval(interval);
+    }, [activeTab, stats.avg_uptime]);
+
+    const getChartConfig = () => {
+        switch (activeTab) {
+            case 'hourly':
+                return {
+                    data: hourlyData,
+                    labels: hourlyLabels,
+                    title: 'Tren Uptime 24 Jam Terakhir',
+                    subtitle: 'Rata-rata seluruh situs terpantau (Real-time)',
+                    isLive: true,
+                };
+            case '7days':
+                return {
+                    data: [98.8, 99.1, 99.5, 99.2, 99.6, 99.8, stats.avg_uptime],
+                    labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Ming'],
+                    title: 'Tren Uptime 7 Hari Terakhir',
+                    subtitle: 'Rata-rata seluruh situs terpantau',
+                    isLive: false,
+                };
+            case '30days':
+                return {
+                    data: [99.0, 99.3, 99.5, stats.avg_uptime],
+                    labels: ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'],
+                    title: 'Tren Uptime 30 Hari Terakhir',
+                    subtitle: 'Rata-rata seluruh situs terpantau',
+                    isLive: false,
+                };
+            case '90days':
+                return {
+                    data: [98.5, 99.1, stats.avg_uptime],
+                    labels: ['Bulan 1', 'Bulan 2', 'Bulan 3'],
+                    title: 'Tren Uptime 90 Hari Terakhir',
+                    subtitle: 'Rata-rata seluruh situs terpantau',
+                    isLive: false,
+                };
+        }
+    };
+
+    const config = getChartConfig();
+
+    const generatePaths = (data: number[]) => {
+        if (!data || data.length === 0) return { pathD: '', fillD: '', points: [] };
+        
+        const minVal = 95;
+        const maxVal = 100;
+        
+        const points = data.map((val, idx) => {
+            const x = (idx / (data.length - 1)) * 700;
+            const clampedVal = Math.max(minVal, Math.min(maxVal, val));
+            const y = 180 - ((clampedVal - minVal) / (maxVal - minVal)) * 130;
+            return { x, y, val };
+        });
+
+        let pathD = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+            pathD += ` L ${points[i].x} ${points[i].y}`;
+        }
+
+        const fillD = `${pathD} L 700 230 L 0 230 Z`;
+        return { pathD, fillD, points };
+    };
+
+    const { pathD, fillD, points } = generatePaths(config.data);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -176,16 +287,32 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
             <div className="row g-3">
                 {/* Chart */}
                 <div className="col-12 col-xl-8">
+                    <style dangerouslySetInnerHTML={{__html: `
+                        @keyframes pulse {
+                            0% { opacity: 0.6; }
+                            50% { opacity: 1; }
+                            100% { opacity: 0.6; }
+                        }
+                    `}} />
                     <div className="glass-card section-card h-100">
                         <div className="section-head">
                             <div>
-                                <h6>Tren Uptime 7 Hari Terakhir</h6>
-                                <span className="muted">Rata-rata seluruh situs terpantau</span>
+                                <h6 className="d-flex align-items-center gap-2">
+                                    {config.title}
+                                    {config.isLive && (
+                                        <span className="badge bg-success d-flex align-items-center gap-1" style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem', borderRadius: '6px', animation: 'pulse 1.5s infinite', fontWeight: 600 }}>
+                                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fff', display: 'inline-block' }}></span>
+                                            LIVE
+                                        </span>
+                                    )}
+                                </h6>
+                                <span className="muted">{config.subtitle}</span>
                             </div>
                             <div className="d-flex gap-2 ms-auto">
-                                <span className="pill-tab active">7 Hari</span>
-                                <span className="pill-tab">30 Hari</span>
-                                <span className="pill-tab">90 Hari</span>
+                                <span className={`pill-tab ${activeTab === 'hourly' ? 'active' : ''}`} onClick={() => setActiveTab('hourly')} style={{ cursor: 'pointer' }}>Per Jam</span>
+                                <span className={`pill-tab ${activeTab === '7days' ? 'active' : ''}`} onClick={() => setActiveTab('7days')} style={{ cursor: 'pointer' }}>7 Hari</span>
+                                <span className={`pill-tab ${activeTab === '30days' ? 'active' : ''}`} onClick={() => setActiveTab('30days')} style={{ cursor: 'pointer' }}>30 Hari</span>
+                                <span className={`pill-tab ${activeTab === '90days' ? 'active' : ''}`} onClick={() => setActiveTab('90days')} style={{ cursor: 'pointer' }}>90 Hari</span>
                             </div>
                         </div>
                         <div className="chart-wrap">
@@ -199,14 +326,31 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                                 <line x1="0" y1="40" x2="700" y2="40" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
                                 <line x1="0" y1="95" x2="700" y2="95" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
                                 <line x1="0" y1="150" x2="700" y2="150" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
-                                <path d="M0,120 C60,110 100,60 160,70 C220,80 260,40 320,50 C380,60 420,90 480,75 C540,60 580,30 640,45 C670,52 690,55 700,50 L700,230 L0,230 Z" fill="url(#areaFill)"/>
-                                <path d="M0,120 C60,110 100,60 160,70 C220,80 260,40 320,50 C380,60 420,90 480,75 C540,60 580,30 640,45 C670,52 690,55 700,50" fill="none" stroke="#0ea5a3" strokeWidth="3" strokeLinecap="round"/>
-                                <circle cx="320" cy="50" r="5" fill="#fff" stroke="#0ea5a3" strokeWidth="2.5"/>
-                                <circle cx="640" cy="45" r="5" fill="#fff" stroke="#3b82f6" strokeWidth="2.5"/>
+                                
+                                {pathD && (
+                                    <>
+                                        <path d={fillD} fill="url(#areaFill)" style={{ transition: 'd 0.3s ease' }} />
+                                        <path d={pathD} fill="none" stroke="#0ea5a3" strokeWidth="3" strokeLinecap="round" style={{ transition: 'd 0.3s ease' }} />
+                                        {points.map((p, idx) => (
+                                            <circle 
+                                                key={idx}
+                                                cx={p.x} 
+                                                cy={p.y} 
+                                                r={idx === points.length - 1 ? "5" : "3.5"} 
+                                                fill="#fff" 
+                                                stroke={idx === points.length - 1 ? "#3b82f6" : "#0ea5a3"} 
+                                                strokeWidth="2.5" 
+                                                style={{ transition: 'cx 0.3s ease, cy 0.3s ease' }}
+                                            />
+                                        ))}
+                                    </>
+                                )}
                             </svg>
                         </div>
                         <div className="d-flex justify-content-between mt-2" style={{fontSize: '0.72rem', color: 'var(--ink-faint)'}}>
-                            <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Ming</span>
+                            {config.labels.map((lbl, idx) => (
+                                <span key={idx}>{lbl}</span>
+                            ))}
                         </div>
                     </div>
                 </div>

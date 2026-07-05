@@ -3,8 +3,46 @@ import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import '../../css/dashboard.css';
 import { PageProps } from '@/types';
+import { Link } from '@inertiajs/react';
 
-export default function Dashboard() {
+interface DashboardProps {
+    stats: {
+        total_sites: number;
+        avg_uptime: number;
+        open_incidents: number;
+        critical_incidents: number;
+        detections_count: number;
+        pct_secure: number;
+        clean_sec_count: number;
+        exposed_env_count: number;
+        missing_csp_count: number;
+        expiring_ssl_count: number;
+    };
+    latest_sites: Array<{
+        id: string;
+        name: string;
+        url: string;
+        category: string;
+        status: string;
+        response_time: string;
+    }>;
+    recent_incidents: Array<{
+        id: string;
+        title: string;
+        type: string;
+        severity: string;
+        status: string;
+        site_name: string;
+        site_url: string;
+        detected_at: string;
+    }>;
+    keywords: {
+        list: string[];
+        remaining_count: number;
+    };
+}
+
+export default function Dashboard({ stats, latest_sites, recent_incidents, keywords }: DashboardProps) {
     const user = usePage<PageProps>().props.auth.user;
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -21,6 +59,54 @@ export default function Dashboard() {
     const formattedTime = currentTime.toLocaleTimeString('id-ID', {
         hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
+
+    const getSiteFavicon = (category: string) => {
+        const cat = category.toLowerCase();
+        if (cat.includes('belajar') || cat.includes('akademik') || cat.includes('siakad')) {
+            return <div className="site-favicon" style={{ background: 'linear-gradient(135deg, var(--teal-1), var(--teal-2))' }}><i className="bi bi-mortarboard"></i></div>;
+        } else if (cat.includes('ppid') || cat.includes('informasi')) {
+            return <div className="site-favicon" style={{ background: 'linear-gradient(135deg, #ff7a6e, #ff9d6e)' }}><i className="bi bi-file-earmark-text"></i></div>;
+        } else if (cat.includes('spbe') || cat.includes('sistem')) {
+            return <div className="site-favicon" style={{ background: 'linear-gradient(135deg, #8b7bf0, #a78bfa)' }}><i className="bi bi-diagram-3"></i></div>;
+        } else if (cat.includes('peka') || cat.includes('karyawan') || cat.includes('kepegawaian')) {
+            return <div className="site-favicon" style={{ background: 'linear-gradient(135deg, #ffb648, #ff9d6e)' }}><i className="bi bi-clipboard-data"></i></div>;
+        } else if (cat.includes('keuangan') || cat.includes('apbd') || cat.includes('rapbd')) {
+            return <div className="site-favicon" style={{ background: 'linear-gradient(135deg, #3b82f6, #60a5fa)' }}><i className="bi bi-cash-coin"></i></div>;
+        }
+        return <div className="site-favicon"><i className="bi bi-building"></i></div>;
+    };
+
+    const getIncidentIcon = (type: string) => {
+        const t = type.toLowerCase();
+        if (t.includes('keyword') || t.includes('link') || t.includes('sisipan') || t.includes('injection')) {
+            return <div className="incident-icon" style={{ background: 'linear-gradient(135deg, #ff7a6e, #ff9d6e)' }}><i className="bi bi-bug"></i></div>;
+        } else if (t.includes('defacement') || t.includes('konten') || t.includes('content')) {
+            return <div className="incident-icon" style={{ background: 'linear-gradient(135deg, #ffb648, #ff9d6e)' }}><i className="bi bi-pencil-square"></i></div>;
+        } else if (t.includes('down') || t.includes('offline') || t.includes('unresponsive')) {
+            return <div className="incident-icon" style={{ background: 'linear-gradient(135deg, #3b82f6, #60a5fa)' }}><i className="bi bi-hdd-network"></i></div>;
+        } else if (t.includes('env') || t.includes('git')) {
+            return <div className="incident-icon" style={{ background: 'linear-gradient(135deg, #8b7bf0, #a78bfa)' }}><i className="bi bi-file-earmark-lock2"></i></div>;
+        }
+        return <div className="incident-icon" style={{ background: 'linear-gradient(135deg, #0ea5a3, #22c1a4)' }}><i className="bi bi-shield-exclamation"></i></div>;
+    };
+
+    const getStatusChipClass = (status: string) => {
+        if (status === 'down') return 'status-chip chip-down';
+        if (status === 'warn') return 'status-chip chip-warn';
+        if (status === 'paused') return 'status-chip';
+        return 'status-chip chip-up';
+    };
+
+    const getSeverityBadgeClass = (severity: string) => {
+        const sev = severity.toLowerCase();
+        if (sev === 'critical') return 'sev-badge sev-critical';
+        if (sev === 'high') return 'sev-badge sev-high';
+        if (sev === 'medium') return 'sev-badge sev-medium';
+        return 'sev-badge';
+    };
+
+    const circumference = 163;
+    const strokeDashoffset = circumference - (circumference * stats.pct_secure) / 100;
     
     return (
         <AuthenticatedLayout>
@@ -32,7 +118,7 @@ export default function Dashboard() {
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
                             <i className="bi bi-grid-1x2-fill"></i>
                         </div>
-                        Selamat siang, {user.name.split(' ')[0]} 👋
+                        Selamat bekerja, {user.name.split(' ')[0]} 👋
                     </div>
                     <p className="page-sub mb-0 ms-1">Berikut ringkasan status monitoring seluruh situs instansi hari ini.</p>
                 </div>
@@ -52,36 +138,36 @@ export default function Dashboard() {
                 <div className="col-6 col-xl-3">
                     <div className="glass-card stat-card">
                         <div className="stat-icon icon-teal"><i className="bi bi-hdd-network"></i></div>
-                        <div className="stat-value">128</div>
+                        <div className="stat-value">{stats.total_sites}</div>
                         <div className="stat-label">Situs Terpantau</div>
-                        <div className="stat-trend trend-up"><i className="bi bi-arrow-up-short"></i> 4 baru bulan ini</div>
+                        <div className="stat-trend trend-up"><i className="bi bi-arrow-up-short"></i> Total terdaftar</div>
                         <i className="bi bi-hdd-network stat-deco"></i>
                     </div>
                 </div>
                 <div className="col-6 col-xl-3">
                     <div className="glass-card stat-card">
                         <div className="stat-icon icon-blue"><i className="bi bi-check-circle"></i></div>
-                        <div className="stat-value">99.4%</div>
+                        <div className="stat-value">{stats.avg_uptime}%</div>
                         <div className="stat-label">Rata-rata Uptime</div>
-                        <div className="stat-trend trend-up"><i className="bi bi-arrow-up-short"></i> +0.2% dari kemarin</div>
+                        <div className="stat-trend trend-up"><i className="bi bi-arrow-up-short"></i> Berdasarkan status saat ini</div>
                         <i className="bi bi-check-circle stat-deco"></i>
                     </div>
                 </div>
                 <div className="col-6 col-xl-3">
                     <div className="glass-card stat-card">
                         <div className="stat-icon icon-coral"><i className="bi bi-exclamation-triangle"></i></div>
-                        <div className="stat-value">7</div>
+                        <div className="stat-value">{stats.open_incidents}</div>
                         <div className="stat-label">Insiden Terbuka</div>
-                        <div className="stat-trend trend-down"><i className="bi bi-arrow-up-short"></i> 2 kritis</div>
+                        <div className="stat-trend trend-down"><i className="bi bi-arrow-up-short"></i> {stats.critical_incidents} kritis</div>
                         <i className="bi bi-exclamation-triangle stat-deco"></i>
                     </div>
                 </div>
                 <div className="col-6 col-xl-3">
                     <div className="glass-card stat-card">
                         <div className="stat-icon icon-violet"><i className="bi bi-bug"></i></div>
-                        <div className="stat-value">3</div>
+                        <div className="stat-value">{stats.detections_count}</div>
                         <div className="stat-label">Sisipan Terdeteksi</div>
-                        <div className="stat-trend trend-down"><i className="bi bi-arrow-up-short"></i> Minggu ini</div>
+                        <div className="stat-trend trend-down"><i className="bi bi-arrow-up-short"></i> Log total</div>
                         <i className="bi bi-bug stat-deco"></i>
                     </div>
                 </div>
@@ -133,27 +219,27 @@ export default function Dashboard() {
                             <div className="ring-mini">
                                 <svg width="64" height="64">
                                     <circle cx="32" cy="32" r="26" stroke="rgba(15,42,63,0.08)" strokeWidth="7" fill="none"/>
-                                    <circle cx="32" cy="32" r="26" stroke="#0ea5a3" strokeWidth="7" fill="none" strokeDasharray="163" strokeDashoffset="18" strokeLinecap="round"/>
+                                    <circle cx="32" cy="32" r="26" stroke="#0ea5a3" strokeWidth="7" fill="none" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"/>
                                 </svg>
-                                <div className="ring-val">89%</div>
+                                <div className="ring-val">{stats.pct_secure}%</div>
                             </div>
                             <div>
                                 <div style={{fontWeight: 600, fontSize: '0.9rem'}}>Situs Aman</div>
-                                <div style={{fontSize: '0.78rem', color: 'var(--ink-soft)'}}>114 dari 128 situs tanpa temuan</div>
+                                <div style={{fontSize: '0.78rem', color: 'var(--ink-soft)'}}>{stats.clean_sec_count} dari {stats.total_sites} situs tanpa temuan</div>
                             </div>
                         </div>
                         <hr style={{borderColor: 'var(--line)', margin: '0.9rem 0'}} />
                         <div className="d-flex justify-content-between align-items-center mb-2">
                             <span style={{fontSize: '0.82rem'}}><i className="bi bi-file-earmark-lock2 me-1" style={{color: 'var(--coral)'}}></i>File .env terekspos</span>
-                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>2</span>
+                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>{stats.exposed_env_count}</span>
                         </div>
                         <div className="d-flex justify-content-between align-items-center mb-2">
                             <span style={{fontSize: '0.82rem'}}><i className="bi bi-shield-x me-1" style={{color: 'var(--sun)'}}></i>Header CSP hilang</span>
-                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>9</span>
+                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>{stats.missing_csp_count}</span>
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
-                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-clock-history me-1" style={{color: 'var(--blue-1)'}}></i>SSL akan kedaluwarsa</span>
-                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>3</span>
+                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-clock-history me-1" style={{color: 'var(--blue-1)'}}></i>SSL akan kedaluwarsa / fail</span>
+                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>{stats.expiring_ssl_count}</span>
                         </div>
                     </div>
                 </div>
@@ -165,68 +251,27 @@ export default function Dashboard() {
                     <div className="glass-card section-card h-100">
                         <div className="section-head">
                             <h6>Status Situs Terbaru</h6>
-                            <span className="muted ms-auto">Diperbarui 30 detik lalu</span>
+                            <span className="muted ms-auto">Status terkini</span>
                         </div>
                         <div className="scroll-slim" style={{maxHeight: '340px', overflowY: 'auto'}}>
-                            <div className="site-row">
-                                <div className="site-favicon"><i className="bi bi-building"></i></div>
-                                <div className="flex-grow-1 min-w-0">
-                                    <p className="site-name">Portal Utama Kota Pekalongan</p>
-                                    <p className="site-url">pekalongankota.go.id</p>
-                                </div>
-                                <span className="status-chip chip-up"><span className="chip-dot"></span>Online</span>
-                                <span className="response-time">182ms</span>
-                            </div>
-
-                            <div className="site-row">
-                                <div className="site-favicon" style={{background: 'linear-gradient(135deg,#ff7a6e,#ff9d6e)'}}><i className="bi bi-file-earmark-text"></i></div>
-                                <div className="flex-grow-1 min-w-0">
-                                    <p className="site-name">PPID Kota Pekalongan</p>
-                                    <p className="site-url">ppid.pekalongankota.go.id</p>
-                                </div>
-                                <span className="status-chip chip-down"><span className="chip-dot"></span>Down</span>
-                                <span className="response-time">timeout</span>
-                            </div>
-
-                            <div className="site-row">
-                                <div className="site-favicon" style={{background: 'linear-gradient(135deg,#8b7bf0,#a78bfa)'}}><i className="bi bi-diagram-3"></i></div>
-                                <div className="flex-grow-1 min-w-0">
-                                    <p className="site-name">SPBE Kota Pekalongan</p>
-                                    <p className="site-url">spbe.pekalongankota.go.id</p>
-                                </div>
-                                <span className="status-chip chip-up"><span className="chip-dot"></span>Online</span>
-                                <span className="response-time">96ms</span>
-                            </div>
-
-                            <div className="site-row">
-                                <div className="site-favicon" style={{background: 'linear-gradient(135deg,#ffb648,#ff9d6e)'}}><i className="bi bi-clipboard-data"></i></div>
-                                <div className="flex-grow-1 min-w-0">
-                                    <p className="site-name">SIPEKA</p>
-                                    <p className="site-url">sipeka.pekalongankota.go.id</p>
-                                </div>
-                                <span className="status-chip chip-warn"><span className="chip-dot"></span>Lambat</span>
-                                <span className="response-time">1.4s</span>
-                            </div>
-
-                            <div className="site-row">
-                                <div className="site-favicon"><i className="bi bi-mortarboard"></i></div>
-                                <div className="flex-grow-1 min-w-0">
-                                    <p className="site-name">SIAKAD Terpadu</p>
-                                    <p className="site-url">siakad.pekalongankota.go.id</p>
-                                </div>
-                                <span className="status-chip chip-up"><span className="chip-dot"></span>Online</span>
-                                <span className="response-time">210ms</span>
-                            </div>
-
-                            <div className="site-row">
-                                <div className="site-favicon" style={{background: 'linear-gradient(135deg,#3b82f6,#60a5fa)'}}><i className="bi bi-cash-coin"></i></div>
-                                <div className="flex-grow-1 min-w-0">
-                                    <p className="site-name">RAPBD Information System</p>
-                                    <p className="site-url">rapbd.pekalongankota.go.id</p>
-                                </div>
-                                <span className="status-chip chip-up"><span className="chip-dot"></span>Online</span>
-                                <span className="response-time">134ms</span>
-                            </div>
+                            {latest_sites && latest_sites.length > 0 ? (
+                                latest_sites.map((site) => (
+                                    <div key={site.id} className="site-row">
+                                        {getSiteFavicon(site.category)}
+                                        <div className="flex-grow-1 min-w-0">
+                                            <p className="site-name">{site.name}</p>
+                                            <p className="site-url">{site.url}</p>
+                                        </div>
+                                        <span className={getStatusChipClass(site.status)}>
+                                            <span className="chip-dot"></span>
+                                            {site.status === 'up' ? 'Online' : site.status === 'down' ? 'Down' : site.status === 'warn' ? 'Lambat' : 'Paused'}
+                                        </span>
+                                        <span className="response-time">{site.response_time}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-4 text-center text-muted" style={{fontSize: '0.85rem'}}>Belum ada situs terdaftar.</div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -236,53 +281,25 @@ export default function Dashboard() {
                     <div className="glass-card section-card h-100">
                         <div className="section-head">
                             <h6>Insiden Terbaru</h6>
-                            <span className="muted ms-auto">7 terbuka</span>
+                            <span className="muted ms-auto">{stats.open_incidents} terbuka</span>
                         </div>
                         <div className="scroll-slim" style={{maxHeight: '340px', overflowY: 'auto'}}>
-                            <div className="incident-item">
-                                <div className="incident-icon" style={{background: 'linear-gradient(135deg,#ff7a6e,#ff9d6e)'}}><i className="bi bi-bug"></i></div>
-                                <div className="flex-grow-1">
-                                    <p className="incident-title">Sisipan link mencurigakan</p>
-                                    <span className="incident-meta">PPID Kota Pekalongan • /berita/arsip-2023 • 12 menit lalu</span>
-                                </div>
-                                <span className="sev-badge sev-critical align-self-start">Kritis</span>
-                            </div>
-
-                            <div className="incident-item">
-                                <div className="incident-icon" style={{background: 'linear-gradient(135deg,#ffb648,#ff9d6e)'}}><i className="bi bi-pencil-square"></i></div>
-                                <div className="flex-grow-1">
-                                    <p className="incident-title">Perubahan konten tidak sah</p>
-                                    <span className="incident-meta">SIPEKA • /halaman-utama • 48 menit lalu</span>
-                                </div>
-                                <span className="sev-badge sev-high align-self-start">Tinggi</span>
-                            </div>
-
-                            <div className="incident-item">
-                                <div className="incident-icon" style={{background: 'linear-gradient(135deg,#3b82f6,#60a5fa)'}}><i className="bi bi-hdd-network"></i></div>
-                                <div className="flex-grow-1">
-                                    <p className="incident-title">Server tidak merespons</p>
-                                    <span className="incident-meta">PPID Kota Pekalongan • 1 jam lalu</span>
-                                </div>
-                                <span className="sev-badge sev-medium align-self-start">Sedang</span>
-                            </div>
-
-                            <div className="incident-item">
-                                <div className="incident-icon" style={{background: 'linear-gradient(135deg,#8b7bf0,#a78bfa)'}}><i className="bi bi-file-earmark-lock2"></i></div>
-                                <div className="flex-grow-1">
-                                    <p className="incident-title">File .env dapat diakses publik</p>
-                                    <span className="incident-meta">SIAKAD Terpadu • 3 jam lalu</span>
-                                </div>
-                                <span className="sev-badge sev-high align-self-start">Tinggi</span>
-                            </div>
-
-                            <div className="incident-item">
-                                <div className="incident-icon" style={{background: 'linear-gradient(135deg,#0ea5a3,#22c1a4)'}}><i className="bi bi-shield-exclamation"></i></div>
-                                <div className="flex-grow-1">
-                                    <p className="incident-title">Header keamanan CSP tidak ditemukan</p>
-                                    <span className="incident-meta">RAPBD Information System • 5 jam lalu</span>
-                                </div>
-                                <span className="sev-badge sev-medium align-self-start">Sedang</span>
-                            </div>
+                            {recent_incidents && recent_incidents.length > 0 ? (
+                                recent_incidents.map((inc) => (
+                                    <div key={inc.id} className="incident-item">
+                                        {getIncidentIcon(inc.type)}
+                                        <div className="flex-grow-1">
+                                            <p className="incident-title">{inc.title}</p>
+                                            <span className="incident-meta">{inc.site_name} • {inc.detected_at}</span>
+                                        </div>
+                                        <span className={getSeverityBadgeClass(inc.severity)}>
+                                            {inc.severity === 'critical' ? 'Kritis' : inc.severity === 'high' ? 'Tinggi' : inc.severity === 'medium' ? 'Sedang' : 'Rendah'}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-4 text-center text-muted" style={{fontSize: '0.85rem'}}>Tidak ada insiden terbuka aktif.</div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -297,19 +314,27 @@ export default function Dashboard() {
                                 <h6>Kamus Kata Kunci Aktif</h6>
                                 <span className="muted">Digunakan mesin deteksi sisipan konten</span>
                             </div>
-                            <button className="btn btn-sm ms-auto" style={{background: 'linear-gradient(120deg,var(--teal-1),var(--blue-1))', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '0.78rem', padding: '0.4rem 0.9rem'}}>
-                                <i className="bi bi-plus-lg me-1"></i>Tambah Kata Kunci
-                            </button>
+                            <Link 
+                                href={route('keywords.index')}
+                                className="btn btn-sm ms-auto" 
+                                style={{background: 'linear-gradient(120deg,var(--teal-1),var(--blue-1))', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '0.78rem', padding: '0.4rem 0.9rem'}}
+                            >
+                                <i className="bi bi-gear-fill me-1"></i>Kelola Kata Kunci
+                            </Link>
                         </div>
                         <div>
-                            <span className="kw-tag"><i className="bi bi-dot"></i>judi online</span>
-                            <span className="kw-tag"><i className="bi bi-dot"></i>slot gacor</span>
-                            <span className="kw-tag"><i className="bi bi-dot"></i>obat aborsi</span>
-                            <span className="kw-tag"><i className="bi bi-dot"></i>obat penggugur kandungan</span>
-                            <span className="kw-tag"><i className="bi bi-dot"></i>situs togel</span>
-                            <span className="kw-tag"><i className="bi bi-dot"></i>maxwin</span>
-                            <span className="kw-tag"><i className="bi bi-dot"></i>bandar bola</span>
-                            <span className="kw-tag">+ 42 lainnya</span>
+                            {keywords && keywords.list && keywords.list.length > 0 ? (
+                                <>
+                                    {keywords.list.map((kw, idx) => (
+                                        <span key={idx} className="kw-tag"><i className="bi bi-dot"></i>{kw}</span>
+                                    ))}
+                                    {keywords.remaining_count > 0 && (
+                                        <span className="kw-tag">+ {keywords.remaining_count} lainnya</span>
+                                    )}
+                                </>
+                            ) : (
+                                <span className="text-muted" style={{fontSize: '0.82rem'}}>Belum ada kata kunci aktif terdaftar.</span>
+                            )}
                         </div>
                     </div>
                 </div>

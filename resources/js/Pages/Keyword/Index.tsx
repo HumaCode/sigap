@@ -52,6 +52,7 @@ export default function Index({
     const [activeFilter, setActiveFilter] = useState(safeFilters?.filter || 'all');
     const [showModal, setShowModal] = useState(false);
     const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Debounce search
     useEffect(() => {
@@ -94,6 +95,20 @@ export default function Index({
         });
     };
 
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        setSearchTerm('');
+        setActiveFilter('all');
+        router.get(route('keywords.index'), { search: '', filter: 'all' }, { 
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => {
+                setIsRefreshing(false);
+                toast.info('Segarkan', 'Data kata kunci terbaru telah dimuat.');
+            }
+        });
+    };
+
     const getCatBadge = (category: string) => {
         switch (category) {
             case 'judol': return <span className="category-tag cat-judol">Judi Online</span>;
@@ -116,6 +131,18 @@ export default function Index({
                         <h2 className="page-title m-0" style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)' }}>Kamus Kata Kunci</h2>
                         <p className="page-sub m-0 mt-1" style={{ fontSize: '0.85rem', color: 'var(--ink-soft)' }}>Kelola daftar kata kunci & pola yang digunakan mesin deteksi sisipan konten.</p>
                     </div>
+                </div>
+                
+                <div className="d-flex gap-2">
+                    <button 
+                        className="btn btn-light shadow-sm d-flex align-items-center justify-content-center"
+                        style={{ border: '1px solid var(--line)', color: 'var(--ink-soft)', background: 'rgba(255,255,255,0.8)', borderRadius: '12px', width: '42px', height: '42px' }}
+                        title="Segarkan Data & Reset Filter"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                    >
+                        <i className={`bi bi-arrow-clockwise ${isRefreshing ? 'spinner-border spinner-border-sm' : ''}`} style={isRefreshing ? { borderWidth: '2px' } : {}}></i>
+                    </button>
                 </div>
             </div>
 

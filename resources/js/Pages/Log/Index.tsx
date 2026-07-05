@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
 import { useState } from 'react';
 import { toast } from '@/Components/DynamicToast';
+import DetailLogModal from './Partials/DetailLogModal';
 import '../../../css/detection.css';
 
 interface LogProps extends PageProps {
@@ -14,6 +15,8 @@ interface LogProps extends PageProps {
 export default function DetectionLog({ logs, filters, stats }: LogProps) {
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const [activeFilter, setActiveFilter] = useState(filters?.filter || 'all');
+    const [selectedLog, setSelectedLog] = useState<any | null>(null);
+    const [showModal, setShowModal] = useState(false);
 
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -29,11 +32,11 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
     const handleUpdateStatus = (id: string, status: string) => {
         router.patch(route('logs.detection.status', id), { status }, {
             preserveScroll: true,
-            onSuccess: (page) => {
-                const flash = page.props.flash as any;
-                if (flash?.success) {
-                    toast.success('Berhasil', flash.success);
-                }
+            onSuccess: () => {
+                let actionText = 'diperbarui';
+                if (status === 'blocked') actionText = 'diblokir';
+                if (status === 'false_positive') actionText = 'ditandai sebagai bukan spam';
+                toast.success('Berhasil', `Status log deteksi berhasil ${actionText}.`);
             },
             onError: () => {
                 toast.error('Gagal', 'Terjadi kesalahan saat memperbarui status.');
@@ -71,6 +74,20 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
         }
     };
 
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        router.get(route('logs.detection'), { search: searchTerm, filter: activeFilter }, { 
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => {
+                setIsRefreshing(false);
+                toast.info('Segarkan', 'Data log deteksi terbaru telah dimuat.');
+            }
+        });
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Log Deteksi Konten" />
@@ -91,9 +108,10 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                         className="btn btn-light shadow-sm d-flex align-items-center justify-content-center"
                         style={{ border: '1px solid var(--line)', color: 'var(--ink-soft)', background: 'rgba(255,255,255,0.8)', borderRadius: '12px', width: '42px', height: '42px' }}
                         title="Segarkan Data"
-                        onClick={() => router.get(route('logs.detection'), { search: searchTerm, filter: activeFilter }, { preserveState: true })}
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
                     >
-                        <i className="bi bi-arrow-clockwise"></i>
+                        <i className={`bi bi-arrow-clockwise ${isRefreshing ? 'spinner-border spinner-border-sm' : ''}`} style={isRefreshing ? { borderWidth: '2px' } : {}}></i>
                     </button>
                 </div>
             </div>
@@ -173,7 +191,7 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                                     <div className="log-actions">
                                         <button onClick={() => handleUpdateStatus(log.id, 'blocked')} className="mini-action" title="Blokir"><i className="bi bi-slash-circle"></i></button>
                                         <button onClick={() => handleUpdateStatus(log.id, 'false_positive')} className="mini-action" title="Bukan spam"><i className="bi bi-flag"></i></button>
-                                        <button onClick={() => toast.info('Detail Log', 'Fitur detail log sedang dalam pengembangan.')} className="mini-action" title="Lihat detail"><i className="bi bi-eye"></i></button>
+                                        <button onClick={() => { setSelectedLog(log); setShowModal(true); }} className="mini-action" title="Lihat detail"><i className="bi bi-eye"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -185,6 +203,16 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                     )}
                 </div>
             </div>
+
+            <DetailLogModal
+                showModal={showModal}
+                setShowModal={setShowModal}
+                selectedLog={selectedLog}
+                handleUpdateStatus={handleUpdateStatus}
+                getCatBadge={getCatBadge}
+                getIconInfo={getIconInfo}
+                getStatusBadge={getStatusBadge}
+            />
         </AuthenticatedLayout>
     );
 }

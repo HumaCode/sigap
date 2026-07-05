@@ -1,0 +1,108 @@
+/* ===== Report header controls ===== */
+.report-toolbar{ display:flex; align-items:center; gap:0.7rem; flex-wrap:wrap; margin-bottom:1.4rem; }
+.range-chip{
+  font-size:0.8rem; padding:0.5rem 0.95rem; border-radius:12px; border:1.5px solid var(--line);
+  background:rgba(255,255,255,0.55); color:var(--ink-soft); font-weight:500; cursor:pointer; transition:.15s ease;
+}
+.range-chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+.range-chip:hover:not(.active){ background:rgba(14,165,163,0.08); color:var(--ink); }
+.select-site{
+  border-radius:12px; border:1.5px solid var(--line); padding:0.5rem 0.9rem; font-size:0.83rem;
+  background:rgba(255,255,255,0.6); font-family:'Poppins',sans-serif; color:var(--ink-soft);
+}
+.btn-export{
+  margin-left:auto; background:linear-gradient(120deg,var(--teal-1),var(--blue-1)); border:none; border-radius:12px;
+  color:#fff; font-weight:600; font-size:0.85rem; padding:0.55rem 1.05rem; display:flex; align-items:center; gap:0.5rem;
+  box-shadow:0 12px 22px -10px rgba(14,165,163,0.5); transition: transform .18s ease;
+}
+.btn-export:hover{ transform:translateY(-2px); color:#fff; }
+
+/* ===== SLA summary cards ===== */
+.sla-card{ padding:1.3rem; display:flex; align-items:center; gap:1rem; }
+.sla-ring{ position:relative; width:64px; height:64px; flex-shrink:0; }
+.sla-ring svg{ transform:rotate(-90deg); }
+.sla-ring .val{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
+.sla-card .lbl{ font-size:0.78rem; color:var(--ink-soft); margin-bottom:0.1rem; }
+.sla-card .num{ font-size:1.3rem; font-weight:700; }
+.sla-card .sub{ font-size:0.72rem; color:var(--ink-faint); }
+
+/* ===== Trend chart section ===== */
+.section-card{ padding:1.4rem; }
+.section-head{ display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin-bottom:1.1rem; flex-wrap:wrap; }
+.section-head h6{ font-weight:600; font-size:0.98rem; margin:0; }
+.section-head .muted{ font-size:0.78rem; color:var(--ink-faint); }
+.legend-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:0.35rem; }
+.chart-wrap-lg{ position:relative; height:280px; }
+.chart-wrap-lg svg{ width:100%; height:100%; overflow:visible; }
+
+/* ===== Per-site report table ===== */
+.report-row{
+  padding:1.1rem 0.3rem; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:1rem;
+}
+.report-row:last-child{ border-bottom:none; }
+.site-favicon{
+  width:38px; height:38px; border-radius:11px; flex-shrink:0;
+  background:linear-gradient(135deg, var(--teal-1), var(--blue-1));
+  display:flex; align-items:center; justify-content:center; color:#fff; font-size:1rem;
+}
+.site-name{ font-size:0.87rem; font-weight:600; margin:0; }
+.site-url{ font-size:0.74rem; color:var(--ink-faint); margin:0; }
+.sla-status{ font-size:0.7rem; font-weight:700; padding:0.22rem 0.6rem; border-radius:999px; white-space:nowrap; }
+.sla-met{ background:rgba(14,165,163,0.12); color:var(--teal-1); }
+.sla-miss{ background:rgba(255,122,110,0.14); color:#e0453a; }
+.metric-block{ text-align:center; min-width:80px; }
+.metric-block .m-val{ font-weight:700; font-size:0.92rem; }
+.metric-block .m-lbl{ font-size:0.68rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.03em; }
+
+/* Heatmap 30 hari */
+.heatmap-30{ display:flex; gap:3px; flex-wrap:wrap; max-width:230px; }
+.heatmap-cell{
+  width:11px; height:11px; border-radius:3px; background:rgba(14,165,163,0.15);
+  transition: transform .12s ease;
+}
+.heatmap-cell:hover{ transform:scale(1.35); }
+.heatmap-cell.hc-full{ background:var(--teal-1); }
+.heatmap-cell.hc-mid{ background:var(--teal-2); opacity:0.8; }
+.heatmap-cell.hc-low{ background:var(--sun); }
+.heatmap-cell.hc-down{ background:var(--coral); }
+
+@media (max-width: 1199.98px){
+  .heatmap-30{ max-width:100%; }
+}
+
+@media (max-width: 767.98px){
+  .chart-wrap-lg{ height:210px; }
+  .btn-export span{ display:none; }
+  .btn-export{ padding:0.55rem 0.75rem; }
+  .metric-block{ min-width:60px; }
+  .report-row{ flex-direction:column; align-items:flex-start; }
+  .report-row .ms-auto{ margin-left:0 !important; width:100%; display:flex; justify-content:space-between; margin-top:1rem; }
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+  .sidebar-wrap, .main-header, .report-toolbar, .btn-export, .page-sub {
+    display: none !important;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    padding: 10px !important;
+    background: #fff !important;
+  }
+  .glass-card {
+    box-shadow: none !important;
+    border: 1px solid #eaeaea !important;
+    background: #fff !important;
+    break-inside: avoid;
+  }
+  .heatmap-30 {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .sla-ring svg circle {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

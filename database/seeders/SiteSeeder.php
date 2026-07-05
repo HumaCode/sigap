@@ -27,7 +27,7 @@ class SiteSeeder extends Seeder
                 'category' => 'PPID',
                 'pic_name' => 'Siti R.',
                 'check_interval' => 5,
-                'status' => 'down',
+                'status' => 'up',
             ],
             [
                 'name' => 'SPBE Kota Pekalongan',
@@ -37,14 +37,7 @@ class SiteSeeder extends Seeder
                 'check_interval' => 10,
                 'status' => 'up',
             ],
-            [
-                'name' => 'SIPEKA',
-                'url' => 'sipeka.pekalongankota.go.id',
-                'category' => 'Lainnya',
-                'pic_name' => 'Dewi K.',
-                'check_interval' => 5,
-                'status' => 'warn',
-            ],
+
             [
                 'name' => 'SIAKAD Terpadu',
                 'url' => 'siakad.pekalongankota.go.id',

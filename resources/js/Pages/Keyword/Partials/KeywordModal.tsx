@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import React, { useEffect } from 'react';
+import { toast } from '@/Components/DynamicToast';
 
 interface KeywordModalProps {
     show: boolean;
@@ -37,9 +38,11 @@ export default function KeywordModal({ show, onClose, keyword }: KeywordModalPro
         e.preventDefault();
         
         const options = {
+            preserveScroll: true,
             onSuccess: () => {
                 onClose();
                 reset();
+                toast.success('Berhasil', isEdit ? 'Kata kunci berhasil diperbarui.' : 'Kata kunci berhasil ditambahkan.');
             },
         };
 
@@ -167,7 +170,7 @@ export default function KeywordModal({ show, onClose, keyword }: KeywordModalPro
                                 {processing ? (
                                     <>
                                         <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        Proses...
+                                        Sedang Proses...
                                     </>
                                 ) : (
                                     <><i className="bi bi-save"></i> Simpan</>

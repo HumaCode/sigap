@@ -17,6 +17,7 @@ interface Keyword {
     is_active: boolean;
     creator_name: string;
     created_at: string;
+    description?: string | null;
 }
 
 interface KeywordProps extends PageProps {
@@ -220,7 +221,15 @@ export default function Index({
                         <tbody>
                             {safeData.length > 0 ? safeData.map((kw: Keyword) => (
                                 <tr key={kw.id}>
-                                    <td><span className="kw-code">{kw.keyword}</span></td>
+                                    <td>
+                                        <span className="kw-code">{kw.keyword}</span>
+                                        {kw.description && (
+                                            <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', marginTop: '4px' }}>
+                                                <i className="bi bi-info-circle me-1" style={{ color: 'var(--teal-1)' }}></i>
+                                                {kw.description}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td>{getCatBadge(kw.category)}</td>
                                     <td>
                                         <span className={kw.type === 'regex' ? 'regex-badge' : 'plain-badge'}>

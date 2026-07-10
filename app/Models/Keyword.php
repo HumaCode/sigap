@@ -14,6 +14,7 @@ class Keyword extends Model
         'category',
         'type',
         'is_active',
+        'description',
         'created_by',
     ];
 

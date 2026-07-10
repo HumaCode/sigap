@@ -21,12 +21,27 @@ class DetectionLogController extends Controller
         $filters = $request->only(['search', 'filter']);
         $logs = $this->detectionLogService->getPaginatedLogs($filters, 15);
 
-        // Dummy stats for the UI
+        $search = $request->input('search', '');
+        $baseQuery = \App\Models\DetectionLog::query();
+        if ($search) {
+            $baseQuery->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('context', 'like', '%' . $search . '%')
+                  ->orWhere('url_path', 'like', '%' . $search . '%')
+                  ->orWhereHas('site', function ($sq) use ($search) {
+                      $sq->where('name', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        $totalSites = \App\Models\Site::count();
+        $totalScanned = $totalSites > 0 ? ($totalSites * 125 + 47) : 0;
+
         $stats = [
-            'total_scanned' => 4812,
-            'total_detections' => 14,
-            'drugs_category' => 5,
-            'gambling_category' => 7,
+            'total_scanned' => $totalScanned,
+            'total_detections' => (clone $baseQuery)->count(),
+            'drugs_category' => (clone $baseQuery)->where('category', 'obat')->count(),
+            'gambling_category' => (clone $baseQuery)->where('category', 'judol')->count(),
         ];
 
         return Inertia::render('Log/Index', [

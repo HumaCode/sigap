@@ -20,6 +20,7 @@ class KeywordResource extends JsonResource
             'category' => $this->category,
             'type' => $this->type,
             'is_active' => $this->is_active,
+            'description' => $this->description,
             'created_by' => $this->created_by,
             'creator_name' => $this->creator ? $this->creator->name : 'System',
             'created_at' => $this->created_at->format('j M Y'),

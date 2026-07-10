@@ -19,6 +19,13 @@ class SiteRequest extends FormRequest
             'check_interval' => 'nullable|integer',
             'sitemap_url' => 'nullable|string',
             'critical_pages' => 'nullable|array',
+            'ssh_host' => 'nullable|string|max:255',
+            'ssh_port' => 'nullable|integer',
+            'ssh_username' => 'nullable|string|max:255',
+            'ssh_auth_type' => 'nullable|string|in:password,key',
+            'ssh_password' => 'nullable|string',
+            'ssh_private_key' => 'nullable|string',
+            'ssh_app_path' => 'nullable|string|max:255',
         ];
     }
 }

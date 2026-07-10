@@ -96,6 +96,23 @@ export default function DetailSiteModal({ show, onClose, site }: { show: boolean
                                         )}
                                     </div>
                                 </div>
+
+                                <div className="mt-3">
+                                    <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Audit File Server (SSH)</label>
+                                    <div style={{ background: 'white', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.04)', color: 'var(--ink-dark)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {site.ssh_host ? (
+                                            <>
+                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e' }}></span>
+                                                <span>Aktif via <code>{site.ssh_username}@{site.ssh_host}:{site.ssh_port}</code></span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#cbd5e1', display: 'inline-block' }}></span>
+                                                <span style={{ color: 'var(--ink-faint)' }}>Koneksi SSH Belum Dikonfigurasi</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Right Column - Contact & Meta */}

@@ -449,6 +449,9 @@ class SiteSecurityService
             'fix' => $sslFix
         ];
 
+        // Run SSH scan if configured
+        $this->scanSiteViaSsh($site, $checks, $score, $issuesCount);
+
         // Ensure score is within 0-100 range
         $score = max(0, min(100, $score));
 
@@ -637,5 +640,245 @@ class SiteSecurityService
             "Potongan Teks: \"{$snippet}\"\n" .
             "Tindakan: Segera periksa konten website dan hapus script/teks sisipan."
         );
+    }
+
+    /**
+     * Run SSH security audits on the remote server.
+     */
+    private function scanSiteViaSsh(Site $site, array &$checks, int &$score, int &$issuesCount): void
+    {
+        if (empty($site->ssh_host)) {
+            return;
+        }
+
+        $host = $site->ssh_host;
+        $port = $site->ssh_port ?: 22;
+        $username = $site->ssh_username;
+        $authType = $site->ssh_auth_type;
+        $appPath = rtrim($site->ssh_app_path, '/');
+
+        if (empty($username) || empty($appPath)) {
+            $checks[] = [
+                'key' => 'ssh_connection',
+                'title' => 'Status Koneksi SSH',
+                'status' => 'fail',
+                'desc' => 'Konfigurasi SSH tidak lengkap (username atau path aplikasi kosong).',
+                'fix' => 'Lengkapi konfigurasi SSH pada pengaturan data website.'
+            ];
+            $score -= 10;
+            $issuesCount++;
+            return;
+        }
+
+        try {
+            $ssh = new \phpseclib3\Net\SSH2($host, $port, 10); // 10s connection timeout
+            
+            // Authenticate
+            $authenticated = false;
+            if ($authType === 'key') {
+                $privateKey = $site->ssh_private_key;
+                if (!$privateKey) {
+                    throw new \Exception("SSH Private Key kosong.");
+                }
+                try {
+                    $key = \phpseclib3\Crypt\PublicKeyLoader::load($privateKey);
+                    $authenticated = $ssh->login($username, $key);
+                } catch (\Exception $keyEx) {
+                    throw new \Exception("Gagal memuat SSH Private Key: " . $keyEx->getMessage());
+                }
+            } else {
+                $password = $site->ssh_password;
+                $authenticated = $ssh->login($username, $password);
+            }
+
+            if (!$authenticated) {
+                throw new \Exception("Autentikasi gagal. Username/password/key tidak cocok.");
+            }
+
+            // Connection successful! Add Check item
+            $checks[] = [
+                'key' => 'ssh_connection',
+                'title' => 'Status Koneksi SSH',
+                'status' => 'ok',
+                'desc' => 'Koneksi SSH berhasil terhubung dan terautentikasi.',
+                'fix' => null
+            ];
+
+            // 1. Audit File Permissions (e.g. check .env file permissions)
+            $envPermsCmd = "stat -c '%a' " . escapeshellarg($appPath . '/.env') . " 2>/dev/null";
+            $envPerms = trim($ssh->exec($envPermsCmd));
+            
+            if (empty($envPerms)) {
+                $lsOut = trim($ssh->exec("ls -l " . escapeshellarg($appPath . '/.env') . " 2>/dev/null"));
+                if (!empty($lsOut)) {
+                    $parts = explode(' ', preg_replace('/\s+/', ' ', $lsOut));
+                    $envPerms = $parts[0] ?? '';
+                }
+            }
+
+            $permStatus = 'ok';
+            $permDesc = 'Izin file konfigurasi sensitif (.env) di server sudah aman.';
+            $permFix = null;
+
+            if (!empty($envPerms)) {
+                if (is_numeric($envPerms)) {
+                    $permsInt = (int)$envPerms;
+                    $othersWritable = ($permsInt % 10) & 2;
+                    $groupWritable = (($permsInt / 10) % 10) & 2;
+                    if ($permsInt === 777 || $permsInt === 666 || $othersWritable || $groupWritable) {
+                        $permStatus = 'fail';
+                        $permDesc = "PERINGATAN SSH: File .env memiliki izin akses terlalu terbuka ({$envPerms}). Siapapun di server dapat mengubahnya!";
+                        $permFix = "Jalankan perintah 'chmod 600 " . $appPath . "/.env' di server Anda.";
+                        $score -= 15;
+                        $issuesCount++;
+                    } elseif ($permsInt > 640) {
+                        $permStatus = 'warn';
+                        $permDesc = "PERINGATAN SSH: File .env memiliki izin akses ({$envPerms}). Direkomendasikan lebih diperketat.";
+                        $permFix = "Jalankan perintah 'chmod 600 " . $appPath . "/.env' di server Anda.";
+                        $score -= 5;
+                        $issuesCount++;
+                    }
+                } else {
+                    if (strpos($envPerms, 'w', 5) !== false) {
+                        $permStatus = 'fail';
+                        $permDesc = "PERINGATAN SSH: File .env memiliki izin akses terlalu terbuka ({$envPerms}).";
+                        $permFix = "Jalankan perintah 'chmod 600 " . $appPath . "/.env' di server Anda.";
+                        $score -= 15;
+                        $issuesCount++;
+                    }
+                }
+            }
+
+            $checks[] = [
+                'key' => 'ssh_permissions',
+                'title' => 'Audit Izin File Sensitif (SSH)',
+                'status' => $permStatus,
+                'desc' => $permDesc,
+                'fix' => $permFix
+            ];
+
+            // 2. Scan for Malware & Web Shells
+            $malwareCmd = "find " . escapeshellarg($appPath) . " -type f -name \"*.php\" ! -path \"*/vendor/*\" ! -path \"*/node_modules/*\" ! -path \"*/storage/*\" | xargs grep -lE \"(eval|base64_decode|shell_exec|passthru|system|exec)\s*\\(\" 2>/dev/null";
+            $malwareOut = trim($ssh->exec($malwareCmd));
+            
+            $webshellStatus = 'ok';
+            $webshellDesc = 'Tidak ditemukan file script/malware mencurigakan di direktori website.';
+            $webshellFix = null;
+
+            if (!empty($malwareOut)) {
+                $lines = explode("\n", $malwareOut);
+                $lines = array_filter(array_map('trim', $lines));
+                
+                if (count($lines) > 0) {
+                    $webshellStatus = 'fail';
+                    $fileList = implode(', ', array_slice($lines, 0, 3));
+                    if (count($lines) > 3) {
+                        $fileList .= '... dan ' . (count($lines) - 3) . ' file lainnya';
+                    }
+                    $webshellDesc = "PERINGATAN KRITIS: Terdeteksi " . count($lines) . " file script PHP mencurigakan yang mengandung fungsi eksekusi sistem/obfuscated code (misal: " . $fileList . ").";
+                    $webshellFix = "Periksa file-file tersebut. Jika itu bukan file buatan Anda atau bagian dari framework, hapus file tersebut segera karena berisiko tinggi sebagai backdoor/web shell.";
+                    $score -= 30;
+                    $issuesCount++;
+
+                    // Send Telegram alert
+                    \App\Services\NotificationService::sendAlert(
+                        "🚨 *TEMUAN KRITIS: BACKDOOR / WEB SHELL TERDETEKSI VIA SSH*\n" .
+                        "Situs: *{$site->name}* ({$site->url})\n" .
+                        "Keterangan: Terdeteksi " . count($lines) . " file mencurigakan mengandung fungsi berbahaya.\n" .
+                        "File Contoh: " . $fileList . "\n" .
+                        "Tindakan: Segera periksa dan bersihkan file backdoor tersebut."
+                    );
+                }
+            }
+
+            $checks[] = [
+                'key' => 'ssh_webshell',
+                'title' => 'Deteksi File Malware / Web Shell (SSH)',
+                'status' => $webshellStatus,
+                'desc' => $webshellDesc,
+                'fix' => $webshellFix
+            ];
+
+            // 3. Core File Integrity
+            $gitCheckCmd = "cd " . escapeshellarg($appPath) . " && git rev-parse --is-inside-work-tree 2>/dev/null";
+            $isGit = trim($ssh->exec($gitCheckCmd)) === 'true';
+
+            $integrityStatus = 'ok';
+            $integrityDesc = 'Integritas file repositori aman.';
+            $integrityFix = null;
+
+            if ($isGit) {
+                $gitStatusCmd = "cd " . escapeshellarg($appPath) . " && git status --porcelain 2>/dev/null";
+                $gitStatusOut = trim($ssh->exec($gitStatusCmd));
+                if (!empty($gitStatusOut)) {
+                    $statusLines = explode("\n", $gitStatusOut);
+                    $statusLines = array_filter(array_map('trim', $statusLines));
+                    
+                    $modified = 0;
+                    foreach ($statusLines as $line) {
+                        if (Str::startsWith($line, ['M ', ' M'])) {
+                            $modified++;
+                        }
+                    }
+
+                    if ($modified > 0) {
+                        $integrityStatus = 'warn';
+                        $integrityDesc = "PERINGATAN SSH: Terdeteksi {$modified} file core terdaftar yang dimodifikasi di server produksi.";
+                        $integrityFix = "Jalankan 'git diff' di server untuk meninjau perubahan file core tersebut dan pastikan perubahan tersebut sah.";
+                        $score -= 10;
+                        $issuesCount++;
+                    }
+                }
+            } else {
+                $recentFilesCmd = "find " . escapeshellarg($appPath) . " -type f -name \"*.php\" -mtime -1 ! -path \"*/vendor/*\" ! -path \"*/node_modules/*\" ! -path \"*/storage/*\" 2>/dev/null | wc -l";
+                $recentFilesCount = (int)trim($ssh->exec($recentFilesCmd));
+                if ($recentFilesCount > 5) {
+                    $integrityStatus = 'warn';
+                    $integrityDesc = "INFORMASI SSH: Terdeteksi {$recentFilesCount} file PHP baru/diubah dalam 24 jam terakhir (Situs tidak menggunakan Git).";
+                    $integrityFix = "Pastikan perubahan ini merupakan bagian dari pembaruan aplikasi resmi Anda.";
+                }
+            }
+
+            $checks[] = [
+                'key' => 'ssh_integrity',
+                'title' => 'Pemeriksaan Integritas Core File (SSH)',
+                'status' => $integrityStatus,
+                'desc' => $integrityDesc,
+                'fix' => $integrityFix
+            ];
+
+        } catch (\Exception $ex) {
+            $checks[] = [
+                'key' => 'ssh_connection',
+                'title' => 'Status Koneksi SSH',
+                'status' => 'fail',
+                'desc' => 'Gagal terhubung ke server via SSH: ' . $ex->getMessage(),
+                'fix' => 'Periksa kembali Host, Port, Username, dan Password/Key SSH di data website Anda. Pastikan port SSH terbuka di firewall server tujuan.'
+            ];
+            $score -= 15;
+            $issuesCount++;
+            
+            $checks[] = [
+                'key' => 'ssh_permissions',
+                'title' => 'Audit Izin File Sensitif (SSH)',
+                'status' => 'warn',
+                'desc' => 'Tidak dapat melakukan audit izin file karena koneksi SSH gagal.',
+                'fix' => null
+            ];
+            $checks[] = [
+                'key' => 'ssh_webshell',
+                'title' => 'Deteksi File Malware / Web Shell (SSH)',
+                'status' => 'warn',
+                'desc' => 'Tidak dapat melakukan pemindaian webshell karena koneksi SSH gagal.',
+                'fix' => null
+            ];
+            $checks[] = [
+                'key' => 'ssh_integrity',
+                'title' => 'Pemeriksaan Integritas Core File (SSH)',
+                'status' => 'warn',
+                'desc' => 'Tidak dapat melakukan audit integritas file karena koneksi SSH gagal.',
+                'fix' => null
+            ];
+        }
     }
 }

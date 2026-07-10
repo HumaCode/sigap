@@ -15,11 +15,23 @@ class SiteService
 
     public function createSite(array $data)
     {
+        if (isset($data['ssh_password']) && empty($data['ssh_password'])) {
+            unset($data['ssh_password']);
+        }
+        if (isset($data['ssh_private_key']) && empty($data['ssh_private_key'])) {
+            unset($data['ssh_private_key']);
+        }
         return $this->siteRepository->create($data);
     }
 
     public function updateSite($id, array $data)
     {
+        if (isset($data['ssh_password']) && ($data['ssh_password'] === '********' || empty($data['ssh_password']))) {
+            unset($data['ssh_password']);
+        }
+        if (isset($data['ssh_private_key']) && ($data['ssh_private_key'] === '********' || empty($data['ssh_private_key']))) {
+            unset($data['ssh_private_key']);
+        }
         return $this->siteRepository->update($id, $data);
     }
 

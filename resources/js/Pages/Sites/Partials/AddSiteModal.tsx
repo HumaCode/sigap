@@ -3,6 +3,8 @@ import { useForm } from '@inertiajs/react';
 import { toast } from '@/Components/DynamicToast';
 
 export default function AddSiteModal({ show, onClose, site }: { show: boolean, onClose: () => void, site?: any }) {
+    const [activeTab, setActiveTab] = React.useState<'info' | 'ssh'>('info');
+
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
         category: 'Portal Utama',
@@ -11,7 +13,14 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean, o
         pic_contact: '',
         check_interval: 5,
         sitemap_url: '',
-        critical_pages: []
+        critical_pages: [],
+        ssh_host: '',
+        ssh_port: 22,
+        ssh_username: '',
+        ssh_auth_type: 'password',
+        ssh_password: '',
+        ssh_private_key: '',
+        ssh_app_path: '',
     });
 
     React.useEffect(() => {
@@ -24,12 +33,20 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean, o
                 pic_contact: site.pic_contact || '',
                 check_interval: site.check_interval || 5,
                 sitemap_url: site.sitemap_url || '',
-                critical_pages: site.critical_pages || []
+                critical_pages: site.critical_pages || [],
+                ssh_host: site.ssh_host || '',
+                ssh_port: site.ssh_port || 22,
+                ssh_username: site.ssh_username || '',
+                ssh_auth_type: site.ssh_auth_type || 'password',
+                ssh_password: site.ssh_password || '',
+                ssh_private_key: site.ssh_private_key || '',
+                ssh_app_path: site.ssh_app_path || '',
             });
         } else {
             reset();
         }
-    }, [site]);
+        setActiveTab('info');
+    }, [site, show]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -84,117 +101,268 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean, o
 
                     <form onSubmit={handleSubmit}>
                         <div className="modal-body p-0" style={{ background: '#f8fafc' }}>
-                            <div className="row g-0">
-                                {/* Left Section - Main Form */}
-                                <div className="col-md-7 p-4 p-md-5 border-end" style={{ borderColor: 'rgba(0,0,0,0.05)' }}>
-                                    <h6 style={{ color: 'var(--ink-faint)', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>Informasi Utama</h6>
-                                    
-                                    <div className="mb-4">
-                                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Nama OPD / Instansi <span className="text-danger">*</span></label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                                            placeholder="Dinas Komunikasi dan Informatika"
-                                            value={data.name}
-                                            onChange={e => setData('name', e.target.value)}
-                                            required
-                                        />
-                                        {errors.name && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.name}</div>}
-                                    </div>
+                            {/* Tab Navigation */}
+                            <ul className="nav nav-pills px-4 py-3 border-bottom bg-white" style={{ gap: '10px' }}>
+                                <li className="nav-item">
+                                    <button 
+                                        type="button"
+                                        className={`nav-link ${activeTab === 'info' ? 'active' : ''}`} 
+                                        style={{ 
+                                            borderRadius: '10px', 
+                                            fontWeight: 600, 
+                                            padding: '0.5rem 1.25rem',
+                                            background: activeTab === 'info' ? (isEdit ? '#3b82f6' : 'var(--teal-1)') : 'transparent',
+                                            color: activeTab === 'info' ? 'white' : '#64748b',
+                                            border: 'none'
+                                        }}
+                                        onClick={() => setActiveTab('info')}
+                                    >
+                                        <i className="bi bi-info-circle me-2"></i>Informasi Situs
+                                    </button>
+                                </li>
+                                <li className="nav-item">
+                                    <button 
+                                        type="button"
+                                        className={`nav-link ${activeTab === 'ssh' ? 'active' : ''}`}
+                                        style={{ 
+                                            borderRadius: '10px', 
+                                            fontWeight: 600, 
+                                            padding: '0.5rem 1.25rem',
+                                            background: activeTab === 'ssh' ? (isEdit ? '#3b82f6' : 'var(--teal-1)') : 'transparent',
+                                            color: activeTab === 'ssh' ? 'white' : '#64748b',
+                                            border: 'none'
+                                        }}
+                                        onClick={() => setActiveTab('ssh')}
+                                    >
+                                        <i className="bi bi-shield-lock me-2"></i>Koneksi SSH (Opsional)
+                                    </button>
+                                </li>
+                            </ul>
 
-                                    <div className="mb-4">
-                                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>URL Situs <span className="text-danger">*</span></label>
-                                        <div className="input-group" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.02)', borderRadius: '12px' }}>
-                                            <span className="input-group-text border-end-0" style={{ background: '#f1f5f9', borderRadius: '12px 0 0 12px', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 600 }}>https://</span>
+                            {activeTab === 'info' && (
+                                <div className="row g-0">
+                                    {/* Left Section - Main Form */}
+                                    <div className="col-md-7 p-4 p-md-5 border-end" style={{ borderColor: 'rgba(0,0,0,0.05)' }}>
+                                        <h6 style={{ color: 'var(--ink-faint)', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>Informasi Utama</h6>
+                                        
+                                        <div className="mb-4">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Nama OPD / Instansi <span className="text-danger">*</span></label>
                                             <input 
                                                 type="text" 
-                                                className="form-control border-start-0" 
-                                                style={{ background: 'white', borderRadius: '0 12px 12px 0', padding: '0.75rem 1rem', border: '1px solid #e2e8f0' }} 
-                                                placeholder="pekalongankota.go.id"
-                                                value={data.url}
-                                                onChange={e => setData('url', e.target.value)}
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                placeholder="Dinas Komunikasi dan Informatika"
+                                                value={data.name}
+                                                onChange={e => setData('name', e.target.value)}
                                                 required
                                             />
+                                            {errors.name && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.name}</div>}
                                         </div>
-                                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', marginBottom: 0 }}><i className="bi bi-info-circle me-1"></i>Domain utama yang akan dipantau secara otomatis.</p>
-                                        {errors.url && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.url}</div>}
+
+                                        <div className="mb-4">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>URL Situs <span className="text-danger">*</span></label>
+                                            <div className="input-group" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.02)', borderRadius: '12px' }}>
+                                                <span className="input-group-text border-end-0" style={{ background: '#f1f5f9', borderRadius: '12px 0 0 12px', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 600 }}>https://</span>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control border-start-0" 
+                                                    style={{ background: 'white', borderRadius: '0 12px 12px 0', padding: '0.75rem 1rem', border: '1px solid #e2e8f0' }} 
+                                                    placeholder="pekalongankota.go.id"
+                                                    value={data.url}
+                                                    onChange={e => setData('url', e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', marginBottom: 0 }}><i className="bi bi-info-circle me-1"></i>Domain utama yang akan dipantau secara otomatis.</p>
+                                            {errors.url && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.url}</div>}
+                                        </div>
+
+                                        <div className="mb-0">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Kategori Situs</label>
+                                            <select 
+                                                className="form-select"
+                                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                value={data.category}
+                                                onChange={e => setData('category', e.target.value)}
+                                            >
+                                                <option>Portal Utama</option>
+                                                <option>SPBE</option>
+                                                <option>PPID</option>
+                                                <option>Lainnya</option>
+                                            </select>
+                                        </div>
                                     </div>
 
-                                    <div className="mb-0">
-                                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Kategori Situs</label>
-                                        <select 
-                                            className="form-select"
-                                            style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                                            value={data.category}
-                                            onChange={e => setData('category', e.target.value)}
-                                        >
-                                            <option>Portal Utama</option>
-                                            <option>SPBE</option>
-                                            <option>PPID</option>
-                                            <option>Lainnya</option>
-                                        </select>
+                                    {/* Right Section - Config & PIC */}
+                                    <div className="col-md-5 p-4 p-md-5" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                                        <h6 style={{ color: 'var(--ink-faint)', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>Konfigurasi & PIC</h6>
+                                        
+                                        <div className="mb-4">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Interval Pengecekan</label>
+                                            <select 
+                                                className="form-select"
+                                                style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
+                                                value={data.check_interval}
+                                                onChange={e => setData('check_interval', parseInt(e.target.value))}
+                                            >
+                                                <option value={1}>Setiap 1 menit (Kritis)</option>
+                                                <option value={5}>Setiap 5 menit (Standar)</option>
+                                                <option value={15}>Setiap 15 menit</option>
+                                                <option value={30}>Setiap 30 menit</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>URL Sitemap <span className="text-muted fw-normal">(Opsional)</span></label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
+                                                placeholder="/sitemap.xml"
+                                                value={data.sitemap_url}
+                                                onChange={e => setData('sitemap_url', e.target.value)}
+                                            />
+                                        </div>
+
+                                        <hr style={{ borderColor: 'rgba(0,0,0,0.05)', margin: '1.5rem 0' }} />
+
+                                        <div className="mb-3">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Nama Penanggung Jawab (PIC)</label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
+                                                placeholder="Nama lengkap"
+                                                value={data.pic_name}
+                                                onChange={e => setData('pic_name', e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="mb-0">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Kontak PIC <span className="text-muted fw-normal">(WA/Email)</span></label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
+                                                placeholder="08xx / email"
+                                                value={data.pic_contact}
+                                                onChange={e => setData('pic_contact', e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+                            )}
 
-                                {/* Right Section - Config & PIC */}
-                                <div className="col-md-5 p-4 p-md-5" style={{ background: 'rgba(255,255,255,0.6)' }}>
-                                    <h6 style={{ color: 'var(--ink-faint)', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>Konfigurasi & PIC</h6>
-                                    
-                                    <div className="mb-4">
-                                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Interval Pengecekan</label>
-                                        <select 
-                                            className="form-select"
-                                            style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
-                                            value={data.check_interval}
-                                            onChange={e => setData('check_interval', parseInt(e.target.value))}
-                                        >
-                                            <option value={1}>Setiap 1 menit (Kritis)</option>
-                                            <option value={5}>Setiap 5 menit (Standar)</option>
-                                            <option value={15}>Setiap 15 menit</option>
-                                            <option value={30}>Setiap 30 menit</option>
-                                        </select>
+                            {activeTab === 'ssh' && (
+                                <div className="p-4 p-md-5">
+                                    {/* Security warning card */}
+                                    <div className="alert alert-warning border-0" style={{ borderRadius: '16px', background: 'rgba(251,191,36,0.1)', color: '#b45309', display: 'flex', gap: '15px', padding: '1.25rem', marginBottom: '2rem' }}>
+                                        <div style={{ fontSize: '1.5rem', lineHeight: 1 }}><i className="bi bi-exclamation-triangle-fill"></i></div>
+                                        <div>
+                                            <h6 style={{ fontWeight: 700, margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>Rekomendasi Keamanan Penting</h6>
+                                            <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.9, lineHeight: 1.5 }}>
+                                                Disarankan untuk menggunakan akun SSH non-root (read-only) dengan akses terbatas ke direktori website Anda (misal: <code>/var/www/html</code>). Ini membantu mencegah risiko modifikasi server secara tidak sah jika kredensial bocor.
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div className="mb-4">
-                                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>URL Sitemap <span className="text-muted fw-normal">(Opsional)</span></label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
-                                            placeholder="/sitemap.xml"
-                                            value={data.sitemap_url}
-                                            onChange={e => setData('sitemap_url', e.target.value)}
-                                        />
-                                    </div>
+                                    <div className="row g-4">
+                                        <div className="col-md-8">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Host / IP SSH</label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                placeholder="192.168.1.100 atau ssh.pekalongankota.go.id"
+                                                value={data.ssh_host}
+                                                onChange={e => setData('ssh_host', e.target.value)}
+                                            />
+                                            {errors.ssh_host && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.ssh_host}</div>}
+                                        </div>
 
-                                    <hr style={{ borderColor: 'rgba(0,0,0,0.05)', margin: '1.5rem 0' }} />
+                                        <div className="col-md-4">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Port SSH</label>
+                                            <input 
+                                                type="number" 
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                placeholder="22"
+                                                value={data.ssh_port}
+                                                onChange={e => setData('ssh_port', parseInt(e.target.value) || 22)}
+                                            />
+                                            {errors.ssh_port && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.ssh_port}</div>}
+                                        </div>
 
-                                    <div className="mb-3">
-                                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Nama Penanggung Jawab (PIC)</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
-                                            placeholder="Nama lengkap"
-                                            value={data.pic_name}
-                                            onChange={e => setData('pic_name', e.target.value)}
-                                        />
-                                    </div>
+                                        <div className="col-md-6">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Username SSH</label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                placeholder="e.g. secure_scanner atau root"
+                                                value={data.ssh_username}
+                                                onChange={e => setData('ssh_username', e.target.value)}
+                                            />
+                                            {errors.ssh_username && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.ssh_username}</div>}
+                                        </div>
 
-                                    <div className="mb-0">
-                                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Kontak PIC <span className="text-muted fw-normal">(WA/Email)</span></label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control" 
-                                            style={{ background: 'white', borderRadius: '10px', padding: '0.6rem 1rem', border: '1px solid #e2e8f0' }}
-                                            placeholder="08xx / email"
-                                            value={data.pic_contact}
-                                            onChange={e => setData('pic_contact', e.target.value)}
-                                        />
+                                        <div className="col-md-6">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Tipe Autentikasi</label>
+                                            <select 
+                                                className="form-select"
+                                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                value={data.ssh_auth_type}
+                                                onChange={e => setData('ssh_auth_type', e.target.value)}
+                                            >
+                                                <option value="password">Password (Kata Sandi)</option>
+                                                <option value="key">SSH Private Key</option>
+                                            </select>
+                                        </div>
+
+                                        {data.ssh_auth_type === 'password' ? (
+                                            <div className="col-md-12">
+                                                <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Password SSH</label>
+                                                <input 
+                                                    type="password" 
+                                                    className="form-control" 
+                                                    style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                    placeholder={isEdit && data.ssh_password ? "Ketik password baru untuk mengubah, kosongkan jika tidak ingin diubah" : "Masukkan password akun SSH"}
+                                                    value={data.ssh_password === '********' ? '' : data.ssh_password}
+                                                    onChange={e => setData('ssh_password', e.target.value)}
+                                                />
+                                                {errors.ssh_password && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.ssh_password}</div>}
+                                            </div>
+                                        ) : (
+                                            <div className="col-md-12">
+                                                <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>SSH Private Key</label>
+                                                <textarea 
+                                                    className="form-control" 
+                                                    rows={5}
+                                                    style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                                    placeholder={isEdit && data.ssh_private_key ? "Masukkan private key baru untuk mengubah, kosongkan jika tidak ingin diubah" : "-----BEGIN OPENSSH PRIVATE KEY-----\n..."}
+                                                    value={data.ssh_private_key === '********' ? '' : data.ssh_private_key}
+                                                    onChange={e => setData('ssh_private_key', e.target.value)}
+                                                />
+                                                {errors.ssh_private_key && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.ssh_private_key}</div>}
+                                            </div>
+                                        )}
+
+                                        <div className="col-md-12">
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Path Aplikasi di Server</label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                                placeholder="e.g. /var/www/html atau /var/www/ppid"
+                                                value={data.ssh_app_path}
+                                                onChange={e => setData('ssh_app_path', e.target.value)}
+                                            />
+                                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', marginBottom: 0 }}><i className="bi bi-info-circle me-1"></i>Folder absolut website tempat kode program PHP disimpan.</p>
+                                            {errors.ssh_app_path && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.ssh_app_path}</div>}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         <div className="modal-footer" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', padding: '1.2rem 2rem', background: 'white' }}>

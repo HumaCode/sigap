@@ -21,6 +21,13 @@ class SiteResource extends JsonResource
             'critical_pages' => $this->critical_pages,
             'status' => $this->status,
             'is_active' => $this->is_active,
+            'ssh_host' => $this->ssh_host,
+            'ssh_port' => $this->ssh_port,
+            'ssh_username' => $this->ssh_username,
+            'ssh_auth_type' => $this->ssh_auth_type,
+            'ssh_password' => !empty($this->ssh_password) ? '********' : null,
+            'ssh_private_key' => !empty($this->ssh_private_key) ? '********' : null,
+            'ssh_app_path' => $this->ssh_app_path,
             'created_at' => $this->created_at,
             'uptime' => 99.8, // dummy for now
         ];

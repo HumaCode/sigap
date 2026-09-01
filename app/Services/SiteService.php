@@ -6,7 +6,10 @@ use App\Repositories\Interfaces\SiteRepositoryInterface;
 
 class SiteService
 {
-    public function __construct(protected SiteRepositoryInterface $siteRepository) {}
+    public function __construct(
+        protected SiteRepositoryInterface $siteRepository,
+        protected UptimeCheckService $uptimeCheckService
+    ) {}
 
     public function getSites($perPage = 10, $search = '', $filter = 'all')
     {
@@ -21,7 +24,17 @@ class SiteService
         if (isset($data['ssh_private_key']) && empty($data['ssh_private_key'])) {
             unset($data['ssh_private_key']);
         }
-        return $this->siteRepository->create($data);
+        
+        $site = $this->siteRepository->create($data);
+
+        // Instantly perform HTTP Health Check for the newly added site
+        try {
+            $this->uptimeCheckService->checkSite($site);
+        } catch (\Exception $e) {
+            // Ignore failure during creation flow
+        }
+
+        return $site;
     }
 
     public function updateSite($id, array $data)
@@ -32,7 +45,17 @@ class SiteService
         if (isset($data['ssh_private_key']) && ($data['ssh_private_key'] === '********' || empty($data['ssh_private_key']))) {
             unset($data['ssh_private_key']);
         }
-        return $this->siteRepository->update($id, $data);
+
+        $site = $this->siteRepository->update($id, $data);
+
+        // Re-check HTTP status immediately after update
+        try {
+            $this->uptimeCheckService->checkSite($site);
+        } catch (\Exception $e) {
+            // Ignore failure
+        }
+
+        return $site;
     }
 
     public function deleteSite($id)
@@ -40,3 +63,4 @@ class SiteService
         return $this->siteRepository->delete($id);
     }
 }
+

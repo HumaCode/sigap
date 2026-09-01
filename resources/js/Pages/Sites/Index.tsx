@@ -246,6 +246,16 @@ export default function Index(props: any) {
                                     <td>{site.check_interval} menit</td>
                                     <td style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>{site.pic_name || '-'}</td>
                                     <td style={{ textAlign: 'right' }}>
+                                        <Link
+                                            href={route('sites.check', site.id)}
+                                            method="post"
+                                            as="button"
+                                            className="action-btn info me-1"
+                                            title="Cek Ulang Status (Ping Sekarang)"
+                                            preserveScroll
+                                        >
+                                            <i className="bi bi-arrow-repeat"></i>
+                                        </Link>
                                         <button className="action-btn info" title="Lihat detail" onClick={() => { setSelectedSite(site); setShowDetailModal(true); }}><i className="bi bi-eye"></i></button>
                                         <button className="action-btn edit" title="Ubah" onClick={() => { setSelectedSite(site); setShowModal(true); }}><i className="bi bi-pencil"></i></button>
                                         <button 

@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
+    Route::post('/sites/{site}/check', [SiteController::class, 'recheck'])->name('sites.check');
     Route::resource('sites', SiteController::class)->except(['create', 'edit', 'show']);
     Route::resource('incidents', IncidentController::class)->except(['create', 'edit', 'show']);
     

@@ -30,7 +30,7 @@ class DashboardController extends Controller
         $activeSites = Site::where('status', 'up')->count();
 
         // 3. Compute Uptime Average
-        $avgUptime = 100.0;
+        $avgUptime = 0.0;
         if ($totalSites > 0) {
             $avgUptime = (($activeSites * 100) + ($warnSites * 95) + ($downSites * 0)) / $totalSites;
             $avgUptime = round($avgUptime, 1);
@@ -47,7 +47,7 @@ class DashboardController extends Controller
         $securities = SiteSecurity::all();
         $totalSec = $securities->count();
         $cleanSec = $securities->where('issues_count', 0)->count();
-        $pctSecure = $totalSec > 0 ? round(($cleanSec / $totalSec) * 100) : 100;
+        $pctSecure = $totalSec > 0 ? round(($cleanSec / $totalSec) * 100) : 0;
 
         $exposedEnv = 0;
         $missingCsp = 0;

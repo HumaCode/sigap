@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import EmptyState from '@/Components/EmptyState';
 import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import '../../css/dashboard.css';
@@ -315,43 +316,53 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                                 <span className={`pill-tab ${activeTab === '90days' ? 'active' : ''}`} onClick={() => setActiveTab('90days')} style={{ cursor: 'pointer' }}>90 Hari</span>
                             </div>
                         </div>
-                        <div className="chart-wrap">
-                            <svg viewBox="0 0 700 230" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#0ea5a3" stopOpacity="0.35"/>
-                                        <stop offset="100%" stopColor="#0ea5a3" stopOpacity="0"/>
-                                    </linearGradient>
-                                </defs>
-                                <line x1="0" y1="40" x2="700" y2="40" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
-                                <line x1="0" y1="95" x2="700" y2="95" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
-                                <line x1="0" y1="150" x2="700" y2="150" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
-                                
-                                {pathD && (
-                                    <>
-                                        <path d={fillD} fill="url(#areaFill)" style={{ transition: 'd 0.3s ease' }} />
-                                        <path d={pathD} fill="none" stroke="#0ea5a3" strokeWidth="3" strokeLinecap="round" style={{ transition: 'd 0.3s ease' }} />
-                                        {points.map((p, idx) => (
-                                            <circle 
-                                                key={idx}
-                                                cx={p.x} 
-                                                cy={p.y} 
-                                                r={idx === points.length - 1 ? "5" : "3.5"} 
-                                                fill="#fff" 
-                                                stroke={idx === points.length - 1 ? "#3b82f6" : "#0ea5a3"} 
-                                                strokeWidth="2.5" 
-                                                style={{ transition: 'cx 0.3s ease, cy 0.3s ease' }}
-                                            />
-                                        ))}
-                                    </>
-                                )}
-                            </svg>
-                        </div>
-                        <div className="d-flex justify-content-between mt-2" style={{fontSize: '0.72rem', color: 'var(--ink-faint)'}}>
-                            {config.labels.map((lbl, idx) => (
-                                <span key={idx}>{lbl}</span>
-                            ))}
-                        </div>
+                        {stats.total_sites > 0 ? (
+                            <>
+                                <div className="chart-wrap">
+                                    <svg viewBox="0 0 700 230" preserveAspectRatio="none">
+                                        <defs>
+                                            <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#0ea5a3" stopOpacity="0.35"/>
+                                                <stop offset="100%" stopColor="#0ea5a3" stopOpacity="0"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <line x1="0" y1="40" x2="700" y2="40" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
+                                        <line x1="0" y1="95" x2="700" y2="95" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
+                                        <line x1="0" y1="150" x2="700" y2="150" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
+                                        
+                                        {pathD && (
+                                            <>
+                                                <path d={fillD} fill="url(#areaFill)" style={{ transition: 'd 0.3s ease' }} />
+                                                <path d={pathD} fill="none" stroke="#0ea5a3" strokeWidth="3" strokeLinecap="round" style={{ transition: 'd 0.3s ease' }} />
+                                                {points.map((p, idx) => (
+                                                    <circle 
+                                                        key={idx}
+                                                        cx={p.x} 
+                                                        cy={p.y} 
+                                                        r={idx === points.length - 1 ? "5" : "3.5"} 
+                                                        fill="#fff" 
+                                                        stroke={idx === points.length - 1 ? "#3b82f6" : "#0ea5a3"} 
+                                                        strokeWidth="2.5" 
+                                                        style={{ transition: 'cx 0.3s ease, cy 0.3s ease' }}
+                                                    />
+                                                ))}
+                                            </>
+                                        )}
+                                    </svg>
+                                </div>
+                                <div className="d-flex justify-content-between mt-2" style={{fontSize: '0.72rem', color: 'var(--ink-faint)'}}>
+                                    {config.labels.map((lbl, idx) => (
+                                        <span key={idx}>{lbl}</span>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <EmptyState
+                                icon="bi-activity"
+                                title="Belum Ada Tren Uptime"
+                                description="Grafik tren ketersediaan akan aktif secara otomatis begitu Anda mendaftarkan situs terpantau pertama."
+                            />
+                        )}
                     </div>
                 </div>
 

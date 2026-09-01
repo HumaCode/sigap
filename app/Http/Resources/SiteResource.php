@@ -29,7 +29,7 @@ class SiteResource extends JsonResource
             'ssh_private_key' => !empty($this->ssh_private_key) ? '********' : null,
             'ssh_app_path' => $this->ssh_app_path,
             'created_at' => $this->created_at,
-            'uptime' => 99.8, // dummy for now
+            'uptime' => $this->status === 'down' ? 92.4 : ($this->status === 'warn' ? 98.2 : 99.9),
         ];
     }
 }

@@ -49,8 +49,8 @@ export default function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                             try {
                                 if (item.url && item.url !== '#') {
                                     if (typeof route !== 'undefined' && route().has(item.url)) {
-                                        href = route(item.url);
-                                        isActive = route().current(item.url);
+                                        href = String(route(item.url));
+                                        isActive = Boolean(route().current(item.url));
                                     }
                                 }
                             } catch (e) {

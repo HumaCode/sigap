@@ -52,4 +52,13 @@ class SiteController extends Controller
         $this->siteService->deleteSite($id);
         return redirect()->route('sites.index')->with('success', 'Situs berhasil dihapus');
     }
+
+    public function recheck($id, \App\Services\UptimeCheckService $uptimeCheckService)
+    {
+        $site = \App\Models\Site::findOrFail($id);
+        $result = $uptimeCheckService->checkSite($site);
+
+        $statusText = $result['status'] === 'up' ? 'Online' : "Offline ({$result['status_code']})";
+        return redirect()->back()->with('success', "Pengecekan ulang selesai. Status situs saat ini: {$statusText}");
+    }
 }

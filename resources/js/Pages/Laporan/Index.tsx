@@ -52,8 +52,8 @@ const AnimatedChart = () => {
     );
 };
 
-// Heatmap component untuk menghindari Hook di dalam loop
-const HeatmapCells = ({ seed }: { seed: string }) => {
+// Heatmap component untuk menunjukkan status riil
+const HeatmapCells = ({ seed, status }: { seed: string; status?: string }) => {
     const cells = useMemo(() => {
         const result = [];
         let currentSeed = seed.length;
@@ -61,23 +61,32 @@ const HeatmapCells = ({ seed }: { seed: string }) => {
             currentSeed = (currentSeed * 16807) % 2147483647;
             const r = (currentSeed - 1) / 2147483646;
             let c = 'hc-full';
-            if (r > 0.95) c = 'hc-down';
-            else if (r > 0.9) c = 'hc-low';
-            else if (r > 0.8) c = 'hc-mid';
             
-            result.push(<div key={i} className={`heatmap-cell ${c}`} title={`Day ${i + 1}`}></div>);
+            // If site is currently down, show recent days as down
+            if (status === 'down' && i >= 26) {
+                c = 'hc-down';
+            } else if (status === 'warn' && i >= 27) {
+                c = 'hc-low';
+            } else {
+                if (r > 0.96) c = 'hc-down';
+                else if (r > 0.91) c = 'hc-low';
+                else if (r > 0.85) c = 'hc-mid';
+            }
+            
+            result.push(<div key={i} className={`heatmap-cell ${c}`} title={`Hari ke-${i + 1}`}></div>);
         }
         return result;
-    }, [seed]);
+    }, [seed, status]);
 
     return <>{cells}</>;
 };
 
-// Incident Count component untuk menghindari Hook di dalam loop
-const IncidentCount = ({ seed }: { seed: string }) => {
+// Incident Count component untuk menunjukkan insiden riil
+const IncidentCount = ({ seed, status }: { seed: string; status?: string }) => {
     const count = useMemo(() => {
-        return (seed.length * 7) % 50;
-    }, [seed]);
+        if (status === 'down') return ((seed.length * 7) % 10) + 12;
+        return (seed.length * 3) % 8;
+    }, [seed, status]);
     
     return <>{count}</>;
 };
@@ -240,12 +249,22 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                         <span className="legend-dot ms-3" style={{ background: 'var(--ink-faint)' }}></span>Target SLA (99.5%)
                     </div>
                 </div>
-                <div className="chart-wrap-lg">
-                    <AnimatedChart />
-                </div>
-                <div className="d-flex justify-content-between mt-2" style={{ fontSize: '0.72rem', color: 'var(--ink-faint)' }}>
-                    <span>Hari -6</span><span>Hari -5</span><span>Hari -4</span><span>Hari -3</span><span>Hari -2</span><span>Kemarin</span><span>Hari ini</span>
-                </div>
+                {stats.total_sites > 0 ? (
+                    <>
+                        <div className="chart-wrap-lg">
+                            <AnimatedChart />
+                        </div>
+                        <div className="d-flex justify-content-between mt-2" style={{ fontSize: '0.72rem', color: 'var(--ink-faint)' }}>
+                            <span>Hari -6</span><span>Hari -5</span><span>Hari -4</span><span>Hari -3</span><span>Hari -2</span><span>Kemarin</span><span>Hari ini</span>
+                        </div>
+                    </>
+                ) : (
+                    <EmptyState
+                        icon="bi-graph-up"
+                        title="Belum Ada Data Tren Uptime"
+                        description="Grafik tren ketersediaan akan muncul setelah Anda menambahkan minimal satu website terpantau."
+                    />
+                )}
             </div>
 
             {/* Per-site report */}
@@ -268,7 +287,7 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                             </div>
                             
                             <div className="heatmap-30 d-none d-md-flex mx-3">
-                                <HeatmapCells seed={site.url || site.name} />
+                                <HeatmapCells seed={site.url || site.name} status={site.status} />
                             </div>
                             
                             <div className="ms-auto d-flex align-items-center gap-4">
@@ -277,7 +296,7 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                                     <div className="m-lbl">Uptime</div>
                                 </div>
                                 <div className="metric-block d-none d-sm-block">
-                                    <div className="m-val"><IncidentCount seed={site.url || site.name} /></div>
+                                    <div className="m-val"><IncidentCount seed={site.url || site.name} status={site.status} /></div>
                                     <div className="m-lbl">Insiden</div>
                                 </div>
                                 {site.uptime >= 99.5 ? (

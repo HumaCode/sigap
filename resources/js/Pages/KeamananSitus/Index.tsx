@@ -273,11 +273,7 @@ export default function Index({ securities, filters, stats }: IndexProps) {
                 </div>
 
                 {/* Pagination */}
-                {safeSecurities.meta && safeSecurities.meta.last_page > 1 && (
-                    <div className="p-3 border-top">
-                        <Pagination links={safeSecurities.meta.links} />
-                    </div>
-                )}
+                <Pagination meta={safeSecurities.meta} links={safeSecurities.links} itemLabel="laporan keamanan" />
             </div>
         </AuthenticatedLayout>
     );

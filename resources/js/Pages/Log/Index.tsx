@@ -6,6 +6,7 @@ import { toast } from '@/Components/DynamicToast';
 import DetailLogModal from './Partials/DetailLogModal';
 import '../../../css/detection.css';
 import EmptyState from '@/Components/EmptyState';
+import Pagination from '@/Components/Pagination';
 
 interface LogProps extends PageProps {
     logs: { data: any[]; links: any[]; meta: any };
@@ -190,9 +191,9 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                                 <div className="log-right">
                                     {getStatusBadge(log.status)}
                                     <div className="log-actions">
-                                        <button onClick={() => handleUpdateStatus(log.id, 'blocked')} className="mini-action" title="Blokir"><i className="bi bi-slash-circle"></i></button>
-                                        <button onClick={() => handleUpdateStatus(log.id, 'false_positive')} className="mini-action" title="Bukan spam"><i className="bi bi-flag"></i></button>
-                                        <button onClick={() => { setSelectedLog(log); setShowModal(true); }} className="mini-action" title="Lihat detail"><i className="bi bi-eye"></i></button>
+                                        <button onClick={() => handleUpdateStatus(log.id, 'blocked')} className="mini-action" data-tooltip="Blokir"><i className="bi bi-slash-circle"></i></button>
+                                        <button onClick={() => handleUpdateStatus(log.id, 'false_positive')} className="mini-action" data-tooltip="Bukan spam"><i className="bi bi-flag"></i></button>
+                                        <button onClick={() => { setSelectedLog(log); setShowModal(true); }} className="mini-action" data-tooltip="Lihat detail"><i className="bi bi-eye"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -205,6 +206,9 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                         />
                     )}
                 </div>
+
+                {/* Pagination */}
+                <Pagination meta={logs.meta} links={logs.links} />
             </div>
 
             <DetailLogModal

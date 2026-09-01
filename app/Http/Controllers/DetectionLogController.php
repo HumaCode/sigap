@@ -19,7 +19,7 @@ class DetectionLogController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['search', 'filter']);
-        $logs = $this->detectionLogService->getPaginatedLogs($filters, 15);
+        $logs = $this->detectionLogService->getPaginatedLogs($filters, 20);
 
         $search = $request->input('search', '');
         $baseQuery = \App\Models\DetectionLog::query();
@@ -45,7 +45,7 @@ class DetectionLogController extends Controller
         ];
 
         return Inertia::render('Log/Index', [
-            'logs' => DetectionLogResource::collection($logs),
+            'logs' => new \App\Http\Resources\PaginateResource($logs, DetectionLogResource::class),
             'filters' => (object) $filters,
             'stats' => (object) $stats
         ]);

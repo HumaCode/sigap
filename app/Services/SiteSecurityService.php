@@ -95,7 +95,13 @@ class SiteSecurityService
                         ->withHeaders($this->getRandomHeaders())
                         ->timeout(5)
                         ->get($url);
-                    $isReachable = true;
+
+                    if ($response->status() >= 500 || $response->status() === 404 || $response->status() === 502) {
+                        $isReachable = false;
+                        $reachabilityError = "Situs mengembalikan HTTP Error {$response->status()} (" . ($response->status() === 502 ? 'Bad Gateway' : 'Server Error') . ').';
+                    } else {
+                        $isReachable = true;
+                    }
                 } catch (\Exception $e) {
                     $reachabilityError = 'Koneksi gagal: ' . $e->getMessage();
                 }

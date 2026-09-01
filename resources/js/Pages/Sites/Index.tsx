@@ -7,6 +7,7 @@ import DetailSiteModal from './Partials/DetailSiteModal';
 import ConfirmModal from '@/Components/ConfirmModal';
 import { toast } from '@/Components/DynamicToast';
 import EmptyState from '@/Components/EmptyState';
+import Pagination from '@/Components/Pagination';
 
 export default function Index(props: any) {
     const sites = props.sites || { data: [], meta: { total: 0, from: 0, to: 0, last_page: 1 } };
@@ -251,16 +252,16 @@ export default function Index(props: any) {
                                             method="post"
                                             as="button"
                                             className="action-btn info me-1"
-                                            title="Cek Ulang Status (Ping Sekarang)"
+                                            data-tooltip="Ping Sekarang"
                                             preserveScroll
                                         >
                                             <i className="bi bi-arrow-repeat"></i>
                                         </Link>
-                                        <button className="action-btn info" title="Lihat detail" onClick={() => { setSelectedSite(site); setShowDetailModal(true); }}><i className="bi bi-eye"></i></button>
-                                        <button className="action-btn edit" title="Ubah" onClick={() => { setSelectedSite(site); setShowModal(true); }}><i className="bi bi-pencil"></i></button>
+                                        <button className="action-btn info" data-tooltip="Lihat detail" onClick={() => { setSelectedSite(site); setShowDetailModal(true); }}><i className="bi bi-eye"></i></button>
+                                        <button className="action-btn edit" data-tooltip="Ubah" onClick={() => { setSelectedSite(site); setShowModal(true); }}><i className="bi bi-pencil"></i></button>
                                         <button 
                                             className="action-btn danger" 
-                                            title="Hapus"
+                                            data-tooltip="Hapus"
                                             onClick={() => confirmDelete(site)}
                                         ><i className="bi bi-trash"></i></button>
                                     </td>
@@ -306,35 +307,8 @@ export default function Index(props: any) {
                     ))}
                 </div>
 
-                {/* Pagination */}
-                {sites.meta && sites.meta.last_page > 1 && (
-                    <div className="pagination-footer">
-                        <span style={{ fontSize: '0.8rem', color: 'var(--ink-faint)' }}>Menampilkan {sites.meta.from} - {sites.meta.to} dari {sites.meta.total} situs</span>
-                        <div className="d-flex gap-1">
-                            {sites.meta.links && sites.meta.links.map((link: any, index: number) => {
-                                if (link.label === '...') {
-                                    return (
-                                        <span key={index} className="pg-btn" style={{ background: 'transparent', border: 'none', cursor: 'default', color: 'var(--ink-soft)' }}>
-                                            ...
-                                        </span>
-                                    );
-                                }
-                                
-                                return (
-                                    <Link 
-                                        key={index} 
-                                        href={link.url || '#'}
-                                        className={`pg-btn ${link.active ? 'active' : ''} ${!link.url ? 'opacity-50' : ''}`}
-                                        style={!link.url ? { pointerEvents: 'none' } : {}}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                        preserveState
-                                        preserveScroll
-                                    />
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
+                {/* Reusable Pagination */}
+                <Pagination meta={sites.meta} links={sites.links} itemLabel="situs" />
             </div>
 
             <AddSiteModal show={showModal} onClose={() => { setShowModal(false); setSelectedSite(null); }} site={selectedSite} />

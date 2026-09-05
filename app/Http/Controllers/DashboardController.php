@@ -37,8 +37,8 @@ class DashboardController extends Controller
         }
 
         // 4. Incidents count
-        $openIncidentsCount = Incident::where('status', 'open')->count();
-        $criticalIncidentsCount = Incident::where('status', 'open')->where('severity', 'critical')->count();
+        $openIncidentsCount = Incident::whereNotIn('status', ['resolved', 'false_positive'])->count();
+        $criticalIncidentsCount = Incident::whereIn('severity', ['critical', 'high'])->whereNotIn('status', ['resolved', 'false_positive'])->count();
 
         // 5. Total detections
         $detectionsCount = DetectionLog::count();

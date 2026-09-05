@@ -54,9 +54,11 @@ class IncidentRepository implements IncidentRepositoryInterface
     {
         return [
             'total' => Incident::count(),
-            'critical' => Incident::where('severity', 'critical')->count(),
+            'critical' => Incident::whereIn('severity', ['critical', 'high'])->whereNotIn('status', ['resolved', 'false_positive'])->count(),
             'resolved' => Incident::where('status', 'resolved')->count(),
             'open' => Incident::where('status', 'open')->count(),
+            'investigating' => Incident::whereIn('status', ['investigating', 'acknowledged'])->count(),
+            'active' => Incident::whereNotIn('status', ['resolved', 'false_positive'])->count(),
         ];
     }
 }

@@ -34,6 +34,7 @@ interface SecurityData {
 interface IndexProps {
     securities: {
         data: SecurityData[];
+        links?: any[];
         meta: {
             current_page: number;
             from: number;

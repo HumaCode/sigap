@@ -14,6 +14,8 @@ interface IncidentProps extends PageProps {
         critical: number;
         resolved: number;
         open: number;
+        investigating?: number;
+        active?: number;
     };
 }
 
@@ -58,6 +60,7 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
     const renderStatusBadge = (status: string) => {
         switch (status) {
             case 'open': return <span className="status-badge st-open">Terbuka</span>;
+            case 'investigating':
             case 'acknowledged': return <span className="status-badge st-ack">Ditinjau</span>;
             case 'resolved': return <span className="status-badge st-resolved">Selesai</span>;
             case 'false_positive': return <span className="status-badge st-false">Bukan Insiden</span>;
@@ -68,7 +71,8 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
     const getIcon = (type: string) => {
         switch (type) {
             case 'defacement': return { icon: 'bi bi-pencil-square', bg: 'linear-gradient(135deg,var(--sun),#ff9d6e)' };
-            case 'down': return { icon: 'bi bi-hdd-network', bg: 'linear-gradient(135deg,var(--blue-1),var(--blue-2))' };
+            case 'down':
+            case 'uptime': return { icon: 'bi bi-hdd-network-fill', bg: 'linear-gradient(135deg,#ff7a6e,#c8332a)' };
             case 'keyword_found': return { icon: 'bi bi-bug', bg: 'linear-gradient(135deg,#ff7a6e,#ff9d6e)' };
             case 'error': return { icon: 'bi bi-file-earmark-lock2', bg: 'linear-gradient(135deg,var(--violet),#a78bfa)' };
             default: return { icon: 'bi bi-shield-exclamation', bg: 'linear-gradient(135deg,var(--teal-1),var(--teal-2))' };
@@ -94,7 +98,7 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                     <div>
                         <div className="page-title mb-0" style={{ lineHeight: 1.2 }}>Manajemen Insiden</div>
                         <p className="page-sub mb-0 mt-1" style={{ margin: 0 }}>
-                            Riwayat insiden dari seluruh situs terpantau — {stats.open} insiden masih terbuka.
+                            Riwayat insiden dari seluruh situs terpantau — {stats.active ?? (stats.total - stats.resolved)} insiden belum selesai.
                         </p>
                     </div>
                 </div>
@@ -152,7 +156,7 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                         <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div>
                                 <div style={{ color: 'var(--sun)', fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ditinjau</div>
-                                <div style={{ fontWeight: 800, fontSize: '1.8rem', color: 'var(--sun)', lineHeight: '1.2', marginTop: '0.2rem' }}>{stats.total - stats.resolved - stats.open}</div>
+                                <div style={{ fontWeight: 800, fontSize: '1.8rem', color: 'var(--sun)', lineHeight: '1.2', marginTop: '0.2rem' }}>{stats.investigating ?? (stats.total - stats.resolved - stats.open)}</div>
                                 <div style={{ fontSize: '0.72rem', color: 'var(--ink-faint)', marginTop: '0.1rem' }}>Dalam Proses</div>
                             </div>
                             <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(251,191,36,0.12)', color: 'var(--sun)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', boxShadow: '0 4px 10px rgba(251,191,36,0.1)' }}>

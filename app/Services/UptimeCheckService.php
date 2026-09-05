@@ -80,9 +80,9 @@ class UptimeCheckService
                 Incident::create([
                     'site_id' => $site->id,
                     'title' => "Situs Down: {$site->name}",
-                    'type' => 'uptime',
-                    'severity' => ($statusCode >= 500 || $statusCode === 0) ? 'high' : 'medium',
-                    'status' => 'investigating',
+                    'type' => 'down',
+                    'severity' => ($statusCode >= 500 || $statusCode === 0) ? 'critical' : 'high',
+                    'status' => 'open',
                     'description' => "Permintaan HTTP ke {$url} gagal dengan respon: " . ($errorMessage ?? "Status Code {$statusCode}"),
                     'payload' => [
                         'url' => $url,

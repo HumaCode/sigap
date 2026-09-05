@@ -5,9 +5,10 @@ import { useState, useEffect } from 'react';
 import { toast } from '@/Components/DynamicToast';
 import KeywordModal from './Partials/KeywordModal';
 import '../../../css/keyword.css';
-import Pagination from '@/Components/Pagination'; // Assuming Pagination is a generic component
+import Pagination from '@/Components/Pagination';
 import EmptyState from '@/Components/EmptyState';
 import ConfirmModal from '@/Components/ConfirmModal';
+import PopupLoader from '@/Components/PopupLoader';
 
 interface Keyword {
     id: string;
@@ -23,7 +24,8 @@ interface Keyword {
 interface KeywordProps extends PageProps {
     keywords: {
         data: Keyword[];
-        meta: any; // Include meta for pagination
+        meta: any;
+        links?: any[];
     };
     filters: {
         search?: string;
@@ -42,11 +44,7 @@ export default function Index({
     filters, 
     stats 
 }: KeywordProps) {
-    // Force hot-reload check
-    console.log('INDEX PROPS RECEIVED:', { keywords, filters, stats });
-    
-    // Ensure safe defaults
-    const safeKeywords = keywords || { data: [], meta: { links: [], last_page: 1 } };
+    const safeKeywords = keywords || { data: [], meta: { links: [], last_page: 1, current_page: 1, from: 0, to: 0, total: 0 } };
     const safeData = safeKeywords.data || [];
     const safeFilters = Array.isArray(filters) ? {} : (filters || {});
     const safeStats = stats || { total: 0, judol: 0, obat: 0, regex: 0 };
@@ -59,19 +57,53 @@ export default function Index({
     const [keywordToDelete, setKeywordToDelete] = useState<Keyword | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Popup loader modal state
+    const [isFiltering, setIsFiltering] = useState(false);
+    const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
+
+    const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
+        setLoaderMessage(msg);
+        setIsFiltering(true);
+        const startTime = Date.now();
+
+        router.get(url, params, {
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, 450 - elapsed);
+                setTimeout(() => {
+                    setIsFiltering(false);
+                }, remaining);
+            },
+            onError: () => {
+                setIsFiltering(false);
+            }
+        });
+    };
+
     // Debounce search
     useEffect(() => {
         const timeout = setTimeout(() => {
             if (searchTerm !== (safeFilters?.search || '')) {
-                router.get(route('keywords.index'), { search: searchTerm, filter: activeFilter }, { preserveState: true, preserveScroll: true });
+                const msg = searchTerm.trim() ? `Mencari kata kunci "${searchTerm.trim()}"...` : 'Memuat kamus kata kunci...';
+                executeFilter(route('keywords.index'), { search: searchTerm, filter: activeFilter }, msg);
             }
-        }, 300);
+        }, 350);
         return () => clearTimeout(timeout);
-    }, [searchTerm, activeFilter]);
+    }, [searchTerm]);
 
     const handleFilter = (filter: string) => {
         setActiveFilter(filter);
-        router.get(route('keywords.index'), { search: searchTerm, filter }, { preserveState: true, preserveScroll: true });
+        const catMap: Record<string, string> = {
+            'all': 'semua kata kunci',
+            'judol': 'kategori Judi Online',
+            'obat': 'kategori Obat Terlarang',
+            'hidden': 'kategori Teks Tersembunyi',
+            'newpage': 'kategori Halaman Baru',
+            'phising': 'kategori Phising'
+        };
+        executeFilter(route('keywords.index'), { search: searchTerm, filter }, `Memuat ${catMap[filter] || filter}...`);
     };
 
     const handleAdd = () => {
@@ -105,23 +137,17 @@ export default function Index({
     };
 
     const handleRefresh = () => {
-        setIsRefreshing(true);
         setSearchTerm('');
         setActiveFilter('all');
-        router.get(route('keywords.index'), { search: '', filter: 'all' }, { 
-            preserveState: true,
-            preserveScroll: true,
-            onFinish: () => {
-                setIsRefreshing(false);
-                toast.info('Segarkan', 'Data kata kunci terbaru telah dimuat.');
-            }
-        });
+        executeFilter(route('keywords.index'), { search: '', filter: 'all' }, 'Menyegarkan data kamus kata kunci...');
     };
 
     const getCatBadge = (category: string) => {
         switch (category) {
             case 'judol': return <span className="category-tag cat-judol">Judi Online</span>;
             case 'obat': return <span className="category-tag cat-obat">Obat Terlarang</span>;
+            case 'hidden': return <span className="category-tag" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', border: '1px solid rgba(56, 189, 248, 0.3)' }}>Teks Tersembunyi</span>;
+            case 'newpage': return <span className="category-tag" style={{ background: 'rgba(14, 165, 163, 0.15)', color: '#0ea5a3', border: '1px solid rgba(14, 165, 163, 0.3)' }}>Halaman Baru</span>;
             case 'phising': return <span className="category-tag cat-phising">Phising</span>;
             default: return <span className="category-tag cat-lainnya">Lainnya</span>;
         }
@@ -131,7 +157,7 @@ export default function Index({
         <AuthenticatedLayout>
             <Head title="Kamus Kata Kunci" />
 
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <div className="d-flex align-items-center gap-3">
                     <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--teal-1), var(--teal-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem', flexShrink: 0, boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
                         <i className="bi bi-journal-text"></i>
@@ -185,7 +211,7 @@ export default function Index({
 
             <div className="glass-card mb-4">
                 {/* Toolbar */}
-                <div className="toolbar">
+                <div className="toolbar flex-wrap gap-2">
                     <div className="search-local">
                         <i className="bi bi-search"></i>
                         <input 
@@ -198,8 +224,10 @@ export default function Index({
                     <div className={`filter-chip ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilter('all')}>Semua</div>
                     <div className={`filter-chip ${activeFilter === 'judol' ? 'active' : ''}`} onClick={() => handleFilter('judol')}>Judi Online</div>
                     <div className={`filter-chip ${activeFilter === 'obat' ? 'active' : ''}`} onClick={() => handleFilter('obat')}>Obat Terlarang</div>
+                    <div className={`filter-chip ${activeFilter === 'hidden' ? 'active' : ''}`} onClick={() => handleFilter('hidden')}>Teks Tersembunyi</div>
+                    <div className={`filter-chip ${activeFilter === 'newpage' ? 'active' : ''}`} onClick={() => handleFilter('newpage')}>Halaman Baru</div>
                     <div className={`filter-chip ${activeFilter === 'phising' ? 'active' : ''}`} onClick={() => handleFilter('phising')}>Phising</div>
-                    <button className="btn-add" onClick={handleAdd}>
+                    <button className="btn-add ms-auto" onClick={handleAdd}>
                         <i className="bi bi-plus-lg"></i><span className="d-none d-sm-inline">Tambah Kata Kunci</span>
                     </button>
                 </div>
@@ -270,12 +298,8 @@ export default function Index({
                     </table>
                 </div>
 
-                {/* Pagination (using generic component) */}
-                {safeKeywords?.meta?.last_page > 1 && (
-                    <div className="p-3 border-top">
-                        <Pagination links={safeKeywords.meta.links} />
-                    </div>
-                )}
+                {/* PaginatedResource Pagination */}
+                <Pagination meta={safeKeywords.meta} links={safeKeywords.links} itemLabel="kata kunci" />
             </div>
 
             <KeywordModal 
@@ -291,6 +315,14 @@ export default function Index({
                 onConfirm={handleDelete}
                 onCancel={() => !isDeleting && setKeywordToDelete(null)}
                 isProcessing={isDeleting}
+            />
+
+            {/* Popup Loader Modal for Filters */}
+            <PopupLoader 
+                isOpen={isFiltering} 
+                status="loading" 
+                message={loaderMessage} 
+                title="Sedang Memproses..."
             />
         </AuthenticatedLayout>
     );

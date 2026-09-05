@@ -32,7 +32,7 @@ class KeywordController extends Controller
         ];
 
         return Inertia::render('Keyword/Index', [
-            'keywords' => KeywordResource::collection($keywords),
+            'keywords' => new \App\Http\Resources\PaginateResource($keywords, KeywordResource::class),
             'filters' => (object) $filters,
             'stats' => $stats,
         ]);

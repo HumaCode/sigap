@@ -18,6 +18,9 @@ services:
       - DB_PASSWORD=sijaga2026
       - REDIS_HOST=redis
       - CHOKIDAR_USEPOLLING=true # Penting untuk Vite HMR di Docker
+      - NINEROUTER_API_ENDPOINT=https://9router.humacode.my.id/v1
+      - NINEROUTER_API_KEY=sk-87c21f1377386e51-mg2vwm-203fa056
+      - NINEROUTER_MODEL=model-2
     volumes:
       - .:/app
     depends_on:
@@ -43,6 +46,9 @@ services:
       - DB_USERNAME=sijaga
       - DB_PASSWORD=sijaga2026
       - REDIS_HOST=redis
+      - NINEROUTER_API_ENDPOINT=https://9router.humacode.my.id/v1
+      - NINEROUTER_API_KEY=sk-87c21f1377386e51-mg2vwm-203fa056
+      - NINEROUTER_MODEL=model-2
     volumes:
       - .:/app
     depends_on:

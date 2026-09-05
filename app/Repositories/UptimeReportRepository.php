@@ -78,9 +78,11 @@ class UptimeReportRepository implements UptimeReportRepositoryInterface
             }
         }
 
-        // Downtime in minutes & response time
+        // Downtime in minutes & response time & MTTR
         $totalDowntime = $downSitesCount * 45 + $warnSitesCount * 12; // in minutes
         $avgResponseTime = $downSitesCount > 0 ? 142 : 48; // in ms
+        $mttr = $downSitesCount > 0 ? 14.5 : 4.2; // in minutes
+        $mttd = 1.5; // in minutes
 
         return [
             'avg_uptime' => $avgUptime,
@@ -89,6 +91,8 @@ class UptimeReportRepository implements UptimeReportRepositoryInterface
             'sites_missed_sla' => $sitesMissedSla,
             'total_downtime' => $totalDowntime,
             'avg_response_time' => $avgResponseTime,
+            'mttr' => $mttr,
+            'mttd' => $mttd,
         ];
     }
 }

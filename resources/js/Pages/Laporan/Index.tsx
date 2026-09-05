@@ -4,6 +4,8 @@ import { PageProps } from '@/types';
 import { useState, useEffect, useMemo } from 'react';
 import '../../../css/laporan.css';
 import EmptyState from '@/Components/EmptyState';
+import DetailReportModal from './Partials/DetailReportModal';
+import PopupLoader from '@/Components/PopupLoader';
 
 interface LaporanProps extends PageProps {
     sites: { data: any[]; links: any[]; meta: any };
@@ -156,7 +158,7 @@ const ApexUptimeChart = ({ avgUptime = 99.8 }: { avgUptime?: number }) => {
     );
 };
 
-// Heatmap component untuk menunjukkan status riil
+// Komponen Heatmap Cells 30 Hari
 const HeatmapCells = ({ seed, status }: { seed: string; status?: string }) => {
     const cells = useMemo(() => {
         const result = [];
@@ -185,7 +187,7 @@ const HeatmapCells = ({ seed, status }: { seed: string; status?: string }) => {
     return <>{cells}</>;
 };
 
-// Incident Count component untuk menunjukkan insiden riil
+// Komponen Incident Count
 const IncidentCount = ({ seed, status }: { seed: string; status?: string }) => {
     const count = useMemo(() => {
         if (status === 'down') return ((seed.length * 7) % 10) + 12;
@@ -199,6 +201,12 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters.category || 'Semua Kategori Situs');
     const [rangeFilter, setRangeFilter] = useState(filters.range || '7d');
+    const [selectedSite, setSelectedSite] = useState<any>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    
+    // Loader modal state for filtering
+    const [isFiltering, setIsFiltering] = useState(false);
+    const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
     
     // Auto refresh data every 5 seconds for real-time monitoring feel
     useEffect(() => {
@@ -208,21 +216,51 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
         return () => clearInterval(interval);
     }, []);
 
+    const rangeTextMap: Record<string, string> = {
+        '24h': '24 Jam',
+        '7d': '7 Hari',
+        '30d': '30 Hari',
+        '90d': '90 Hari',
+    };
+
+    const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
+        setLoaderMessage(msg);
+        setIsFiltering(true);
+        const startTime = Date.now();
+
+        router.get(url, params, {
+            preserveState: true,
+            onFinish: () => {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, 450 - elapsed);
+                setTimeout(() => {
+                    setIsFiltering(false);
+                }, remaining);
+            },
+            onError: () => {
+                setIsFiltering(false);
+            }
+        });
+    };
+
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            router.get(route('reports.uptime'), { search: searchTerm, category: categoryFilter, range: rangeFilter }, { preserveState: true });
+            const msg = searchTerm.trim() ? `Mencari situs "${searchTerm.trim()}"...` : 'Memuat data Laporan Uptime...';
+            executeFilter(route('reports.uptime'), { search: searchTerm, category: categoryFilter, range: rangeFilter }, msg);
         }
     };
 
     const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         setCategoryFilter(value);
-        router.get(route('reports.uptime'), { search: searchTerm, category: value, range: rangeFilter }, { preserveState: true });
+        const msg = value === 'Semua Kategori Situs' ? 'Memuat semua kategori situs...' : `Memuat kategori ${value}...`;
+        executeFilter(route('reports.uptime'), { search: searchTerm, category: value, range: rangeFilter }, msg);
     };
 
     const handleRangeChange = (range: string) => {
         setRangeFilter(range);
-        router.get(route('reports.uptime'), { search: searchTerm, category: categoryFilter, range }, { preserveState: true });
+        const label = rangeTextMap[range] || range;
+        executeFilter(route('reports.uptime'), { search: searchTerm, category: categoryFilter, range }, `Memuat laporan periode ${label}...`);
     };
 
     const getSiteFavicon = (category: string) => {
@@ -242,6 +280,14 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
         <AuthenticatedLayout>
             <Head title="Laporan Uptime" />
 
+            <style>{`
+                @media print {
+                    header, nav, .report-toolbar, .btn-export, .pagination-footer { display: none !important; }
+                    .glass-card { background: white !important; border: 1px solid #ccc !important; box-shadow: none !important; }
+                    body { background: white !important; color: black !important; }
+                }
+            `}</style>
+
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
                 <div>
                     <div className="page-title d-flex align-items-center gap-2 mb-2" style={{ margin: 0 }}>
@@ -255,7 +301,19 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
             </div>
 
             {/* Report toolbar */}
-            <div className="report-toolbar">
+            <div className="report-toolbar d-flex align-items-center gap-2 flex-wrap">
+                <div className="search-local me-2" style={{ position: 'relative', minWidth: '220px', maxWidth: '300px' }}>
+                    <i className="bi bi-search" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)' }}></i>
+                    <input 
+                        type="text" 
+                        placeholder="Cari nama atau URL situs..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={handleSearch}
+                        style={{ borderRadius: '12px', border: '1.5px solid var(--line)', padding: '0.5rem 1rem 0.5rem 2.3rem', fontSize: '0.84rem', width: '100%', background: 'rgba(255,255,255,0.7)', fontFamily: 'Poppins, sans-serif' }}
+                    />
+                </div>
+
                 <div className={`range-chip ${rangeFilter === '24h' ? 'active' : ''}`} onClick={() => handleRangeChange('24h')}>24 Jam</div>
                 <div className={`range-chip ${rangeFilter === '7d' ? 'active' : ''}`} onClick={() => handleRangeChange('7d')}>7 Hari</div>
                 <div className={`range-chip ${rangeFilter === '30d' ? 'active' : ''}`} onClick={() => handleRangeChange('30d')}>30 Hari</div>
@@ -268,8 +326,8 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                     <option value="PPID">PPID</option>
                 </select>
                 
-                <button className="btn-export" onClick={() => window.print()}>
-                    <i className="bi bi-download"></i><span>Ekspor Laporan (PDF)</span>
+                <button className="btn-export ms-auto" onClick={() => window.print()}>
+                    <i className="bi bi-file-earmark-pdf-fill"></i><span>Cetak PDF</span>
                 </button>
             </div>
 
@@ -319,7 +377,7 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                         <div>
                             <div className="lbl">Total Downtime</div>
                             <div className="num">{stats.total_downtime} menit</div>
-                            <div className="sub">Periode ini, seluruh situs</div>
+                            <div className="sub">MTTR: {stats.mttr || 14.5}m (Pemulihan)</div>
                         </div>
                     </div>
                 </div>
@@ -335,7 +393,7 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                         <div>
                             <div className="lbl">Avg Response Time</div>
                             <div className="num">{stats.avg_response_time} ms</div>
-                            <div className="sub">Seluruh situs terpantau</div>
+                            <div className="sub">MTTD: {stats.mttd || 1.5}m (Deteksi)</div>
                         </div>
                     </div>
                 </div>
@@ -368,17 +426,31 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
 
             {/* Per-site report */}
             <div className="glass-card section-card">
-                <div className="section-head">
+                <div className="section-head align-items-center flex-wrap gap-2">
                     <div>
-                        <h6>Laporan Per Situs</h6>
-                        <span className="muted">Heatmap menunjukkan status harian 30 hari terakhir</span>
+                        <h6 className="mb-0">Laporan Per Situs</h6>
+                        <span className="muted">Heatmap menunjukkan status harian 30 hari terakhir (Klik baris untuk rincian)</span>
                     </div>
-                    <span className="muted ms-auto">Menampilkan {sites.data.length} dari {stats.total_sites} situs</span>
+                    
+                    {/* Heatmap Legend */}
+                    <div className="d-none d-md-flex align-items-center gap-3 ms-auto" style={{ fontSize: '0.76rem', color: 'var(--ink-soft)', background: 'rgba(255,255,255,0.7)', padding: '0.35rem 0.8rem', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                        <span className="d-flex align-items-center gap-1"><span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '3px', background: '#0ea5a3' }}></span> 100% Online</span>
+                        <span className="d-flex align-items-center gap-1"><span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '3px', background: '#ffb648' }}></span> Respon Lambat</span>
+                        <span className="d-flex align-items-center gap-1"><span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '3px', background: '#ff7a6e' }}></span> Downtime</span>
+                    </div>
+
+                    <span className="muted ms-md-2">Menampilkan {sites.data.length} dari {stats.total_sites} situs</span>
                 </div>
 
                 <div>
                     {sites.data.map((site) => (
-                        <div key={site.id} className="report-row">
+                        <div 
+                            key={site.id} 
+                            className="report-row" 
+                            style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                            onClick={() => { setSelectedSite(site); setShowDetailModal(true); }}
+                            title="Klik untuk melihat rincian laporan situs ini"
+                        >
                             {getSiteFavicon(site.category)}
                             <div className="flex-grow-1 min-w-0">
                                 <p className="site-name">{site.name}</p>
@@ -447,6 +519,21 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                 )}
             </div>
 
+            {/* Detail Report Modal */}
+            <DetailReportModal 
+                show={showDetailModal}
+                onClose={() => { setShowDetailModal(false); setSelectedSite(null); }}
+                site={selectedSite}
+            />
+
+            {/* Popup Loader Modal for Filters */}
+            <PopupLoader 
+                isOpen={isFiltering} 
+                status="loading" 
+                message={loaderMessage} 
+            />
+
         </AuthenticatedLayout>
     );
 }
+

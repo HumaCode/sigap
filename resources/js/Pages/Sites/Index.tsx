@@ -8,6 +8,7 @@ import ConfirmModal from '@/Components/ConfirmModal';
 import { toast } from '@/Components/DynamicToast';
 import EmptyState from '@/Components/EmptyState';
 import Pagination from '@/Components/Pagination';
+import PopupLoader from '@/Components/PopupLoader';
 
 export default function Index(props: any) {
     const sites = props.sites || { data: [], meta: { total: 0, from: 0, to: 0, last_page: 1 } };
@@ -22,6 +23,8 @@ export default function Index(props: any) {
     const [selectedSite, setSelectedSite] = useState<any>(null);
     const [siteToDelete, setSiteToDelete] = useState<any>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isFiltering, setIsFiltering] = useState(false);
+    const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
 
     // Real-time Traffic Tracker State (Live RPM Map)
     const [liveRpm, setLiveRpm] = useState<{ [key: string]: number }>({});
@@ -81,20 +84,48 @@ export default function Index(props: any) {
         return () => clearInterval(syncInterval);
     }, []);
 
+    const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
+        setLoaderMessage(msg);
+        setIsFiltering(true);
+        const startTime = Date.now();
+
+        router.get(url, params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onFinish: () => {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, 450 - elapsed);
+                setTimeout(() => {
+                    setIsFiltering(false);
+                }, remaining);
+            },
+            onError: () => {
+                setIsFiltering(false);
+            }
+        });
+    };
+
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value);
-        router.get(route('sites.index'), { search: e.target.value, filter }, { preserveState: true, preserveScroll: true, replace: true });
+        const val = e.target.value;
+        setSearch(val);
+        executeFilter(route('sites.index'), { search: val, filter }, val.trim() ? `Mencari situs "${val.trim()}"...` : 'Memuat data situs...');
     };
 
     const handleFilter = (f: string) => {
         setFilter(f);
-        router.get(route('sites.index'), { search, filter: f }, { preserveState: true, preserveScroll: true, replace: true });
+        const statusMap: Record<string, string> = {
+            'all': 'Semua Situs',
+            'active': 'Situs Aktif (Online)',
+            'down': 'Situs Down (Offline)'
+        };
+        executeFilter(route('sites.index'), { search, filter: f }, `Memuat ${statusMap[f] || f}...`);
     };
 
     const handleReset = () => {
         setSearch('');
         setFilter('all');
-        router.get(route('sites.index'), {}, { preserveState: true, preserveScroll: true, replace: true });
+        executeFilter(route('sites.index'), {}, 'Mereset filter situs...');
     };
 
     const confirmDelete = (site: any) => {
@@ -525,6 +556,13 @@ export default function Index(props: any) {
                 onConfirm={handleDelete}
                 onCancel={() => !isDeleting && setSiteToDelete(null)}
                 isProcessing={isDeleting}
+            />
+
+            {/* Popup Loader Modal for Filters */}
+            <PopupLoader 
+                isOpen={isFiltering} 
+                status="loading" 
+                message={loaderMessage} 
             />
         </AuthenticatedLayout>
     );

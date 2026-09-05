@@ -5,10 +5,11 @@ interface PopupLoaderProps {
     isOpen: boolean;
     status: 'loading' | 'success';
     message: string;
+    title?: string;
     icon?: ReactNode;
 }
 
-export default function PopupLoader({ isOpen, status, message, icon }: PopupLoaderProps) {
+export default function PopupLoader({ isOpen, status, message, title, icon }: PopupLoaderProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -21,8 +22,14 @@ export default function PopupLoader({ isOpen, status, message, icon }: PopupLoad
     return createPortal(
         <div className="popup-loader-overlay">
             <div className={`popup-loader-card ${status}`}>
-                <div className="popup-icon-top">
-                    {icon || <i className="bi bi-shield-lock-fill"></i>}
+                <div className="popup-header-top">
+                    {icon ? (
+                        <div className="popup-icon-top">{icon}</div>
+                    ) : (
+                        <div className="popup-title-top">
+                            {title || 'Sedang Memproses...'}
+                        </div>
+                    )}
                 </div>
                 
                 <div className="popup-animation-container">
@@ -63,6 +70,14 @@ export default function PopupLoader({ isOpen, status, message, icon }: PopupLoad
                     box-shadow: 0 20px 40px -10px rgba(15, 42, 63, 0.2);
                     transform: translateY(0) scale(1);
                     animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                
+                .popup-title-top {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    color: var(--ink, #0f2a3f);
+                    font-family: 'Poppins', sans-serif;
+                    margin-bottom: 0.5rem;
                 }
                 
                 .popup-icon-top {

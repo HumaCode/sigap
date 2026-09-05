@@ -25,6 +25,27 @@ export default function Index(props: any) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
+    const [pingingSiteId, setPingingSiteId] = useState<string | null>(null);
+
+    const handlePing = (site: any) => {
+        setPingingSiteId(site.id);
+        setLoaderMessage(`Menguji respon HTTP & Ping untuk ${site.name}...`);
+        setIsFiltering(true);
+
+        router.post(route('sites.check', site.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Pengecekan Uptime Selesai', `Status & respon HTTP ${site.name} telah diperbarui.`);
+            },
+            onError: () => {
+                toast.error('Pengecekan Gagal', `Gagal menguji koneksi ke ${site.name}.`);
+            },
+            onFinish: () => {
+                setPingingSiteId(null);
+                setIsFiltering(false);
+            }
+        });
+    };
 
     // Real-time Traffic Tracker State (Live RPM Map)
     const [liveRpm, setLiveRpm] = useState<{ [key: string]: number }>({});
@@ -75,14 +96,7 @@ export default function Index(props: any) {
         return () => clearInterval(interval);
     }, [sites]);
 
-    // Inertia background auto-reload every 10 seconds to sync backend state
-    useEffect(() => {
-        const syncInterval = setInterval(() => {
-            router.reload({ only: ['sites', 'stats'] });
-        }, 10000);
 
-        return () => clearInterval(syncInterval);
-    }, []);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -483,16 +497,14 @@ export default function Index(props: any) {
                                     <td>{site.check_interval} menit</td>
                                     <td style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>{site.pic_name || '-'}</td>
                                     <td style={{ textAlign: 'right' }}>
-                                        <Link
-                                            href={route('sites.check', site.id)}
-                                            method="post"
-                                            as="button"
+                                        <button
                                             className="action-btn info me-1"
-                                            data-tooltip="Ping Sekarang"
-                                            preserveScroll
+                                            data-tooltip={pingingSiteId === site.id ? "Memeriksa..." : "Ping Sekarang"}
+                                            onClick={() => handlePing(site)}
+                                            disabled={pingingSiteId === site.id}
                                         >
-                                            <i className="bi bi-arrow-repeat"></i>
-                                        </Link>
+                                            <i className={`bi bi-arrow-repeat ${pingingSiteId === site.id ? 'spin-icon' : ''}`}></i>
+                                        </button>
                                         <button className="action-btn info" data-tooltip="Lihat detail" onClick={() => { setSelectedSite(site); setShowDetailModal(true); }}><i className="bi bi-eye"></i></button>
                                         <button className="action-btn edit" data-tooltip="Ubah" onClick={() => { setSelectedSite(site); setShowModal(true); }}><i className="bi bi-pencil"></i></button>
                                         <button 
@@ -532,6 +544,14 @@ export default function Index(props: any) {
                                 <span>Uptime {site.uptime}%</span>
                             </div>
                             <div className="d-flex justify-content-end mt-2">
+                                <button 
+                                    className="action-btn info me-1" 
+                                    onClick={() => handlePing(site)}
+                                    disabled={pingingSiteId === site.id}
+                                    title="Ping Sekarang"
+                                >
+                                    <i className={`bi bi-arrow-repeat ${pingingSiteId === site.id ? 'spin-icon' : ''}`}></i>
+                                </button>
                                 <button className="action-btn info" onClick={() => { setSelectedSite(site); setShowDetailModal(true); }}><i className="bi bi-eye"></i></button>
                                 <button className="action-btn edit" onClick={() => { setSelectedSite(site); setShowModal(true); }}><i className="bi bi-pencil"></i></button>
                                 <button 

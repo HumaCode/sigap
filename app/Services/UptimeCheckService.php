@@ -44,15 +44,20 @@ class UptimeCheckService
 
         try {
             $response = Http::withoutVerifying()
-                ->withHeaders($this->getRandomHeaders())
-                ->timeout(10)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language' => 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                ])
+                ->connectTimeout(15)
+                ->timeout(30)
                 ->get($url);
 
             $responseTimeMs = round((microtime(true) - $startTime) * 1000);
             $statusCode = $response->status();
 
             // Consider 2xx and 3xx as UP, 4xx/5xx as DOWN or WARN
-            if ($response->successful() || $response->redirect()) {
+            if ($response->successful() || $response->redirect() || $statusCode === 301 || $statusCode === 302) {
                 $status = 'up';
             } else {
                 $status = 'down';

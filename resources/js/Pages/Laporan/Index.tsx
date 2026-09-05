@@ -208,13 +208,7 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
     
-    // Auto refresh data every 5 seconds for real-time monitoring feel
-    useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({ only: ['stats', 'sites'] });
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
+
 
     const rangeTextMap: Record<string, string> = {
         '24h': '24 Jam',

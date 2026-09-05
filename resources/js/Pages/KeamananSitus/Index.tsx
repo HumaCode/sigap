@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import EmptyState from '@/Components/EmptyState';
 import SecurityRow from './Partials/SecurityRow';
+import AiRemediationModal from '../Insiden/Partials/AiRemediationModal';
 import { toast } from '@/Components/DynamicToast';
 import '../../../css/security.css';
 import PopupLoader from '@/Components/PopupLoader';
@@ -68,6 +69,10 @@ export default function Index({ securities, filters, stats }: IndexProps) {
     const [activeFilter, setActiveFilter] = useState(safeFilters.filter || 'all');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isScanningAll, setIsScanningAll] = useState(false);
+
+    // AI Remediation Modal state
+    const [aiIncident, setAiIncident] = useState<any>(null);
+    const [showAiModal, setShowAiModal] = useState(false);
 
     // Popup loader modal state
     const [isFiltering, setIsFiltering] = useState(false);
@@ -276,6 +281,10 @@ export default function Index({ securities, filters, stats }: IndexProps) {
                             <SecurityRow 
                                 key={security.id} 
                                 security={security} 
+                                onOpenAi={(fakeIncident) => {
+                                    setAiIncident(fakeIncident);
+                                    setShowAiModal(true);
+                                }}
                             />
                         ))
                     ) : (
@@ -294,6 +303,13 @@ export default function Index({ securities, filters, stats }: IndexProps) {
                 {/* Pagination */}
                 <Pagination meta={safeSecurities.meta} links={safeSecurities.links} itemLabel="laporan keamanan" />
             </div>
+
+            {/* AI Remediation Modal */}
+            <AiRemediationModal 
+                show={showAiModal}
+                onClose={() => setShowAiModal(false)}
+                incident={aiIncident}
+            />
 
             {/* Popup Loader Modal for Filters */}
             <PopupLoader 

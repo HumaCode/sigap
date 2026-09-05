@@ -26,9 +26,10 @@ interface SecurityRowProps {
         checks: CheckItem[];
         last_scanned_at: string;
     };
+    onOpenAi?: (incidentData: any) => void;
 }
 
-export default function SecurityRow({ security }: SecurityRowProps) {
+export default function SecurityRow({ security, onOpenAi }: SecurityRowProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
 
@@ -196,19 +197,50 @@ export default function SecurityRow({ security }: SecurityRowProps) {
 
                     {security.checks && security.checks.length > 0 ? (
                         security.checks.map((check, idx) => (
-                            <div key={idx} className="check-item">
-                                <div className={`check-icon ${check.status === 'ok' ? 'ok' : check.status === 'fail' ? 'fail' : 'warn'}`}>
-                                    <i className={`bi ${check.status === 'ok' ? 'bi-check-lg' : check.status === 'fail' ? 'bi-x-lg' : 'bi-exclamation-lg'}`}></i>
+                            <div key={idx} className="check-item d-flex align-items-start justify-content-between flex-wrap gap-2">
+                                <div className="d-flex align-items-start gap-2.5 flex-grow-1 min-w-0">
+                                    <div className={`check-icon ${check.status === 'ok' ? 'ok' : check.status === 'fail' ? 'fail' : 'warn'}`}>
+                                        <i className={`bi ${check.status === 'ok' ? 'bi-check-lg' : check.status === 'fail' ? 'bi-x-lg' : 'bi-exclamation-lg'}`}></i>
+                                    </div>
+                                    <div className="flex-grow-1">
+                                        <p className="check-title">{check.title}</p>
+                                        <p className="check-desc">{check.desc}</p>
+                                        {check.fix && (
+                                            <div className="check-fix">
+                                                <i className="bi bi-tools"></i> {check.fix}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex-grow-1">
-                                    <p className="check-title">{check.title}</p>
-                                    <p className="check-desc">{check.desc}</p>
-                                    {check.fix && (
-                                        <div className="check-fix">
-                                            <i className="bi bi-tools"></i> {check.fix}
-                                        </div>
-                                    )}
-                                </div>
+                                {check.status !== 'ok' && !isOffline && onOpenAi && (
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-sm text-white border-0 d-inline-flex align-items-center gap-1.5 shadow-sm mt-1"
+                                        style={{ 
+                                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                                            borderRadius: '8px', 
+                                            fontWeight: 600, 
+                                            fontSize: '0.75rem',
+                                            padding: '0.35rem 0.7rem'
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onOpenAi({
+                                                id: `sec-${security.site_id}-${check.key}`,
+                                                title: `Panduan Perbaikan: ${check.title}`,
+                                                site_name: security.site.name,
+                                                site_url: security.site.url,
+                                                severity: check.status === 'fail' ? 'critical' : 'high',
+                                                type: 'security_audit',
+                                                description: `${check.desc} — ${check.fix || ''}`,
+                                            });
+                                        }}
+                                        title={`Tanyakan Solusi Perbaikan AI untuk ${check.title}`}
+                                    >
+                                        <i className="bi bi-magic"></i>
+                                        <span>Solusi AI</span>
+                                    </button>
+                                )}
                             </div>
                         ))
                     ) : (

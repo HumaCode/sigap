@@ -95,6 +95,17 @@ export default function DetailLogModal({
                             <button onClick={() => setShowModal(false)} className="btn btn-light px-4 shadow-sm" style={{ borderRadius: '10px', fontWeight: 500, border: '1px solid var(--line)' }}>
                                 Tutup
                             </button>
+                            {selectedLog.url_path && (
+                                <a 
+                                    href={selectedLog.url_path.startsWith('http') ? selectedLog.url_path : `https://${selectedLog.site?.url || 'ppid.pekalongankota.go.id'}${selectedLog.url_path.startsWith('/') ? '' : '/'}${selectedLog.url_path}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn btn-outline-teal px-3 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                    style={{ borderRadius: '10px', fontWeight: 500, border: '1px solid var(--teal-1)', color: 'var(--teal-1)' }}
+                                >
+                                    <i className="bi bi-box-arrow-up-right"></i> Buka URL di Tab Baru
+                                </a>
+                            )}
                             {selectedLog.status !== 'blocked' && (
                                 <button onClick={() => { handleUpdateStatus(selectedLog.id, 'blocked'); setShowModal(false); }} className="btn px-4 text-white shadow-sm" style={{ borderRadius: '10px', fontWeight: 500, background: 'linear-gradient(135deg, var(--ink), var(--ink-soft))', border: 'none' }}>
                                     <i className="bi bi-shield-slash me-2"></i> Blokir URL

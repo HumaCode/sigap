@@ -55,6 +55,12 @@ export default function AiRemediationModal({ show, onClose, incident }: AiRemedi
                 incident_id: incident.id,
                 extra_context: promptText,
                 model: selectedModel,
+                title: incident.title,
+                site_name: incident.site_name || incident.site?.name,
+                site_url: incident.site_url || incident.site?.url,
+                severity: incident.severity,
+                type: incident.type,
+                description: incident.description,
             });
 
             if (res.data && res.data.success) {

@@ -102,20 +102,6 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                         </p>
                     </div>
                 </div>
-                
-                <button 
-                    className="btn btn-light" 
-                    style={{ 
-                        width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        border: '1px solid rgba(255,255,255,0.8)', background: 'rgba(255,255,255,0.6)', 
-                        backdropFilter: 'blur(10px)', color: 'var(--ink-dark)', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', 
-                        transition: 'all 0.2s' 
-                    }} 
-                    onClick={handleReset} 
-                    title="Reset Filter & Segarkan Data"
-                >
-                    <i className="bi bi-arrow-clockwise" style={{ fontSize: '1.2rem' }}></i>
-                </button>
             </div>
 
             {/* Stat pills */}
@@ -198,6 +184,19 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                     <div className={`filter-chip ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilterClick('all')}>Semua</div>
                     <div className={`filter-chip ${statusFilter === 'critical' ? 'active' : ''}`} onClick={() => handleFilterClick('critical')}><span className="chip-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c8332a', display: 'inline-block' }}></span>Kritis</div>
                     <div className={`filter-chip ${statusFilter === 'open' ? 'active' : ''}`} onClick={() => handleFilterClick('open')}>Terbuka</div>
+
+                    <button 
+                        className="btn btn-light ms-auto" 
+                        style={{ 
+                            height: '38px', borderRadius: '10px', padding: '0 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
+                            border: '1px solid rgba(0,0,0,0.08)', background: '#ffffff', color: 'var(--ink-dark)', fontSize: '0.82rem', fontWeight: 600,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.03)', transition: 'all 0.2s'
+                        }} 
+                        onClick={handleReset} 
+                        title="Reset Filter & Segarkan Data"
+                    >
+                        <i className="bi bi-arrow-clockwise" style={{ fontSize: '1rem' }}></i> Reset
+                    </button>
                 </div>
 
                 {/* List */}

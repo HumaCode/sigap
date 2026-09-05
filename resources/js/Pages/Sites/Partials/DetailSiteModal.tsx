@@ -68,20 +68,33 @@ export default function DetailSiteModal({ show, onClose, site }: { show: boolean
                                 </div>
 
                                 <div className="row g-3 mb-4">
-                                    <div className="col-sm-6">
+                                    <div className="col-sm-4">
                                         <div style={{ background: 'white', padding: '1.2rem', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', height: '100%' }}>
                                             <div style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
                                                 <i className="bi bi-activity" style={{ color: 'var(--teal-1)', fontSize: '1.1rem' }}></i> Uptime 30 Hari
                                             </div>
-                                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--ink-dark)', lineHeight: 1 }}>{site.uptime || 0}<span style={{ fontSize: '1.2rem', color: 'var(--ink-soft)', fontWeight: 600, marginLeft: '2px' }}>%</span></div>
+                                            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ink-dark)', lineHeight: 1 }}>{site.uptime || 0}<span style={{ fontSize: '1.1rem', color: 'var(--ink-soft)', fontWeight: 600, marginLeft: '2px' }}>%</span></div>
                                         </div>
                                     </div>
-                                    <div className="col-sm-6">
+                                    <div className="col-sm-4">
                                         <div style={{ background: 'white', padding: '1.2rem', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', height: '100%' }}>
                                             <div style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
-                                                <i className="bi bi-stopwatch" style={{ color: 'var(--blue-1)', fontSize: '1.1rem' }}></i> Interval Pengecekan
+                                                <i className="bi bi-speedometer2" style={{ color: site.is_high_load ? '#ef4444' : 'var(--teal-1)', fontSize: '1.1rem' }}></i> Estimasi Trafik
                                             </div>
-                                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--ink-dark)', lineHeight: 1 }}>{site.check_interval} <span style={{ fontSize: '1rem', color: 'var(--ink-soft)', fontWeight: 600 }}>Menit</span></div>
+                                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: site.is_high_load ? '#dc2626' : 'var(--ink-dark)', lineHeight: 1 }}>
+                                                {site.requests_formatted || '250 req/m'}
+                                            </div>
+                                            <div style={{ fontSize: '0.72rem', color: site.is_high_load ? '#ef4444' : 'var(--ink-faint)', marginTop: '0.3rem', fontWeight: 600 }}>
+                                                {site.is_high_load ? '🔥 Surge / Beban Tinggi' : '🟢 Normal Traffic'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-sm-4">
+                                        <div style={{ background: 'white', padding: '1.2rem', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', height: '100%' }}>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+                                                <i className="bi bi-stopwatch" style={{ color: 'var(--blue-1)', fontSize: '1.1rem' }}></i> Interval Cek
+                                            </div>
+                                            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ink-dark)', lineHeight: 1 }}>{site.check_interval} <span style={{ fontSize: '1rem', color: 'var(--ink-soft)', fontWeight: 600 }}>Mnt</span></div>
                                         </div>
                                     </div>
                                 </div>

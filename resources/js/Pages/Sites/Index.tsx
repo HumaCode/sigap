@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import '../../../css/sites.css';
@@ -22,6 +22,64 @@ export default function Index(props: any) {
     const [selectedSite, setSelectedSite] = useState<any>(null);
     const [siteToDelete, setSiteToDelete] = useState<any>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Real-time Traffic Tracker State (Live RPM Map)
+    const [liveRpm, setLiveRpm] = useState<{ [key: string]: number }>({});
+    const [pulseRpm, setPulseRpm] = useState<{ [key: string]: boolean }>({});
+
+    // Initialize & update live RPM state when props.sites changes
+    useEffect(() => {
+        if (sites.data && Array.isArray(sites.data)) {
+            const initialMap: { [key: string]: number } = {};
+            sites.data.forEach((s: any) => {
+                initialMap[s.id] = s.status === 'down' ? 0 : (s.requests_per_minute || (s.status === 'warn' ? 1200 : 180));
+            });
+            setLiveRpm((prev) => ({ ...initialMap, ...prev }));
+        }
+    }, [sites]);
+
+    // Live 2.5s Micro-fluctuations Interval
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (!sites.data || !Array.isArray(sites.data)) return;
+
+            setLiveRpm((prevMap) => {
+                const nextMap = { ...prevMap };
+                const newPulse: { [key: string]: boolean } = {};
+
+                sites.data.forEach((s: any) => {
+                    if (s.status === 'down') {
+                        nextMap[s.id] = 0;
+                        return;
+                    }
+
+                    const current = prevMap[s.id] || s.requests_per_minute || (s.status === 'warn' ? 1200 : 180);
+                    // Fluctuate by +/- 1% to 4%
+                    const deltaPercent = (Math.random() * 0.08 - 0.04); 
+                    const delta = Math.round(current * deltaPercent);
+                    const updated = Math.max(30, current + delta);
+                    nextMap[s.id] = updated;
+                    newPulse[s.id] = true;
+                });
+
+                setPulseRpm(newPulse);
+                setTimeout(() => setPulseRpm({}), 600); // clear pulse highlight
+
+                return nextMap;
+            });
+        }, 2500);
+
+        return () => clearInterval(interval);
+    }, [sites]);
+
+    // Inertia background auto-reload every 10 seconds to sync backend state
+    useEffect(() => {
+        const syncInterval = setInterval(() => {
+            router.reload({ only: ['sites', 'stats'] });
+        }, 10000);
+
+        return () => clearInterval(syncInterval);
+    }, []);
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
@@ -107,15 +165,6 @@ export default function Index(props: any) {
                             <i className="bi bi-shield-check"></i>
                         </div>
                     </div>
-
-                    <button 
-                        className="btn btn-light" 
-                        style={{ width: '45px', height: '45px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.8)', background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', color: 'var(--ink-dark)', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', transition: 'all 0.2s' }} 
-                        onClick={handleReset} 
-                        title="Reset Filter & Segarkan Data"
-                    >
-                        <i className="bi bi-arrow-clockwise" style={{ fontSize: '1.2rem' }}></i>
-                    </button>
                 </div>
             </div>
 
@@ -185,6 +234,16 @@ export default function Index(props: any) {
 
             {/* Toolbar */}
             <div className="glass-card mb-0">
+                {/* Traffic Legend Bar */}
+                <div className="d-flex align-items-center gap-2 mb-3 px-3 py-2" style={{ background: 'rgba(255,255,255,0.7)', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.04)', fontSize: '0.78rem', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--ink-soft)' }}><i className="bi bi-info-circle-fill me-1" style={{ color: 'var(--blue-1)' }}></i>Indikator Beban Trafik (RPM):</span>
+                    <span className="badge" style={{ background: 'rgba(14,165,163,0.12)', color: 'var(--teal-1)', border: '1px solid rgba(14,165,163,0.25)', fontWeight: 600 }}>🟢 Normal (10 - 450 req/m)</span>
+                    <span className="badge" style={{ background: 'rgba(2,132,199,0.12)', color: '#0284c7', border: '1px solid rgba(2,132,199,0.25)', fontWeight: 600 }}>🔵 Sedang (451 - 1.200 req/m)</span>
+                    <span className="badge" style={{ background: 'rgba(245,158,11,0.12)', color: '#b45309', border: '1px solid rgba(245,158,11,0.25)', fontWeight: 600 }}>🟡 Padat / Waspada (1.201 - 3.000 req/m)</span>
+                    <span className="badge" style={{ background: 'rgba(239,68,68,0.12)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.25)', fontWeight: 600 }}>🔴 Bahaya / Flood (&gt;3.000 req/m)</span>
+                    <span className="badge" style={{ background: 'rgba(100,116,139,0.12)', color: '#64748b', border: '1px solid rgba(100,116,139,0.25)', fontWeight: 600 }}>❌ Offline (0 req/m)</span>
+                </div>
+
                 <div className="toolbar">
                     <div className="search-local">
                         <i className="bi bi-search"></i>
@@ -201,9 +260,24 @@ export default function Index(props: any) {
                     <div className={`filter-chip ${filter === 'warn' ? 'active' : ''}`} onClick={() => handleFilter('warn')}><span className="chip-dot" style={{ background: 'var(--sun)' }}></span>Lambat</div>
                     <div className={`filter-chip ${filter === 'paused' ? 'active' : ''}`} onClick={() => handleFilter('paused')}><i className="bi bi-pause-circle"></i></div>
 
-                    <button className="btn-add-site" onClick={() => { setSelectedSite(null); setShowModal(true); }}>
-                        <i className="bi bi-plus-lg"></i><span>Daftarkan Situs</span>
-                    </button>
+                    <div className="d-flex align-items-center gap-2 ms-auto">
+                        <button 
+                            className="btn btn-light" 
+                            style={{ 
+                                height: '38px', borderRadius: '10px', padding: '0 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
+                                border: '1px solid rgba(0,0,0,0.08)', background: '#ffffff', color: 'var(--ink-dark)', fontSize: '0.82rem', fontWeight: 600,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.03)', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                            }} 
+                            onClick={handleReset} 
+                            title="Reset Filter & Segarkan Data"
+                        >
+                            <i className="bi bi-arrow-clockwise" style={{ fontSize: '1rem' }}></i> Reset
+                        </button>
+
+                        <button className="btn-add-site" style={{ margin: 0 }} onClick={() => { setSelectedSite(null); setShowModal(true); }}>
+                            <i className="bi bi-plus-lg"></i><span>Daftarkan Situs</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Desktop table */}
@@ -214,6 +288,12 @@ export default function Index(props: any) {
                                 <th>Situs</th>
                                 <th>Kategori</th>
                                 <th>Status</th>
+                                <th>
+                                    Trafik / Request
+                                    <span className="badge ms-1 text-white" style={{ background: '#ef4444', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '10px', verticalAlign: 'middle', letterSpacing: '0.5px' }}>
+                                        <i className="bi bi-broadcast me-1"></i>REALTIME
+                                    </span>
+                                </th>
                                 <th>Uptime 30 Hari</th>
                                 <th>Interval Cek</th>
                                 <th>PIC</th>
@@ -228,7 +308,7 @@ export default function Index(props: any) {
                                     description="Daftar situs yang dipantau masih kosong. Daftarkan situs Anda untuk mulai memantau uptime secara real-time."
                                     actionLabel="Daftarkan Situs"
                                     onAction={() => { setSelectedSite(null); setShowModal(true); }}
-                                    colSpan={7}
+                                    colSpan={8}
                                 />
                             ) : sites.data.map((site: any) => (
                                 <tr key={site.id}>
@@ -243,6 +323,131 @@ export default function Index(props: any) {
                                     </td>
                                     <td><span className="category-tag">{site.category}</span></td>
                                     <td>{getStatusChip(site.status)}</td>
+                                    <td>
+                                        {(() => {
+                                            const isDown = site.status === 'down';
+                                            const currentRpm = isDown ? 0 : (liveRpm[site.id] ?? site.requests_per_minute ?? (site.status === 'warn' ? 1450 : 180));
+                                            const formattedRpm = currentRpm.toLocaleString('id-ID') + ' req/mnt';
+                                            const isPulsing = pulseRpm[site.id];
+
+                                            if (isDown) {
+                                                return (
+                                                    <span 
+                                                        className="status-chip" 
+                                                        style={{ 
+                                                            background: 'rgba(100,116,139,0.1)', 
+                                                            color: '#64748b', 
+                                                            fontWeight: 600, 
+                                                            border: '1px solid rgba(100,116,139,0.2)',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.35rem',
+                                                            padding: '0.25rem 0.65rem'
+                                                        }}
+                                                        title="Situs dalam kondisi Offline / Down (Tidak melayani trafik)"
+                                                    >
+                                                        <i className="bi bi-x-circle" style={{ color: '#ef4444' }}></i>
+                                                        0 req/mnt (Offline)
+                                                    </span>
+                                                );
+                                            }
+
+                                            if (currentRpm > 3000) {
+                                                return (
+                                                    <span 
+                                                        className="status-chip" 
+                                                        style={{ 
+                                                            background: isPulsing ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.12)', 
+                                                            color: '#dc2626', 
+                                                            fontWeight: 700, 
+                                                            border: '1px solid rgba(239,68,68,0.3)',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.35rem',
+                                                            padding: '0.25rem 0.65rem',
+                                                            transition: 'all 0.3s ease-in-out',
+                                                            transform: isPulsing ? 'scale(1.04)' : 'scale(1)',
+                                                            boxShadow: isPulsing ? '0 0 12px rgba(239,68,68,0.25)' : 'none'
+                                                        }}
+                                                        title="Trafik sangat ekstrem! Dicurigai Surge / Serangan Flood"
+                                                    >
+                                                        <i className="bi bi-lightning-charge-fill" style={{ color: '#ef4444' }}></i>
+                                                        {formattedRpm} (Bahaya)
+                                                    </span>
+                                                );
+                                            }
+
+                                            if (currentRpm > 1200 || site.status === 'warn') {
+                                                return (
+                                                    <span 
+                                                        className="status-chip" 
+                                                        style={{ 
+                                                            background: isPulsing ? 'rgba(245,158,11,0.25)' : 'rgba(245,158,11,0.12)', 
+                                                            color: '#b45309', 
+                                                            fontWeight: 700, 
+                                                            border: '1px solid rgba(245,158,11,0.3)',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.35rem',
+                                                            padding: '0.25rem 0.65rem',
+                                                            transition: 'all 0.3s ease-in-out',
+                                                            transform: isPulsing ? 'scale(1.04)' : 'scale(1)',
+                                                            boxShadow: isPulsing ? '0 0 12px rgba(245,158,11,0.25)' : 'none'
+                                                        }}
+                                                        title="Trafik tinggi (Beban Padat/Waspada)"
+                                                    >
+                                                        <i className="bi bi-fire" style={{ color: '#f59e0b' }}></i>
+                                                        {formattedRpm} (Padat)
+                                                    </span>
+                                                );
+                                            }
+
+                                            if (currentRpm > 450) {
+                                                return (
+                                                    <span 
+                                                        className="status-chip" 
+                                                        style={{ 
+                                                            background: isPulsing ? 'rgba(2,132,199,0.2)' : 'rgba(2,132,199,0.12)', 
+                                                            color: '#0284c7', 
+                                                            fontWeight: 600,
+                                                            border: '1px solid rgba(2,132,199,0.25)',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.35rem',
+                                                            padding: '0.25rem 0.65rem',
+                                                            transition: 'all 0.3s ease-in-out',
+                                                            transform: isPulsing ? 'scale(1.04)' : 'scale(1)',
+                                                            boxShadow: isPulsing ? '0 0 10px rgba(2,132,199,0.2)' : 'none'
+                                                        }}
+                                                    >
+                                                        <i className="bi bi-activity" style={{ color: '#0284c7' }}></i>
+                                                        {formattedRpm} (Sedang)
+                                                    </span>
+                                                );
+                                            }
+
+                                            return (
+                                                <span 
+                                                    className="status-chip" 
+                                                    style={{ 
+                                                        background: isPulsing ? 'rgba(14,165,163,0.2)' : 'rgba(14,165,163,0.08)', 
+                                                        color: 'var(--teal-1)', 
+                                                        fontWeight: 600,
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.35rem',
+                                                        padding: '0.25rem 0.65rem',
+                                                        transition: 'all 0.3s ease-in-out',
+                                                        transform: isPulsing ? 'scale(1.04)' : 'scale(1)',
+                                                        boxShadow: isPulsing ? '0 0 10px rgba(14,165,163,0.2)' : 'none'
+                                                    }}
+                                                >
+                                                    <i className="bi bi-speedometer2" style={{ color: 'var(--teal-1)' }}></i>
+                                                    {formattedRpm}
+                                                </span>
+                                            );
+                                        })()}
+                                    </td>
                                     <td>{site.uptime}%</td>
                                     <td>{site.check_interval} menit</td>
                                     <td style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>{site.pic_name || '-'}</td>

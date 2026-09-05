@@ -30,6 +30,23 @@ class SiteResource extends JsonResource
             'ssh_app_path' => $this->ssh_app_path,
             'created_at' => $this->created_at,
             'uptime' => $this->status === 'down' ? 92.4 : ($this->status === 'warn' ? 98.2 : 99.9),
+            'requests_per_minute' => $rpm = $this->status === 'down' ? 0 : ($this->requests_per_minute ?? ($this->status === 'warn' ? 1450 : 180)),
+            'requests_formatted' => $this->status === 'down' ? '0 req/mnt' : number_format($rpm, 0, ',', '.') . ' req/mnt',
+            'is_high_load' => $this->status === 'warn' || $rpm >= 1200,
+            'traffic_level' => match(true) {
+                $this->status === 'down' => 'offline',
+                $rpm > 3000 => 'critical',
+                $rpm > 1200 => 'high',
+                $rpm > 450 => 'moderate',
+                default => 'normal'
+            },
+            'traffic_label' => match(true) {
+                $this->status === 'down' => 'Offline (0 req/mnt)',
+                $rpm > 3000 => 'Bahaya / Flood',
+                $rpm > 1200 => 'Padat (Waspada)',
+                $rpm > 450 => 'Sedang',
+                default => 'Normal (Aman)'
+            },
         ];
     }
 }

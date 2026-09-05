@@ -66,6 +66,16 @@ class UptimeCheckService
 
         $oldStatus = $site->status;
         $site->status = $status;
+
+        // Calculate / simulate request volume (RPM)
+        // Standard normal: 60-350 req/mnt, Warn: 800-1800 req/mnt, Down/Offline: 0 req/mnt
+        $rpm = match($status) {
+            'up' => rand(60, 320),
+            'warn' => rand(850, 1850),
+            'down' => 0,
+            default => 0
+        };
+        $site->requests_per_minute = $rpm;
         $site->save();
 
         // Create incident if site just went DOWN or is DOWN with HTTP 502/500

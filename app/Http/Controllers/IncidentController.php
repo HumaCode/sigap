@@ -20,15 +20,25 @@ class IncidentController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['search', 'status']);
+        $filters = $request->only(['search', 'status', 'type']);
         $incidents = $this->incidentService->getPaginatedIncidents(10, $filters);
         $stats = $this->incidentService->getStats();
 
         return Inertia::render('Insiden/Index', [
-            'incidents' => IncidentResource::collection($incidents),
+            'incidents' => new \App\Http\Resources\PaginateResource($incidents, IncidentResource::class),
             'filters' => $filters,
             'stats' => $stats
         ]);
+    }
+
+    public function markAllResolved()
+    {
+        try {
+            \App\Models\Incident::whereIn('status', ['open', 'investigating', 'acknowledged'])->update(['status' => 'resolved']);
+            return redirect()->back()->with('success', 'Semua insiden aktif berhasil ditandai sebagai selesai.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memperbarui insiden.');
+        }
     }
 
     public function store(StoreIncidentRequest $request)

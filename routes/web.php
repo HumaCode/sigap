@@ -25,6 +25,9 @@ Route::middleware('auth')->group(function () {
     
     Route::post('/sites/{site}/check', [SiteController::class, 'recheck'])->name('sites.check');
     Route::resource('sites', SiteController::class)->except(['create', 'edit', 'show']);
+    Route::post('/incidents/mark-all-resolved', [\App\Http\Controllers\IncidentController::class, 'markAllResolved'])->name('incidents.mark-all-resolved');
+    Route::post('/incidents/ai-remediation', [\App\Http\Controllers\AiRemediationController::class, 'generate'])->name('incidents.ai-remediation');
+    Route::get('/incidents/{incident}/ai-history', [\App\Http\Controllers\AiRemediationController::class, 'history'])->name('incidents.ai-history');
     Route::resource('incidents', IncidentController::class)->except(['create', 'edit', 'show']);
     
     Route::get('/uptime-reports', [\App\Http\Controllers\UptimeReportController::class, 'index'])->name('reports.uptime');

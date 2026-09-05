@@ -29,4 +29,9 @@ class Incident extends Model
     {
         return $this->belongsTo(Site::class);
     }
+
+    public function conversations()
+    {
+        return $this->hasMany(IncidentConversation::class)->orderBy('created_at', 'asc');
+    }
 }

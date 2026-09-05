@@ -67,7 +67,7 @@
 
 /* ===== Incident list item ===== */
 .incident-row{
-  display:flex; align-items:flex-start; gap:1rem; padding:1.1rem 1.3rem;
+  display:flex; align-items:center; gap:1rem; padding:1.1rem 1.3rem;
   border-bottom:1px solid var(--line); cursor:pointer; transition: background .15s ease;
 }
 .incident-row:hover{ background:rgba(14,165,163,0.05); }
@@ -90,7 +90,7 @@
 .st-ack{ background:rgba(255,182,72,0.16); color:#b3720a; }
 .st-resolved{ background:rgba(14,165,163,0.12); color:var(--teal-1); }
 .st-false{ background:rgba(124,147,163,0.14); color:var(--ink-faint); }
-.inc-right{ display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem; flex-shrink:0; }
+.inc-right{ display:flex; flex-direction:row; align-items:center; gap:0.5rem; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
 
 /* ===== Modal detail ===== */
 .modal-content-custom{ border-radius:22px; border:1px solid var(--card-border); background:rgba(255,255,255,0.97); backdrop-filter: blur(20px); }
@@ -128,4 +128,12 @@
   border-radius:14px; border:1px solid var(--line); overflow:hidden; position:relative;
   background: repeating-linear-gradient(45deg, #f3f7f6, #f3f7f6 10px, #eef4f3 10px, #eef4f3 20px);
   min-height:220px; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); flex-direction:column; gap:0.5rem;
+}
+
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.spin-slow {
+  animation: spinSlow 3s linear infinite;
 }

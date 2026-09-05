@@ -6,9 +6,10 @@ interface DetailIncidentModalProps {
     show: boolean;
     onClose: () => void;
     incident: any;
+    onOpenAi?: (incident: any) => void;
 }
 
-export default function DetailIncidentModal({ show, onClose, incident }: DetailIncidentModalProps) {
+export default function DetailIncidentModal({ show, onClose, incident, onOpenAi }: DetailIncidentModalProps) {
     const [activeTab, setActiveTab] = useState('overview');
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -154,6 +155,16 @@ export default function DetailIncidentModal({ show, onClose, incident }: DetailI
                     </div>
 
                     <div className="modal-footer d-flex flex-wrap gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', padding: '1.25rem 1.5rem', background: '#f8fafc' }}>
+                        {onOpenAi && (
+                            <button
+                                type="button"
+                                className="action-footer-btn text-white me-auto border-0 d-inline-flex align-items-center gap-1.5"
+                                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '10px', padding: '0.45rem 0.9rem', fontSize: '0.85rem', fontWeight: 600 }}
+                                onClick={() => onOpenAi(incident)}
+                            >
+                                <i className="bi bi-magic"></i> Solusi Penanganan AI
+                            </button>
+                        )}
                         <button 
                             type="button" 
                             className="action-footer-btn btn-false" 
@@ -172,7 +183,7 @@ export default function DetailIncidentModal({ show, onClose, incident }: DetailI
                         </button>
                         <button 
                             type="button" 
-                            className="action-footer-btn btn-resolve ms-auto"
+                            className="action-footer-btn btn-resolve"
                             onClick={() => handleStatusUpdate('resolved')}
                             disabled={isUpdating}
                         >

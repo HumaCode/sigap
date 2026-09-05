@@ -1,10 +1,14 @@
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../../../css/incidents.css';
 import DetailIncidentModal from './Partials/DetailIncidentModal';
+import AiRemediationModal from './Partials/AiRemediationModal';
 import EmptyState from '@/Components/EmptyState';
+import Pagination from '@/Components/Pagination';
+import PopupLoader from '@/Components/PopupLoader';
+import { toast } from '@/Components/DynamicToast';
 
 interface IncidentProps extends PageProps {
     incidents: { data: any[]; links: any[]; meta: any };
@@ -20,26 +24,77 @@ interface IncidentProps extends PageProps {
 }
 
 export default function Index({ incidents, filters, stats }: IncidentProps) {
-    const [searchTerm, setSearchTerm] = useState(filters.search || '');
-    const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+    const safeIncidents = incidents || { data: [], meta: { total: 0, last_page: 1, links: [] } };
+    const safeData = safeIncidents.data || [];
+    const safeFilters = filters || {};
+
+    const [searchTerm, setSearchTerm] = useState(safeFilters.search || '');
+    const [statusFilter, setStatusFilter] = useState(safeFilters.status || 'all');
     const [selectedIncident, setSelectedIncident] = useState<any>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
 
+    // AI Remediation Modal state
+    const [aiIncident, setAiIncident] = useState<any>(null);
+    const [showAiModal, setShowAiModal] = useState(false);
+
+    // Popup loader modal state
+    const [isFiltering, setIsFiltering] = useState(false);
+    const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
+
+    const executeFilter = (url: string, params: Record<string, any>, msg: string, isPost = false) => {
+        setLoaderMessage(msg);
+        setIsFiltering(true);
+        const startTime = Date.now();
+
+        const options = {
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, 450 - elapsed);
+                setTimeout(() => {
+                    setIsFiltering(false);
+                }, remaining);
+            },
+            onError: () => {
+                setIsFiltering(false);
+            }
+        };
+
+        if (isPost) {
+            router.post(url, params, options);
+        } else {
+            router.get(url, params, options);
+        }
+    };
+
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            router.get(route('incidents.index'), { search: searchTerm, status: statusFilter }, { preserveState: true });
+            const msg = searchTerm.trim() ? `Mencari insiden "${searchTerm.trim()}"...` : 'Memuat data insiden...';
+            executeFilter(route('incidents.index'), { search: searchTerm, status: statusFilter }, msg);
         }
     };
 
     const handleFilterClick = (status: string) => {
         setStatusFilter(status);
-        router.get(route('incidents.index'), { search: searchTerm, status }, { preserveState: true });
+        const statusMap: Record<string, string> = {
+            'all': 'semua insiden',
+            'critical': 'insiden Kritis',
+            'open': 'insiden Terbuka',
+            'investigating': 'insiden Dalam Peninjauan',
+            'resolved': 'insiden Selesai'
+        };
+        executeFilter(route('incidents.index'), { search: searchTerm, status }, `Memuat ${statusMap[status] || status}...`);
     };
 
     const handleReset = () => {
         setSearchTerm('');
         setStatusFilter('all');
-        router.get(route('incidents.index'));
+        executeFilter(route('incidents.index'), {}, 'Mereset filter insiden...');
+    };
+
+    const handleMarkAllResolved = () => {
+        executeFilter(route('incidents.mark-all-resolved'), {}, 'Menandai seluruh insiden aktif sebagai selesai...', true);
     };
 
     const openDetail = (incident: any) => {
@@ -47,24 +102,40 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
         setShowDetailModal(true);
     };
 
+    const openAiRemediation = (e: React.MouseEvent, incident: any) => {
+        e.stopPropagation();
+        setAiIncident(incident);
+        setShowAiModal(true);
+    };
+
     const renderSeverityBadge = (severity: string) => {
         switch (severity) {
-            case 'critical': return <span className="sev-badge sev-critical">Kritis</span>;
-            case 'high': return <span className="sev-badge sev-high">Tinggi</span>;
-            case 'medium': return <span className="sev-badge sev-medium">Sedang</span>;
-            case 'low': return <span className="sev-badge sev-low">Rendah</span>;
-            default: return <span className="sev-badge sev-low">{severity}</span>;
+            case 'critical': 
+                return <span className="sev-badge sev-critical d-inline-flex align-items-center gap-1" style={{ background: 'rgba(200,51,42,0.12)', color: '#c8332a', border: '1px solid rgba(200,51,42,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c8332a', boxShadow: '0 0 6px #c8332a' }}></span> Kritis</span>;
+            case 'high': 
+                return <span className="sev-badge sev-high" style={{ background: 'rgba(255,122,110,0.12)', color: '#ff7a6e', border: '1px solid rgba(255,122,110,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}>Tinggi</span>;
+            case 'medium': 
+                return <span className="sev-badge sev-medium" style={{ background: 'rgba(251,191,36,0.12)', color: '#d97706', border: '1px solid rgba(251,191,36,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}>Sedang</span>;
+            case 'low': 
+                return <span className="sev-badge sev-low" style={{ background: 'rgba(14,165,163,0.12)', color: '#0ea5a3', border: '1px solid rgba(14,165,163,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}>Rendah</span>;
+            default: 
+                return <span className="sev-badge sev-low">{severity}</span>;
         }
     };
 
     const renderStatusBadge = (status: string) => {
         switch (status) {
-            case 'open': return <span className="status-badge st-open">Terbuka</span>;
+            case 'open': 
+                return <span className="status-badge st-open d-inline-flex align-items-center gap-1" style={{ background: 'rgba(255, 122, 110, 0.12)', color: '#ff7a6e', border: '1px solid rgba(255,122,110,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}><i className="bi bi-exclamation-circle me-1"></i> Terbuka</span>;
             case 'investigating':
-            case 'acknowledged': return <span className="status-badge st-ack">Ditinjau</span>;
-            case 'resolved': return <span className="status-badge st-resolved">Selesai</span>;
-            case 'false_positive': return <span className="status-badge st-false">Bukan Insiden</span>;
-            default: return <span className="status-badge">{status}</span>;
+            case 'acknowledged': 
+                return <span className="status-badge st-ack" style={{ background: 'rgba(251, 191, 36, 0.12)', color: '#d97706', border: '1px solid rgba(251,191,36,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}><i className="bi bi-hourglass-split me-1"></i> Ditinjau</span>;
+            case 'resolved': 
+                return <span className="status-badge st-resolved" style={{ background: 'rgba(14, 165, 163, 0.12)', color: '#0ea5a3', border: '1px solid rgba(14,165,163,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}><i className="bi bi-check2-circle me-1"></i> Selesai</span>;
+            case 'false_positive': 
+                return <span className="status-badge st-false" style={{ background: 'rgba(100, 116, 139, 0.12)', color: '#64748b', border: '1px solid rgba(100,116,139,0.3)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: 600, fontSize: '0.75rem' }}><i className="bi bi-shield-x me-1"></i> Bukan Insiden</span>;
+            default: 
+                return <span className="status-badge">{status}</span>;
         }
     };
 
@@ -80,12 +151,10 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
     };
 
     return (
-        <AuthenticatedLayout
-            header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Insiden</h2>}
-        >
+        <AuthenticatedLayout>
             <Head title="Insiden" />
 
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <div className="d-flex align-items-center gap-3">
                     <div style={{
                         width: '46px', height: '46px', borderRadius: '12px',
@@ -101,6 +170,18 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                             Riwayat insiden dari seluruh situs terpantau — {stats.active ?? (stats.total - stats.resolved)} insiden belum selesai.
                         </p>
                     </div>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                    <button 
+                        className="btn shadow-sm d-flex align-items-center gap-1.5"
+                        style={{ border: '1px solid var(--line)', color: 'var(--ink)', background: 'rgba(255,255,255,0.9)', borderRadius: '12px', padding: '0.5rem 0.95rem', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'Poppins, sans-serif' }}
+                        onClick={handleMarkAllResolved}
+                        title="Tandai Seluruh Insiden Aktif Sebagai Selesai"
+                    >
+                        <i className="bi bi-check2-all text-teal" style={{ color: 'var(--teal-1)', fontSize: '1rem' }}></i>
+                        <span>Tandai Semua Selesai</span>
+                    </button>
                 </div>
             </div>
 
@@ -168,9 +249,9 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                 </div>
             </div>
 
-            <div className="glass-card">
+            <div className="glass-card mb-4">
                 {/* Toolbar */}
-                <div className="toolbar">
+                <div className="toolbar flex-wrap gap-2">
                     <div className="search-local">
                         <i className="bi bi-search"></i>
                         <input 
@@ -184,6 +265,8 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                     <div className={`filter-chip ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilterClick('all')}>Semua</div>
                     <div className={`filter-chip ${statusFilter === 'critical' ? 'active' : ''}`} onClick={() => handleFilterClick('critical')}><span className="chip-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c8332a', display: 'inline-block' }}></span>Kritis</div>
                     <div className={`filter-chip ${statusFilter === 'open' ? 'active' : ''}`} onClick={() => handleFilterClick('open')}>Terbuka</div>
+                    <div className={`filter-chip ${statusFilter === 'investigating' ? 'active' : ''}`} onClick={() => handleFilterClick('investigating')}>Ditinjau</div>
+                    <div className={`filter-chip ${statusFilter === 'resolved' ? 'active' : ''}`} onClick={() => handleFilterClick('resolved')}>Selesai</div>
 
                     <button 
                         className="btn btn-light ms-auto" 
@@ -201,14 +284,14 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
 
                 {/* List */}
                 <div>
-                    {incidents.data.length === 0 ? (
+                    {safeData.length === 0 ? (
                         <EmptyState 
                             icon="bi-shield-check"
                             title="Sistem Aman & Terkendali"
                             description="Belum ada insiden keamanan yang terdeteksi. Mesin pemantau terus berjalan secara real-time di latar belakang."
                         />
                     ) : (
-                        incidents.data.map((incident) => {
+                        safeData.map((incident) => {
                             const { icon, bg } = getIcon(incident.type);
                             return (
                                 <div key={incident.id} className="incident-row" onClick={() => openDetail(incident)}>
@@ -221,9 +304,25 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                                             <span><i className="bi bi-clock"></i> {incident.detected_at_human}</span>
                                         </div>
                                     </div>
-                                    <div className="inc-right">
+                                    <div className="inc-right d-flex align-items-center gap-2">
                                         {renderSeverityBadge(incident.severity)}
                                         {renderStatusBadge(incident.status)}
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-sm text-white border-0 d-inline-flex align-items-center gap-1 shadow-sm"
+                                            style={{ 
+                                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                                                borderRadius: '8px', 
+                                                fontWeight: 600, 
+                                                fontSize: '0.78rem',
+                                                padding: '0.35rem 0.65rem'
+                                            }}
+                                            onClick={(e) => openAiRemediation(e, incident)}
+                                            title="Tampilkan analisis & solusi perbaikan otomatis AI"
+                                        >
+                                            <i className="bi bi-magic" style={{ fontSize: '0.85rem' }}></i>
+                                            <span>Solusi AI</span>
+                                        </button>
                                     </div>
                                 </div>
                             );
@@ -232,35 +331,7 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                 </div>
 
                 {/* Pagination */}
-                {incidents.meta && incidents.meta.last_page > 1 && (
-                    <div className="pagination-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem 1.5rem', borderTop: '1px solid var(--line)' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--ink-faint)' }}>Menampilkan {incidents.meta.from} - {incidents.meta.to} dari {incidents.meta.total} insiden</span>
-                        <div className="d-flex gap-1">
-                            {incidents.meta.links && incidents.meta.links.map((link: any, index: number) => {
-                                if (link.label === '...') {
-                                    return (
-                                        <span key={index} className="pg-btn" style={{ background: 'transparent', border: 'none', cursor: 'default', color: 'var(--ink-soft)' }}>
-                                            ...
-                                        </span>
-                                    );
-                                }
-                                
-                                return (
-                                    <Link 
-                                        key={index} 
-                                        href={link.url || '#'}
-                                        className={`pg-btn ${link.active ? 'active' : ''} ${!link.url ? 'opacity-50' : ''}`}
-                                        style={!link.url ? { pointerEvents: 'none' } : {}}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                        preserveState
-                                        preserveScroll
-                                        data={{ search: searchTerm, status: statusFilter }}
-                                    />
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
+                <Pagination meta={safeIncidents.meta} links={safeIncidents.links} itemLabel="insiden" />
             </div>
 
             {/* Modals */}
@@ -268,6 +339,25 @@ export default function Index({ incidents, filters, stats }: IncidentProps) {
                 show={showDetailModal}
                 onClose={() => setShowDetailModal(false)}
                 incident={selectedIncident}
+                onOpenAi={(inc) => {
+                    setShowDetailModal(false);
+                    setAiIncident(inc);
+                    setShowAiModal(true);
+                }}
+            />
+
+            <AiRemediationModal 
+                show={showAiModal}
+                onClose={() => setShowAiModal(false)}
+                incident={aiIncident}
+            />
+
+            {/* Popup Loader Modal for Filters */}
+            <PopupLoader 
+                isOpen={isFiltering} 
+                status="loading" 
+                message={loaderMessage} 
+                title="Sedang Memproses..."
             />
 
         </AuthenticatedLayout>

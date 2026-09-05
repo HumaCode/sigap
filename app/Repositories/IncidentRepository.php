@@ -20,6 +20,13 @@ class IncidentRepository implements IncidentRepositoryInterface
             });
         }
 
+        if (!empty($filters['type']) && $filters['type'] !== 'all') {
+            $query->where('type', $filters['type']);
+        } else {
+            // Default: Skip routine site down/uptime checks to focus feed on security incidents
+            $query->whereNotIn('type', ['down', 'uptime']);
+        }
+
         if (!empty($filters['status']) && $filters['status'] !== 'all') {
             $query->where('status', $filters['status']);
         }

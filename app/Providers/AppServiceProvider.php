@@ -18,6 +18,9 @@ use App\Repositories\KeywordRepository;
 use App\Repositories\Interfaces\SiteSecurityRepositoryInterface;
 use App\Repositories\SiteSecurityRepository;
 
+use App\Models\DetectionLog;
+use App\Observers\DetectionLogObserver;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -39,5 +42,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+        DetectionLog::observe(DetectionLogObserver::class);
     }
 }

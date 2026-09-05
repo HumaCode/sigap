@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/uptime-reports', [\App\Http\Controllers\UptimeReportController::class, 'index'])->name('reports.uptime');
     Route::get('/detection-logs', [\App\Http\Controllers\DetectionLogController::class, 'index'])->name('logs.detection');
     Route::patch('/detection-logs/{id}/status', [\App\Http\Controllers\DetectionLogController::class, 'updateStatus'])->name('logs.detection.status');
+    Route::post('/detection-logs/mark-all-reviewed', [\App\Http\Controllers\DetectionLogController::class, 'markAllReviewed'])->name('logs.detection.mark-all-reviewed');
     
     Route::resource('keywords', \App\Http\Controllers\KeywordController::class)->except(['create', 'edit', 'show']);
     Route::get('/security', [\App\Http\Controllers\SiteSecurityController::class, 'index'])->name('security.index');

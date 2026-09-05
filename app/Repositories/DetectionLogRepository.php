@@ -25,6 +25,13 @@ class DetectionLogRepository implements DetectionLogRepositoryInterface
 
         if (!empty($filters['filter']) && $filters['filter'] !== 'all') {
             $query->where('category', $filters['filter']);
+        } else {
+            // Default: Filter out routine HTTP uptime checks to focus feed on security detections
+            $query->where('category', '!=', 'uptime');
+        }
+
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('status', $filters['status']);
         }
 
         return $query->orderBy('created_at', 'desc')->paginate($perPage);

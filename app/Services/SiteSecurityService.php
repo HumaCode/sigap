@@ -89,11 +89,15 @@ class SiteSecurityService
             $isValidIp = filter_var($host, FILTER_VALIDATE_IP);
             
             if ($isValidIp || ($ip && $ip !== $host)) {
-                // Host resolved. Try a quick request with 5s timeout and verifying disabled
+                // Host resolved. Try a request with 25s timeout to handle slow government portals
                 try {
                     $response = Http::withoutVerifying()
-                        ->withHeaders($this->getRandomHeaders())
-                        ->timeout(5)
+                        ->withHeaders([
+                            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        ])
+                        ->connectTimeout(15)
+                        ->timeout(25)
                         ->get($url);
 
                     if ($response->status() >= 500 || $response->status() === 404 || $response->status() === 502) {
@@ -186,7 +190,8 @@ class SiteSecurityService
             $envUrl = rtrim($url, '/') . '/.env';
             $response = Http::withoutVerifying()
                 ->withHeaders($this->getRandomHeaders())
-                ->timeout(5)
+                ->connectTimeout(10)
+                ->timeout(15)
                 ->get($envUrl);
             if ($response->successful() && (Str::contains($response->body(), 'DB_') || Str::contains($response->body(), 'APP_ENV'))) {
                 $envStatus = 'fail';
@@ -215,7 +220,8 @@ class SiteSecurityService
             $gitUrl = rtrim($url, '/') . '/.git/config';
             $response = Http::withoutVerifying()
                 ->withHeaders($this->getRandomHeaders())
-                ->timeout(5)
+                ->connectTimeout(10)
+                ->timeout(15)
                 ->get($gitUrl);
             if ($response->successful() && Str::contains($response->body(), '[core]')) {
                 $gitStatus = 'fail';
@@ -268,7 +274,8 @@ class SiteSecurityService
         try {
             $response = Http::withoutVerifying()
                 ->withHeaders($this->getRandomHeaders())
-                ->timeout(5)
+                ->connectTimeout(10)
+                ->timeout(15)
                 ->head($url);
             $headers = array_change_key_case($response->headers(), CASE_LOWER);
 
@@ -503,8 +510,12 @@ class SiteSecurityService
 
         try {
             $response = Http::withoutVerifying()
-                ->timeout(8)
-                ->withHeaders($this->getRandomHeaders())
+                ->connectTimeout(15)
+                ->timeout(25)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                ])
                 ->get($url);
 
             if (!$response->successful()) {

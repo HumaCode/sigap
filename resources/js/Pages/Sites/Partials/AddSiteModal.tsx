@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { toast } from '@/Components/DynamicToast';
+import axios from 'axios';
 
 export default function AddSiteModal({ show, onClose, site }: { show: boolean, onClose: () => void, site?: any }) {
     const [activeTab, setActiveTab] = React.useState<'info' | 'ssh'>('info');
+    const [isTestingSsh, setIsTestingSsh] = useState(false);
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
@@ -69,6 +71,35 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean, o
         }
     };
 
+    const handleTestSsh = async () => {
+        if (!data.ssh_host || !data.ssh_username) {
+            toast.error('Data Tidak Lengkap', 'Silakan isi Host/IP SSH dan Username terlebih dahulu.');
+            return;
+        }
+
+        setIsTestingSsh(true);
+        try {
+            const response = await axios.post(route('sites.test-ssh'), {
+                ssh_host: data.ssh_host,
+                ssh_port: data.ssh_port,
+                ssh_username: data.ssh_username,
+                ssh_auth_type: data.ssh_auth_type,
+                ssh_password: data.ssh_password,
+                ssh_private_key: data.ssh_private_key,
+                ssh_app_path: data.ssh_app_path,
+            });
+
+            if (response.data.success) {
+                toast.success('Koneksi SSH Sukses', response.data.message);
+            }
+        } catch (error: any) {
+            const msg = error.response?.data?.message || 'Gagal terhubung ke server SSH.';
+            toast.error('Koneksi SSH Gagal', msg);
+        } finally {
+            setIsTestingSsh(false);
+        }
+    };
+
     if (!show) return null;
 
     const isEdit = !!site;
@@ -76,7 +107,7 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean, o
     const headerIcon = isEdit ? 'bi-pencil-square' : 'bi-plus-circle';
     
     return (
-        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(15,42,63,0.5)', zIndex: 1060, backdropFilter: 'blur(8px)' }} tabIndex={-1} aria-hidden="true">
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(15,42,63,0.5)', zIndex: 1050, backdropFilter: 'blur(8px)' }} tabIndex={-1} aria-hidden="true">
             <div className="modal-dialog modal-dialog-centered modal-lg">
                 <div className="modal-content" style={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)' }}>
                     
@@ -360,23 +391,52 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean, o
                                             <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', marginBottom: 0 }}><i className="bi bi-info-circle me-1"></i>Folder absolut website tempat kode program PHP disimpan.</p>
                                             {errors.ssh_app_path && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.ssh_app_path}</div>}
                                         </div>
+
+                                        <div className="col-md-12 mt-4 pt-3 border-top d-flex align-items-center justify-content-between">
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                                <i className="bi bi-shield-check me-1" style={{ color: 'var(--teal-1)' }}></i> Uji kredensial sebelum menyimpan data
+                                            </span>
+                                            <button 
+                                                type="button" 
+                                                className="btn btn-outline-dark d-inline-flex align-items-center gap-2"
+                                                style={{ borderRadius: '10px', fontSize: '0.85rem', fontWeight: 600, padding: '0.55rem 1.25rem' }}
+                                                onClick={handleTestSsh}
+                                                disabled={isTestingSsh}
+                                            >
+                                                {isTestingSsh ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                        Menguji Koneksi SSH...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <i className="bi bi-plugin"></i> Tes Koneksi SSH Sekarang
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="modal-footer" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', padding: '1.2rem 2rem', background: 'white' }}>
-                            <button type="button" className="btn btn-light" style={{ borderRadius: '12px', padding: '0.6rem 1.5rem', fontWeight: 600, color: '#64748b' }} onClick={onClose} disabled={processing}>Batal</button>
-                            <button type="submit" className="btn btn-primary d-flex align-items-center justify-content-center gap-2" style={{ borderRadius: '12px', background: isEdit ? '#2563eb' : 'var(--teal-1)', border: 'none', padding: '0.6rem 1.5rem', fontWeight: 600, minWidth: '150px' }} disabled={processing}>
-                                {processing ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        Menyimpan...
-                                    </>
-                                ) : (
-                                    isEdit ? <><i className="bi bi-save"></i> Simpan Perubahan</> : <><i className="bi bi-plus-lg"></i> Tambahkan Situs</>
-                                )}
-                            </button>
+                        <div className="modal-footer d-flex align-items-center justify-content-between" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', padding: '1.2rem 2rem', background: 'white' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                                {activeTab === 'ssh' ? '* Kredensial SSH disimpan dengan enkripsi aman.' : ''}
+                            </span>
+                            <div className="d-flex gap-2">
+                                <button type="button" className="btn btn-light" style={{ borderRadius: '12px', padding: '0.6rem 1.5rem', fontWeight: 600, color: '#64748b' }} onClick={onClose} disabled={processing}>Batal</button>
+                                <button type="submit" className="btn btn-primary d-flex align-items-center justify-content-center gap-2" style={{ borderRadius: '12px', background: isEdit ? '#2563eb' : 'var(--teal-1)', border: 'none', padding: '0.6rem 1.5rem', fontWeight: 600, minWidth: '150px' }} disabled={processing}>
+                                    {processing ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            Menyimpan...
+                                        </>
+                                    ) : (
+                                        isEdit ? <><i className="bi bi-save"></i> Simpan Perubahan</> : <><i className="bi bi-plus-lg"></i> Tambahkan Situs</>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>

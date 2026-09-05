@@ -203,8 +203,25 @@ export default function SecurityRow({ security, onOpenAi }: SecurityRowProps) {
                                         <i className={`bi ${check.status === 'ok' ? 'bi-check-lg' : check.status === 'fail' ? 'bi-x-lg' : 'bi-exclamation-lg'}`}></i>
                                     </div>
                                     <div className="flex-grow-1">
-                                        <p className="check-title">{check.title}</p>
-                                        <p className="check-desc">{check.desc}</p>
+                                        <div className="d-flex align-items-center gap-1.5 flex-wrap">
+                                            <p className="check-title mb-0">{check.title}</p>
+                                            {check.key && check.key.startsWith('ssh_') && (
+                                                <span 
+                                                    className="badge ms-1 py-0.5 px-2"
+                                                    style={{ 
+                                                        fontSize: '0.65rem', 
+                                                        background: 'rgba(14,165,163,0.12)', 
+                                                        color: 'var(--teal-1)', 
+                                                        border: '1px solid rgba(14,165,163,0.25)',
+                                                        borderRadius: '4px',
+                                                        fontWeight: 600
+                                                    }}
+                                                >
+                                                    <i className="bi bi-terminal me-1"></i> SSH Audit
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="check-desc mt-1">{check.desc}</p>
                                         {check.fix && (
                                             <div className="check-fix">
                                                 <i className="bi bi-tools"></i> {check.fix}

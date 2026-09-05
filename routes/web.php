@@ -24,6 +24,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     Route::post('/sites/{site}/check', [SiteController::class, 'recheck'])->name('sites.check');
+    Route::post('/sites/test-ssh', [SiteController::class, 'testSshConnection'])->name('sites.test-ssh');
     Route::resource('sites', SiteController::class)->except(['create', 'edit', 'show']);
     Route::post('/incidents/mark-all-resolved', [\App\Http\Controllers\IncidentController::class, 'markAllResolved'])->name('incidents.mark-all-resolved');
     Route::post('/incidents/ai-remediation', [\App\Http\Controllers\AiRemediationController::class, 'generate'])->name('incidents.ai-remediation');

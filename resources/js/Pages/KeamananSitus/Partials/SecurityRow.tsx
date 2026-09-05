@@ -32,6 +32,14 @@ export default function SecurityRow({ security }: SecurityRowProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
 
+    // Check if site is offline / unreachable
+    const isOffline = security.score === 0 || (security.checks && security.checks.some(c => c.desc && (
+        c.desc.includes('offline') || 
+        c.desc.includes('tidak dapat dihubungi') || 
+        c.desc.includes('resolusi DNS') ||
+        c.desc.includes('Koneksi gagal')
+    )));
+
     const handleScan = () => {
         setIsScanning(true);
         router.post(route('security.scan'), { site_id: security.site_id }, {
@@ -58,6 +66,7 @@ export default function SecurityRow({ security }: SecurityRowProps) {
     };
 
     const getGradeClass = (grade: string) => {
+        if (isOffline) return 'grade-f';
         switch (grade.toUpperCase()) {
             case 'A': return 'grade-a';
             case 'B': return 'grade-b';
@@ -68,6 +77,13 @@ export default function SecurityRow({ security }: SecurityRowProps) {
     };
 
     const getIssueBadge = () => {
+        if (isOffline) {
+            return (
+                <span className="issue-count-badge ic-offline d-none d-md-inline-block" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)', fontWeight: 600 }}>
+                    <i className="bi bi-wifi-off me-1"></i> Situs Offline (Ditangguhkan)
+                </span>
+            );
+        }
         if (security.issues_count === 0) {
             return <span className="issue-count-badge ic-clean d-none d-md-inline-block">Tidak ada temuan</span>;
         }
@@ -78,6 +94,7 @@ export default function SecurityRow({ security }: SecurityRowProps) {
     };
 
     const getStrokeColor = (grade: string) => {
+        if (isOffline) return '#ef4444';
         switch (grade.toUpperCase()) {
             case 'A': return '#0ea5a3';
             case 'B': return '#3b82f6';
@@ -102,7 +119,7 @@ export default function SecurityRow({ security }: SecurityRowProps) {
                     <p className="site-url">{security.site.url}</p>
                 </div>
                 
-                <span className={`grade-badge ${getGradeClass(security.grade)}`}>{security.grade}</span>
+                <span className={`grade-badge ${getGradeClass(security.grade)}`}>{isOffline ? 'OFF' : security.grade}</span>
                 
                 <div className="score-ring">
                     <svg width="52" height="52">
@@ -166,6 +183,16 @@ export default function SecurityRow({ security }: SecurityRowProps) {
                             )}
                         </button>
                     </div>
+
+                    {isOffline && (
+                        <div className="alert border-0 shadow-sm d-flex align-items-center gap-2.5 mb-3 mt-3" style={{ borderRadius: '12px', background: 'rgba(239, 68, 68, 0.08)', color: '#dc2626', fontSize: '0.82rem', padding: '0.8rem 1rem', borderLeft: '4px solid #ef4444' }}>
+                            <i className="bi bi-wifi-off flex-shrink-0" style={{ fontSize: '1.25rem', color: '#ef4444' }}></i>
+                            <div>
+                                <strong style={{ display: 'block', fontWeight: 600 }}>Situs Sedang Offline / Tidak Dapat Dihubungi</strong>
+                                <span style={{ fontSize: '0.78rem', opacity: 0.9 }}>Audit keamanan (.env, .git, CSP, HSTS, SSL) ditangguhkan sampai situs kembali online. Pastikan server web dan rute DNS berfungsi normal.</span>
+                            </div>
+                        </div>
+                    )}
 
                     {security.checks && security.checks.length > 0 ? (
                         security.checks.map((check, idx) => (

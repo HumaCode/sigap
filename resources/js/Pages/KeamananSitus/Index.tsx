@@ -6,6 +6,7 @@ import EmptyState from '@/Components/EmptyState';
 import SecurityRow from './Partials/SecurityRow';
 import { toast } from '@/Components/DynamicToast';
 import '../../../css/security.css';
+import PopupLoader from '@/Components/PopupLoader';
 
 interface CheckItem {
     key: string;
@@ -68,18 +69,43 @@ export default function Index({ securities, filters, stats }: IndexProps) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isScanningAll, setIsScanningAll] = useState(false);
 
+    // Popup loader modal state
+    const [isFiltering, setIsFiltering] = useState(false);
+    const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
+
+    const executeFilter = (url: string, params: Record<string, any>, msg: string, isPost = false) => {
+        setLoaderMessage(msg);
+        setIsFiltering(true);
+        const startTime = Date.now();
+
+        const options = {
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, 450 - elapsed);
+                setTimeout(() => {
+                    setIsFiltering(false);
+                }, remaining);
+            },
+            onError: () => {
+                setIsFiltering(false);
+            }
+        };
+
+        if (isPost) {
+            router.post(url, params, options);
+        } else {
+            router.get(url, params, options);
+        }
+    };
+
     // Debounced search
     useEffect(() => {
         const delayDebounce = setTimeout(() => {
             if (searchTerm !== (safeFilters.search || '')) {
-                router.get(route('security.index'), {
-                    search: searchTerm,
-                    filter: activeFilter
-                }, {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true
-                });
+                const msg = searchTerm.trim() ? `Mencari situs "${searchTerm.trim()}"...` : 'Memuat data audit keamanan...';
+                executeFilter(route('security.index'), { search: searchTerm, filter: activeFilter }, msg);
             }
         }, 400);
 
@@ -88,42 +114,24 @@ export default function Index({ securities, filters, stats }: IndexProps) {
 
     const handleFilterClick = (filterType: string) => {
         setActiveFilter(filterType);
-        router.get(route('security.index'), {
-            search: searchTerm,
-            filter: filterType
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true
-        });
+        const filterNameMap: Record<string, string> = {
+            'all': 'semua laporan keamanan',
+            'critical': 'temuan kritis',
+            'warn': 'situs ada peringatan',
+            'clean': 'situs status aman'
+        };
+        executeFilter(route('security.index'), { search: searchTerm, filter: filterType }, `Memuat ${filterNameMap[filterType] || filterType}...`);
     };
 
     const handleRefresh = () => {
-        setIsRefreshing(true);
         setSearchTerm('');
         setActiveFilter('all');
-        router.get(route('security.index'), { search: '', filter: 'all' }, {
-            preserveState: true,
-            preserveScroll: true,
-            onFinish: () => {
-                setIsRefreshing(false);
-                toast.info('Segarkan', 'Laporan keamanan situs terbaru telah dimuat.');
-            }
-        });
+        executeFilter(route('security.index'), { search: '', filter: 'all' }, 'Menyegarkan data keamanan situs...');
     };
 
     const handleScanAll = () => {
         setIsScanningAll(true);
-        router.post(route('security.scan'), {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast.success('Pindaian Selesai', 'Seluruh situs berhasil dipindai ulang.');
-            },
-            onError: () => {
-                toast.error('Gagal', 'Terjadi kesalahan saat memproses pindaian.');
-            },
-            onFinish: () => setIsScanningAll(false)
-        });
+        executeFilter(route('security.scan'), {}, 'Memindai ulang keamanan seluruh situs...', true);
     };
 
     return (
@@ -131,7 +139,7 @@ export default function Index({ securities, filters, stats }: IndexProps) {
             <Head title="Keamanan Situs" />
 
             {/* Breadcrumbs / Header area */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <div className="d-flex align-items-center gap-3">
                     <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem', flexShrink: 0, boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
                         <i className="bi bi-shield-check" style={{ display: 'block', margin: 'auto' }}></i>
@@ -196,9 +204,19 @@ export default function Index({ securities, filters, stats }: IndexProps) {
             </div>
 
             {/* Main Content Card */}
-            <div className="glass-card">
+            <div className="glass-card mb-4">
+                {/* Grade Legend Bar */}
+                <div className="d-flex align-items-center gap-3 px-3 pt-3 pb-2 flex-wrap" style={{ fontSize: '0.78rem', borderBottom: '1px solid var(--line)', background: 'rgba(255,255,255,0.4)', borderRadius: '16px 16px 0 0' }}>
+                    <span className="fw-semibold text-muted me-1"><i className="bi bi-info-circle me-1" style={{ color: 'var(--teal-1)' }}></i>Legenda Audit:</span>
+                    <span className="d-inline-flex align-items-center gap-1"><span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#0ea5a3' }}></span> Grade A (≥90% Sempurna)</span>
+                    <span className="d-inline-flex align-items-center gap-1"><span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#3b82f6' }}></span> Grade B (75-89% Baik)</span>
+                    <span className="d-inline-flex align-items-center gap-1"><span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#ffb648' }}></span> Grade C (60-74% Perbaikan)</span>
+                    <span className="d-inline-flex align-items-center gap-1"><span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#ff7a6e' }}></span> Grade F (&lt;60% Kritis)</span>
+                    <span className="d-inline-flex align-items-center gap-1"><span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#ef4444' }}></span> Offline (Ditangguhkan)</span>
+                </div>
+
                 {/* Toolbar */}
-                <div className="toolbar">
+                <div className="toolbar flex-wrap gap-2">
                     <div className="search-local">
                         <i className="bi bi-search"></i>
                         <input 
@@ -233,7 +251,7 @@ export default function Index({ securities, filters, stats }: IndexProps) {
                         Aman
                     </div>
                     <button 
-                        className="btn-scan" 
+                        className="btn-scan ms-auto" 
                         onClick={handleScanAll}
                         disabled={isScanningAll}
                     >
@@ -276,6 +294,14 @@ export default function Index({ securities, filters, stats }: IndexProps) {
                 {/* Pagination */}
                 <Pagination meta={safeSecurities.meta} links={safeSecurities.links} itemLabel="laporan keamanan" />
             </div>
+
+            {/* Popup Loader Modal for Filters */}
+            <PopupLoader 
+                isOpen={isFiltering} 
+                status="loading" 
+                message={loaderMessage} 
+                title="Sedang Memproses..."
+            />
         </AuthenticatedLayout>
     );
 }

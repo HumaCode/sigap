@@ -12,7 +12,7 @@ class UpdateKeywordRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('edit-keywords') ?? false;
     }
 
     /**
@@ -24,9 +24,10 @@ class UpdateKeywordRequest extends FormRequest
     {
         return [
             'keyword' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'string', 'in:judol,obat,phising,lainnya'],
+            'category' => ['required', 'string', 'in:judol,obat,hidden,newpage,phising,lainnya'],
             'type' => ['required', 'string', 'in:plain,regex'],
             'is_active' => ['boolean'],
+            'description' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

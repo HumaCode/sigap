@@ -1,11 +1,13 @@
-import { useForm } from '@inertiajs/react';
 import React, { useEffect } from 'react';
+import { useForm } from '@inertiajs/react';
+import BaseModal from '@/Components/BaseModal';
 import { toast } from '@/Components/DynamicToast';
+import { KeywordItem } from './KeywordTable';
 
 interface KeywordModalProps {
     show: boolean;
     onClose: () => void;
-    keyword: any | null;
+    keyword: KeywordItem | null;
 }
 
 export default function KeywordModal({ show, onClose, keyword }: KeywordModalProps) {
@@ -16,16 +18,18 @@ export default function KeywordModal({ show, onClose, keyword }: KeywordModalPro
         category: 'judol',
         type: 'plain',
         is_active: true,
+        description: '',
     });
 
     useEffect(() => {
         if (show) {
             if (isEdit) {
                 setData({
-                    keyword: keyword.keyword,
-                    category: keyword.category,
-                    type: keyword.type,
-                    is_active: keyword.is_active,
+                    keyword: keyword.keyword || '',
+                    category: keyword.category || 'judol',
+                    type: keyword.type || 'plain',
+                    is_active: keyword.is_active ?? true,
+                    description: keyword.description || '',
                 });
             } else {
                 reset();
@@ -37,149 +41,220 @@ export default function KeywordModal({ show, onClose, keyword }: KeywordModalPro
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        const options = {
-            preserveScroll: true,
-            onSuccess: () => {
-                onClose();
-                reset();
-                toast.success('Berhasil', isEdit ? 'Kata kunci berhasil diperbarui.' : 'Kata kunci berhasil ditambahkan.');
-            },
-        };
+        const keywordName = data.keyword.trim();
 
         if (isEdit) {
-            patch(route('keywords.update', keyword.id), options);
+            patch(route('keywords.update', keyword.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    onClose();
+                    reset();
+                    toast.success('Berhasil Diperbarui', `Kata kunci "${keywordName}" berhasil diperbarui.`);
+                },
+                onError: (errs: any) => {
+                    const firstErr = Object.values(errs)[0];
+                    toast.error('Gagal', typeof firstErr === 'string' ? firstErr : 'Periksa kembali formulir kata kunci.');
+                }
+            });
         } else {
-            post(route('keywords.store'), options);
+            post(route('keywords.store'), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    onClose();
+                    reset();
+                    toast.success('Berhasil Ditambahkan', `Kata kunci baru "${keywordName}" berhasil didaftarkan ke sistem pemindai.`);
+                },
+                onError: (errs: any) => {
+                    const firstErr = Object.values(errs)[0];
+                    toast.error('Gagal', typeof firstErr === 'string' ? firstErr : 'Periksa kembali formulir kata kunci.');
+                }
+            });
         }
     };
 
-    if (!show) return null;
+    const headerGradient = isEdit 
+        ? 'linear-gradient(135deg, #2563eb, #1e3a8a)' 
+        : 'linear-gradient(135deg, #0ea5a3, #0f2a3f)';
+    const headerIcon = isEdit ? 'bi bi-pencil-square' : 'bi bi-journal-plus';
 
-    const headerGradient = isEdit ? 'linear-gradient(135deg, #3b82f6, #8b7bf0)' : 'linear-gradient(135deg, #0ea5a3, #3b82f6)';
-    const headerIcon = isEdit ? 'bi-pencil-square' : 'bi-journal-plus';
+    const modalFooter = (
+        <div className="w-100 d-flex align-items-center justify-content-between">
+            <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                <i className="bi bi-shield-check me-1"></i>
+                Pola deteksi akan otomatis aktif di jadwal pemindaian.
+            </span>
+            <div className="d-flex gap-2">
+                <button 
+                    type="button" 
+                    onClick={onClose} 
+                    className="btn btn-light" 
+                    style={{ borderRadius: '12px', padding: '0.6rem 1.4rem', fontWeight: 600, color: '#64748b' }}
+                    disabled={processing}
+                >
+                    Batal
+                </button>
+                <button 
+                    type="submit" 
+                    form="keyword-form"
+                    className="btn d-flex align-items-center justify-content-center gap-2 text-white shadow-sm" 
+                    style={{ 
+                        borderRadius: '12px', 
+                        background: isEdit ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'linear-gradient(135deg, var(--teal-1), #0d9488)', 
+                        border: 'none', 
+                        padding: '0.6rem 1.5rem', 
+                        fontWeight: 600,
+                        minWidth: '150px'
+                    }} 
+                    disabled={processing}
+                >
+                    {processing ? (
+                        <>
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Menyimpan...</span>
+                        </>
+                    ) : (
+                        <>
+                            <i className={isEdit ? 'bi bi-check2-circle' : 'bi bi-plus-lg'}></i>
+                            <span>{isEdit ? 'Simpan Perubahan' : 'Simpan Kata Kunci'}</span>
+                        </>
+                    )}
+                </button>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(15,42,63,0.5)', zIndex: 1060, backdropFilter: 'blur(8px)' }} tabIndex={-1} aria-hidden="true">
-            <div className="modal-dialog modal-dialog-centered modal-lg">
-                <div className="modal-content" style={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', background: '#fff' }}>
-                    
-                    {/* Header Section */}
-                    <div style={{ background: headerGradient, padding: '2rem 2.5rem', position: 'relative', color: 'white' }}>
-                        <button type="button" className="btn-close btn-close-white" style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', opacity: 0.8, boxShadow: 'none' }} onClick={onClose} aria-label="Close"></button>
-                        
-                        <div className="d-flex align-items-center gap-4">
-                            <div style={{ width: '60px', height: '60px', background: 'rgba(255,255,255,0.2)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', backdropFilter: 'blur(10px)', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.3)' }}>
-                                <i className={`bi ${headerIcon}`}></i>
-                            </div>
-                            <div>
-                                <h4 style={{ fontWeight: 800, fontSize: '1.45rem', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                                    {isEdit ? 'Ubah Kata Kunci' : 'Tambah Kata Kunci'}
-                                </h4>
-                                <div style={{ opacity: 0.9, fontSize: '0.85rem', marginTop: '0.3rem', fontWeight: 500 }}>
-                                    {isEdit ? 'Perbarui kriteria deteksi kata kunci atau pola regex.' : 'Daftarkan kata kunci atau pola regex baru untuk scanner pemindai.'}
-                                </div>
-                            </div>
+        <BaseModal
+            show={show}
+            onClose={onClose}
+            title={isEdit ? 'Ubah Kata Kunci' : 'Tambah Kata Kunci Baru'}
+            subtitle={isEdit ? 'Perbarui kriteria deteksi kata kunci atau pola regex pemindai.' : 'Daftarkan kata kunci atau pola regex baru untuk scanner pemindai.'}
+            icon={headerIcon}
+            headerGradient={headerGradient}
+            size="lg"
+            maxWidth="700px"
+            bodyClassName="p-4"
+            footer={modalFooter}
+        >
+            <form id="keyword-form" onSubmit={handleSubmit}>
+                <div className="d-flex flex-column gap-3.5">
+                    {/* Keyword / Pattern Input */}
+                    <div>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>
+                            Kata Kunci / Pola Script <span className="text-danger">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            className={`form-control ${errors.keyword ? 'is-invalid' : ''}`}
+                            style={{ 
+                                background: 'white', 
+                                borderRadius: '12px', 
+                                padding: '0.7rem 1rem', 
+                                border: '1px solid #e2e8f0', 
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                fontFamily: data.type === 'regex' ? 'monospace' : 'inherit',
+                                fontSize: '0.9rem' 
+                            }}
+                            placeholder={data.type === 'regex' ? 'Cth: /phising-.*\\.com/i' : 'Cth: slot gacor, judi online, obat kuat'} 
+                            value={data.keyword}
+                            onChange={e => setData('keyword', e.target.value)}
+                            required
+                        />
+                        {errors.keyword ? (
+                            <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.keyword}</div>
+                        ) : (
+                            <p style={{ fontSize: '0.73rem', color: '#94a3b8', marginTop: '0.35rem', marginBottom: 0 }}>
+                                <i className="bi bi-info-circle me-1"></i>
+                                {data.type === 'regex' ? 'Gunakan format regex PHP standar (pola ekspresi reguler).' : 'Kata atau frasa yang menjadi target pemindaian konten berbahaya.'}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Category and Detection Type */}
+                    <div className="row g-3">
+                        <div className="col-md-6">
+                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>
+                                Kategori Konten <span className="text-danger">*</span>
+                            </label>
+                            <select 
+                                className={`form-select ${errors.category ? 'is-invalid' : ''}`}
+                                style={{ background: 'white', borderRadius: '12px', padding: '0.7rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', fontSize: '0.88rem' }}
+                                value={data.category}
+                                onChange={e => setData('category', e.target.value)}
+                            >
+                                <option value="judol">Judi Online (Judol)</option>
+                                <option value="obat">Obat Terlarang</option>
+                                <option value="phising">Phising / Deface</option>
+                                <option value="hidden">Teks Tersembunyi (Hidden CSS)</option>
+                                <option value="newpage">Halaman Baru (New Injected Page)</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                            {errors.category && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.category}</div>}
+                        </div>
+
+                        <div className="col-md-6">
+                            <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>
+                                Tipe Deteksi <span className="text-danger">*</span>
+                            </label>
+                            <select 
+                                className={`form-select ${errors.type ? 'is-invalid' : ''}`}
+                                style={{ background: 'white', borderRadius: '12px', padding: '0.7rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', fontSize: '0.88rem' }}
+                                value={data.type}
+                                onChange={e => setData('type', e.target.value)}
+                            >
+                                <option value="plain">Teks Biasa (Exact match / Substring)</option>
+                                <option value="regex">Pola Regex (Regular Expression)</option>
+                            </select>
+                            {errors.type && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.type}</div>}
                         </div>
                     </div>
 
-                    {/* Form Section */}
-                    <form onSubmit={handleSubmit} className="p-4 p-md-5" style={{ background: '#f8fafc' }}>
-                        <div className="mb-4">
-                            <label className="form-label-custom" style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--ink-soft)', marginBottom: '0.5rem', display: 'block' }}>
-                                Kata Kunci / Pola <span className="text-danger">*</span>
-                            </label>
+                    {/* Optional Description */}
+                    <div>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>
+                            Keterangan Tambahan <span className="text-muted fw-normal">(Opsional)</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            className={`form-control ${errors.description ? 'is-invalid' : ''}`}
+                            style={{ background: 'white', borderRadius: '12px', padding: '0.65rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', fontSize: '0.85rem' }}
+                            placeholder="Cth: Sering disisipkan pada artikel web PPID atau OPD"
+                            value={data.description}
+                            onChange={e => setData('description', e.target.value)}
+                        />
+                        {errors.description && <div className="text-danger mt-1" style={{ fontSize: '0.8rem' }}>{errors.description}</div>}
+                    </div>
+
+                    {/* Status Toggle Switch Card */}
+                    <div 
+                        className="p-3.5 rounded-4 d-flex align-items-center justify-content-between" 
+                        style={{ 
+                            background: '#ffffff', 
+                            border: '1px solid #e2e8f0',
+                            boxShadow: '0 2px 6px rgba(15,42,63,0.02)'
+                        }}
+                    >
+                        <div>
+                            <div className="fw-semibold" style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>
+                                Status Kata Kunci
+                            </div>
+                            <div className="text-muted" style={{ fontSize: '0.76rem', marginTop: '0.15rem' }}>
+                                {data.is_active ? 'Aktif — Kata kunci ini akan digunakan pada pemindaian website.' : 'Nonaktif — Kata kunci ini sementara dilewati saat pemindaian.'}
+                            </div>
+                        </div>
+                        <div className="form-check form-switch m-0 ps-0">
                             <input 
-                                type="text" 
-                                className={`form-control ${errors.keyword ? 'is-invalid' : ''}`}
-                                style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', fontFamily: data.type === 'regex' ? 'monospace' : 'inherit' }}
-                                placeholder={data.type === 'regex' ? 'Cth: /phising-.*\\.com/i' : 'Cth: slot gacor, judi online'} 
-                                value={data.keyword}
-                                onChange={e => setData('keyword', e.target.value)}
-                                required
+                                className="form-check-input toggle-active ms-0" 
+                                type="checkbox" 
+                                role="switch" 
+                                style={{ width: '2.6rem', height: '1.4rem', cursor: 'pointer' }}
+                                checked={data.is_active}
+                                onChange={e => setData('is_active', e.target.checked)}
                             />
-                            {errors.keyword && <div className="invalid-feedback mt-1" style={{ fontSize: '0.8rem' }}>{errors.keyword}</div>}
                         </div>
-
-                        <div className="row g-4 mb-4">
-                            <div className="col-md-6">
-                                <label className="form-label-custom" style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--ink-soft)', marginBottom: '0.5rem', display: 'block' }}>Kategori</label>
-                                <select 
-                                    className={`form-select ${errors.category ? 'is-invalid' : ''}`}
-                                    style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                                    value={data.category}
-                                    onChange={e => setData('category', e.target.value)}
-                                >
-                                    <option value="judol">Judi Online</option>
-                                    <option value="obat">Obat Terlarang</option>
-                                    <option value="phising">Phising</option>
-                                    <option value="lainnya">Lainnya</option>
-                                </select>
-                                {errors.category && <div className="invalid-feedback mt-1" style={{ fontSize: '0.8rem' }}>{errors.category}</div>}
-                            </div>
-                            <div className="col-md-6">
-                                <label className="form-label-custom" style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--ink-soft)', marginBottom: '0.5rem', display: 'block' }}>Tipe Deteksi</label>
-                                <select 
-                                    className={`form-select ${errors.type ? 'is-invalid' : ''}`}
-                                    style={{ background: 'white', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                                    value={data.type}
-                                    onChange={e => setData('type', e.target.value)}
-                                >
-                                    <option value="plain">Teks Biasa</option>
-                                    <option value="regex">Pola Regex</option>
-                                </select>
-                                {errors.type && <div className="invalid-feedback mt-1" style={{ fontSize: '0.8rem' }}>{errors.type}</div>}
-                            </div>
-                        </div>
-
-                        <div className="mb-5 p-3" style={{ background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                            <div className="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <label className="form-label-custom mb-0" style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--ink)' }}>Status Pemantauan</label>
-                                    <div style={{ fontSize: '0.78rem', color: 'var(--ink-faint)', marginTop: '0.15rem' }}>Aktifkan kata kunci ini untuk pemindaian berikutnya.</div>
-                                </div>
-                                <div className="form-check form-switch p-0 m-0" style={{ minHeight: 'auto' }}>
-                                    <input 
-                                        className="form-check-input toggle-active" 
-                                        type="checkbox" 
-                                        role="switch" 
-                                        style={{ width: '2.8rem', height: '1.5rem', margin: 0, cursor: 'pointer' }}
-                                        checked={data.is_active}
-                                        onChange={e => setData('is_active', e.target.checked)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="d-flex justify-content-end gap-3 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                            <button 
-                                type="button" 
-                                onClick={onClose} 
-                                className="btn btn-light" 
-                                style={{ borderRadius: '12px', padding: '0.65rem 1.6rem', fontWeight: 600, color: '#64748b', fontSize: '0.88rem' }}
-                                disabled={processing}
-                            >
-                                Batal
-                            </button>
-                            <button 
-                                type="submit" 
-                                className="btn btn-primary d-flex align-items-center justify-content-center gap-2" 
-                                style={{ borderRadius: '12px', background: headerGradient, border: 'none', padding: '0.65rem 1.8rem', fontWeight: 600, fontSize: '0.88rem', minWidth: '130px', boxShadow: '0 10px 20px -5px rgba(59,130,246,0.3)' }} 
-                                disabled={processing}
-                            >
-                                {processing ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        Sedang Proses...
-                                    </>
-                                ) : (
-                                    <><i className="bi bi-save"></i> Simpan</>
-                                )}
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </form>
+        </BaseModal>
     );
 }

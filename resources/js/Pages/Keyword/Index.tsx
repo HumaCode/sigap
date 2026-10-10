@@ -1,29 +1,23 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import React, { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
-import { useState, useEffect } from 'react';
-import { toast } from '@/Components/DynamicToast';
-import KeywordModal from './Partials/KeywordModal';
 import '../../../css/keyword.css';
-import Pagination from '@/Components/Pagination';
-import EmptyState from '@/Components/EmptyState';
-import ConfirmModal from '@/Components/ConfirmModal';
-import PopupLoader from '@/Components/PopupLoader';
 
-interface Keyword {
-    id: string;
-    keyword: string;
-    category: string;
-    type: string;
-    is_active: boolean;
-    creator_name: string;
-    created_at: string;
-    description?: string | null;
-}
+import PageHeader from '@/Components/PageHeader';
+import PopupLoader from '@/Components/PopupLoader';
+import ConfirmModal from '@/Components/ConfirmModal';
+import { toast } from '@/Components/DynamicToast';
+
+import KeywordStatCards from './Partials/KeywordStatCards';
+import KeywordToolbar from './Partials/KeywordToolbar';
+import KeywordTable, { KeywordItem } from './Partials/KeywordTable';
+import KeywordModal from './Partials/KeywordModal';
+import DeleteKeywordModal from './Partials/DeleteKeywordModal';
 
 interface KeywordProps extends PageProps {
     keywords: {
-        data: Keyword[];
+        data: KeywordItem[];
         meta: any;
         links?: any[];
     };
@@ -37,29 +31,43 @@ interface KeywordProps extends PageProps {
         obat: number;
         regex: number;
     };
+    can?: {
+        create?: boolean;
+        edit?: boolean;
+        delete?: boolean;
+    };
 }
 
-export default function Index({ 
+export default function KeywordIndex({ 
     keywords, 
     filters, 
-    stats 
+    stats,
+    can = { create: true, edit: true, delete: true }
 }: KeywordProps) {
     const safeKeywords = keywords || { data: [], meta: { links: [], last_page: 1, current_page: 1, from: 0, to: 0, total: 0 } };
-    const safeData = safeKeywords.data || [];
     const safeFilters = Array.isArray(filters) ? {} : (filters || {});
     const safeStats = stats || { total: 0, judol: 0, obat: 0, regex: 0 };
 
     const [searchTerm, setSearchTerm] = useState(safeFilters?.search || '');
     const [activeFilter, setActiveFilter] = useState(safeFilters?.filter || 'all');
     const [showModal, setShowModal] = useState(false);
-    const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [keywordToDelete, setKeywordToDelete] = useState<Keyword | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [selectedKeyword, setSelectedKeyword] = useState<KeywordItem | null>(null);
+    const [keywordToDelete, setKeywordToDelete] = useState<KeywordItem | null>(null);
 
     // Popup loader modal state
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
+
+    // Always keep URL address bar clean (mask query parameters like ?filter=judol&search=)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.search) {
+            window.history.replaceState(
+                {}, 
+                document.title, 
+                window.location.pathname
+            );
+        }
+    }, [keywords, filters]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -71,9 +79,12 @@ export default function Index({
             preserveScroll: true,
             onFinish: () => {
                 const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, 450 - elapsed);
+                const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
                     setIsFiltering(false);
+                    if (typeof window !== 'undefined') {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
                 }, remaining);
             },
             onError: () => {
@@ -82,7 +93,7 @@ export default function Index({
         });
     };
 
-    // Debounce search
+    // Debounced Search
     useEffect(() => {
         const timeout = setTimeout(() => {
             if (searchTerm !== (safeFilters?.search || '')) {
@@ -93,7 +104,7 @@ export default function Index({
         return () => clearTimeout(timeout);
     }, [searchTerm]);
 
-    const handleFilter = (filter: string) => {
+    const handleFilterChange = (filter: string) => {
         setActiveFilter(filter);
         const catMap: Record<string, string> = {
             'all': 'semua kata kunci',
@@ -101,9 +112,14 @@ export default function Index({
             'obat': 'kategori Obat Terlarang',
             'hidden': 'kategori Teks Tersembunyi',
             'newpage': 'kategori Halaman Baru',
-            'phising': 'kategori Phising'
+            'phising': 'kategori Phising',
         };
         executeFilter(route('keywords.index'), { search: searchTerm, filter }, `Memuat ${catMap[filter] || filter}...`);
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        executeFilter(route('keywords.index'), { search: '', filter: activeFilter }, 'Memuat semua data kata kunci...');
     };
 
     const handleAdd = () => {
@@ -111,210 +127,86 @@ export default function Index({
         setShowModal(true);
     };
 
-    const handleEdit = (keyword: Keyword) => {
+    const handleEdit = (keyword: KeywordItem) => {
         setSelectedKeyword(keyword);
         setShowModal(true);
     };
 
-    const handleDelete = () => {
-        if (!keywordToDelete) return;
-        setIsDeleting(true);
-        router.delete(route('keywords.destroy', keywordToDelete.id), {
+    const handleToggleStatus = (keyword: KeywordItem) => {
+        const nextStatus = !keyword.is_active;
+        router.patch(route('keywords.update', keyword.id), { ...keyword, is_active: nextStatus }, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success('Berhasil', 'Kata kunci berhasil dihapus.');
-                setKeywordToDelete(null);
+                toast.success(
+                    'Status Diperbarui', 
+                    `Kata kunci "${keyword.keyword}" berhasil di${nextStatus ? 'aktifkan' : 'nonaktifkan'}.`
+                );
+                if (typeof window !== 'undefined') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
             },
-            onFinish: () => setIsDeleting(false)
+            onError: () => toast.error('Gagal', 'Terjadi kesalahan saat mengubah status.'),
         });
-    };
-
-    const toggleStatus = (keyword: Keyword) => {
-        router.patch(route('keywords.update', keyword.id), { ...keyword, is_active: !keyword.is_active }, {
-            preserveScroll: true,
-            onSuccess: () => toast.success('Berhasil', 'Status berhasil diubah.')
-        });
-    };
-
-    const handleRefresh = () => {
-        setSearchTerm('');
-        setActiveFilter('all');
-        executeFilter(route('keywords.index'), { search: '', filter: 'all' }, 'Menyegarkan data kamus kata kunci...');
-    };
-
-    const getCatBadge = (category: string) => {
-        switch (category) {
-            case 'judol': return <span className="category-tag cat-judol">Judi Online</span>;
-            case 'obat': return <span className="category-tag cat-obat">Obat Terlarang</span>;
-            case 'hidden': return <span className="category-tag" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', border: '1px solid rgba(56, 189, 248, 0.3)' }}>Teks Tersembunyi</span>;
-            case 'newpage': return <span className="category-tag" style={{ background: 'rgba(14, 165, 163, 0.15)', color: '#0ea5a3', border: '1px solid rgba(14, 165, 163, 0.3)' }}>Halaman Baru</span>;
-            case 'phising': return <span className="category-tag cat-phising">Phising</span>;
-            default: return <span className="category-tag cat-lainnya">Lainnya</span>;
-        }
     };
 
     return (
         <AuthenticatedLayout>
             <Head title="Kamus Kata Kunci" />
 
-            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                <div className="d-flex align-items-center gap-3">
-                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--teal-1), var(--teal-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem', flexShrink: 0, boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
-                        <i className="bi bi-journal-text"></i>
-                    </div>
-                    <div>
-                        <h2 className="page-title m-0" style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)' }}>Kamus Kata Kunci</h2>
-                        <p className="page-sub m-0 mt-1" style={{ fontSize: '0.85rem', color: 'var(--ink-soft)' }}>Kelola daftar kata kunci & pola yang digunakan mesin deteksi sisipan konten.</p>
-                    </div>
-                </div>
-                
-                <div className="d-flex gap-2">
-                    <button 
-                        className="btn btn-light shadow-sm d-flex align-items-center justify-content-center"
-                        style={{ border: '1px solid var(--line)', color: 'var(--ink-soft)', background: 'rgba(255,255,255,0.8)', borderRadius: '12px', width: '42px', height: '42px' }}
-                        title="Segarkan Data & Reset Filter"
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                    >
-                        <i className={`bi bi-arrow-clockwise ${isRefreshing ? 'spinner-border spinner-border-sm' : ''}`} style={isRefreshing ? { borderWidth: '2px' } : {}}></i>
-                    </button>
-                </div>
-            </div>
+            {/* Standard Page Header */}
+            <PageHeader 
+                title="Kamus Kata Kunci"
+                subtitle="Kelola daftar kata kunci & pola yang digunakan mesin deteksi sisipan konten."
+                icon="bi-journal-text"
+            />
 
-            {/* Stat pills */}
-            <div className="row g-3 mb-4">
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill h-100">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--teal-1),var(--teal-2))'}}><i className="bi bi-journal-code"></i></div>
-                        <div><div className="val">{safeStats?.total || 0}</div><div className="lbl">Total Kata Kunci</div></div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill h-100">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--coral),#ff9d6e)'}}><i className="bi bi-dice-5"></i></div>
-                        <div><div className="val">{safeStats?.judol || 0}</div><div className="lbl">Judi Online</div></div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill h-100">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--violet),#a78bfa)'}}><i className="bi bi-capsule"></i></div>
-                        <div><div className="val">{safeStats?.obat || 0}</div><div className="lbl">Obat Terlarang</div></div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill h-100">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--blue-1),var(--blue-2))'}}><i className="bi bi-code-slash"></i></div>
-                        <div><div className="val">{safeStats?.regex || 0}</div><div className="lbl">Pola Regex Aktif</div></div>
-                    </div>
-                </div>
-            </div>
+            {/* 4 Metric Stat Cards */}
+            <KeywordStatCards stats={safeStats} />
 
+            {/* Main Glass Card Container */}
             <div className="glass-card mb-4">
-                {/* Toolbar */}
-                <div className="toolbar flex-wrap gap-2">
-                    <div className="search-local">
-                        <i className="bi bi-search"></i>
-                        <input 
-                            type="text" 
-                            placeholder="Cari kata kunci..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className={`filter-chip ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilter('all')}>Semua</div>
-                    <div className={`filter-chip ${activeFilter === 'judol' ? 'active' : ''}`} onClick={() => handleFilter('judol')}>Judi Online</div>
-                    <div className={`filter-chip ${activeFilter === 'obat' ? 'active' : ''}`} onClick={() => handleFilter('obat')}>Obat Terlarang</div>
-                    <div className={`filter-chip ${activeFilter === 'hidden' ? 'active' : ''}`} onClick={() => handleFilter('hidden')}>Teks Tersembunyi</div>
-                    <div className={`filter-chip ${activeFilter === 'newpage' ? 'active' : ''}`} onClick={() => handleFilter('newpage')}>Halaman Baru</div>
-                    <div className={`filter-chip ${activeFilter === 'phising' ? 'active' : ''}`} onClick={() => handleFilter('phising')}>Phising</div>
-                    <button className="btn-add ms-auto" onClick={handleAdd}>
-                        <i className="bi bi-plus-lg"></i><span className="d-none d-sm-inline">Tambah Kata Kunci</span>
-                    </button>
-                </div>
+                {/* Search, Filter Chips, and Add Button */}
+                <KeywordToolbar 
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    onClearSearch={handleClearSearch}
+                    activeFilter={activeFilter}
+                    onFilterChange={handleFilterChange}
+                    canCreate={can?.create}
+                    onAdd={handleAdd}
+                />
 
-                {/* Desktop table */}
-                <div className="table-responsive">
-                    <table className="table-modern">
-                        <thead>
-                            <tr>
-                                <th>Kata Kunci / Pola</th>
-                                <th>Kategori</th>
-                                <th>Tipe</th>
-                                <th>Status</th>
-                                <th>Ditambahkan Oleh</th>
-                                <th>Tanggal</th>
-                                <th style={{ textAlign: 'right' }}>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {safeData.length > 0 ? safeData.map((kw: Keyword) => (
-                                <tr key={kw.id}>
-                                    <td>
-                                        <span className="kw-code">{kw.keyword}</span>
-                                        {kw.description && (
-                                            <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', marginTop: '4px' }}>
-                                                <i className="bi bi-info-circle me-1" style={{ color: 'var(--teal-1)' }}></i>
-                                                {kw.description}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td>{getCatBadge(kw.category)}</td>
-                                    <td>
-                                        <span className={kw.type === 'regex' ? 'regex-badge' : 'plain-badge'}>
-                                            {kw.type === 'regex' ? 'Regex' : 'Teks Biasa'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <input 
-                                            type="checkbox" 
-                                            className="form-check-input toggle-active" 
-                                            checked={kw.is_active} 
-                                            onChange={() => toggleStatus(kw)}
-                                        />
-                                    </td>
-                                    <td>
-                                        <div className="d-flex align-items-center gap-2">
-                                            <div className="avatar-tiny">{kw.creator_name ? kw.creator_name.substring(0, 2).toUpperCase() : 'SY'}</div>
-                                            <span style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>{kw.creator_name || 'System'}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ fontSize: '0.8rem', color: 'var(--ink-faint)' }}>{kw.created_at}</td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <button className="action-btn" title="Ubah" onClick={() => handleEdit(kw)}><i className="bi bi-pencil"></i></button>
-                                        <button className="action-btn danger" title="Hapus" onClick={() => setKeywordToDelete(kw)}><i className="bi bi-trash"></i></button>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <EmptyState 
-                                    icon="bi-journal-x"
-                                    title="Belum Ada Kata Kunci"
-                                    description="Daftar kata kunci pencarian atau pola regex untuk mesin pemindai masih kosong."
-                                    actionLabel="Tambah Kata Kunci"
-                                    onAction={handleAdd}
-                                    colSpan={7}
-                                />
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* PaginatedResource Pagination */}
-                <Pagination meta={safeKeywords.meta} links={safeKeywords.links} itemLabel="kata kunci" />
+                {/* Table View & Pagination */}
+                <KeywordTable 
+                    keywords={safeKeywords}
+                    canEdit={can?.edit}
+                    canDelete={can?.delete}
+                    onEdit={handleEdit}
+                    onDelete={(kw) => setKeywordToDelete(kw)}
+                    onToggleStatus={handleToggleStatus}
+                    onAdd={handleAdd}
+                    onPageChange={(page) => {
+                        executeFilter(
+                            route('keywords.index'),
+                            { search: searchTerm, filter: activeFilter, page },
+                            `Memuat halaman ${page}...`
+                        );
+                    }}
+                />
             </div>
 
+            {/* Add / Edit Keyword Modal */}
             <KeywordModal 
                 show={showModal} 
-                onClose={() => setShowModal(false)} 
+                onClose={() => { setShowModal(false); setSelectedKeyword(null); }} 
                 keyword={selectedKeyword} 
             />
 
-            <ConfirmModal 
+            {/* Delete Confirmation Modal */}
+            <DeleteKeywordModal 
                 show={!!keywordToDelete}
-                title="Hapus Kata Kunci?"
-                message={`Apakah Anda yakin ingin menghapus kata kunci "${keywordToDelete?.keyword}"? Tindakan ini tidak dapat dibatalkan.`}
-                onConfirm={handleDelete}
-                onCancel={() => !isDeleting && setKeywordToDelete(null)}
-                isProcessing={isDeleting}
+                onClose={() => setKeywordToDelete(null)}
+                keyword={keywordToDelete}
             />
 
             {/* Popup Loader Modal for Filters */}

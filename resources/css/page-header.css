@@ -1,0 +1,203 @@
+/* ===== Sigap Page Header & Breadcrumb Styles ===== */
+.sigap-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.sigap-page-header-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sigap-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    margin-bottom: 0.35rem;
+    font-weight: 500;
+}
+
+.sigap-breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--ink-faint);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.sigap-breadcrumb-item:hover {
+    color: var(--teal-1);
+}
+
+.sigap-breadcrumb-item.active {
+    color: var(--ink-soft);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.sigap-breadcrumb-separator {
+    font-size: 0.65rem;
+    opacity: 0.5;
+}
+
+.sigap-page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sigap-page-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 8px 16px rgba(14, 165, 163, 0.2);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sigap-page-icon:hover {
+    transform: scale(1.05) rotate(-3deg);
+}
+
+.sigap-page-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.sigap-page-subtitle {
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    margin: 0.35rem 0 0 0;
+    line-height: 1.4;
+}
+
+/* System Status Pill / Right Content */
+.sigap-status-pill {
+    background: rgba(255, 255, 255, 0.65);
+    padding: 0.55rem 1rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.035);
+    transition: all 0.2s ease;
+}
+
+.sigap-status-pill:hover {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 6px 22px rgba(14, 165, 163, 0.08);
+}
+
+.sigap-status-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.sigap-status-label {
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sigap-status-value {
+    font-size: 0.92rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.sigap-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.sigap-status-optimal .sigap-status-value {
+    color: var(--teal-1);
+}
+.sigap-status-optimal .sigap-status-dot {
+    background: var(--teal-1);
+    box-shadow: 0 0 8px var(--teal-1);
+}
+.sigap-status-optimal .sigap-status-icon-wrap {
+    background: rgba(14, 165, 163, 0.1);
+    color: var(--teal-1);
+}
+
+.sigap-status-warning .sigap-status-value {
+    color: var(--sun);
+}
+.sigap-status-warning .sigap-status-dot {
+    background: var(--sun);
+    box-shadow: 0 0 8px var(--sun);
+}
+.sigap-status-warning .sigap-status-icon-wrap {
+    background: rgba(255, 182, 72, 0.12);
+    color: var(--sun);
+}
+
+.sigap-status-danger .sigap-status-value {
+    color: var(--coral);
+}
+.sigap-status-danger .sigap-status-dot {
+    background: var(--coral);
+    box-shadow: 0 0 8px var(--coral);
+}
+.sigap-status-danger .sigap-status-icon-wrap {
+    background: rgba(255, 122, 110, 0.12);
+    color: var(--coral);
+}
+
+.sigap-status-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 575.98px) {
+    .sigap-page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.85rem;
+    }
+    .sigap-page-title {
+        font-size: 1.25rem;
+    }
+    .sigap-status-pill {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .sigap-status-text {
+        align-items: flex-start;
+    }
+}

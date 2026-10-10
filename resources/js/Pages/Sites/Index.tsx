@@ -11,6 +11,7 @@ import AddSiteModal from './Partials/AddSiteModal';
 import DetailSiteModal from './Partials/DetailSiteModal';
 import ConfirmModal from '@/Components/ConfirmModal';
 import PopupLoader from '@/Components/PopupLoader';
+import PageHeader from '@/Components/PageHeader';
 import { toast } from '@/Components/DynamicToast';
 
 export default function Index(props: any) {
@@ -201,33 +202,18 @@ export default function Index(props: any) {
         <AuthenticatedLayout>
             <Head title="Daftar Situs" />
             
-            {/* Header Title Bar */}
-            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
-                <div>
-                    <div className="page-title d-flex align-items-center gap-2 mb-2" style={{ margin: 0 }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
-                            <i className="bi bi-hdd-network"></i>
-                        </div>
-                        Daftar Situs
-                    </div>
-                    <p className="page-sub mb-0 ms-1">Kelola seluruh situs OPD yang dipantau — {sites.meta ? sites.meta.total : 0} situs terdaftar.</p>
-                </div>
-
-                <div className="d-flex align-items-center gap-3">
-                    <div style={{ background: 'rgba(255,255,255,0.6)', padding: '0.6rem 1rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--ink-soft)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status Sistem</span>
-                            <span style={{ fontSize: '0.95rem', color: 'var(--teal-1)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--teal-1)', boxShadow: '0 0 8px var(--teal-1)' }}></span>
-                                Berjalan Optimal
-                            </span>
-                        </div>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(14,165,163,0.1)', color: 'var(--teal-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
-                            <i className="bi bi-shield-check"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* Reusable Header Title Bar & Status */}
+            <PageHeader 
+                title="Daftar Situs"
+                subtitle={`Kelola seluruh situs OPD yang dipantau — ${sites.meta ? sites.meta.total : 0} situs terdaftar.`}
+                icon="bi-hdd-network"
+                status={{
+                    label: 'Status Sistem',
+                    value: 'Berjalan Optimal',
+                    icon: 'bi-shield-check',
+                    type: 'optimal',
+                }}
+            />
 
             {/* Modular Stat Cards Row */}
             <SiteStatCards 

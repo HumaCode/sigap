@@ -25,4 +25,9 @@ class Site extends Model
         'ssh_password' => 'encrypted',
         'ssh_private_key' => 'encrypted',
     ];
+
+    public function detectionLogs()
+    {
+        return $this->hasMany(DetectionLog::class);
+    }
 }

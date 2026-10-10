@@ -1,159 +1,201 @@
 import { Head, router, Link, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import '../../../css/laporan.css';
 import EmptyState from '@/Components/EmptyState';
 import DetailReportModal from './Partials/DetailReportModal';
 import PopupLoader from '@/Components/PopupLoader';
+import Pagination from '@/Components/Pagination';
+import PageHeader from '@/Components/PageHeader';
+import OfficialPrintDocument from './Partials/OfficialPrintDocument';
+import ApexCharts from 'apexcharts';
+import '../../../css/report-print.css';
 
 interface LaporanProps extends PageProps {
-    sites: { data: any[]; links: any[]; meta: any };
+    sites: { 
+        data: any[]; 
+        links?: any[]; 
+        meta?: {
+            current_page: number;
+            last_page: number;
+            from: number;
+            to: number;
+            total: number;
+        }; 
+    };
     filters: { search?: string; category?: string; range?: string };
     stats: any;
+    can?: {
+        export?: boolean;
+        viewDetail?: boolean;
+    };
 }
 
-import Chart from 'react-apexcharts';
-
-// Komponen Grafik Tren Uptime Realtime Menggunakan ApexCharts JS
+// Komponen Grafik Tren Uptime Realtime Menggunakan Streaming ApexCharts JS
 const ApexUptimeChart = ({ avgUptime = 99.8 }: { avgUptime?: number }) => {
-    const baseTarget = Number(avgUptime) || 99.5;
-    
-    // Initial 15 realtime data points
-    const [realtimeSeries, setRealtimeSeries] = useState<number[]>([
-        99.8, 99.9, 99.7, 99.6, 99.8, 99.9, 99.5, 99.2, 99.6, 99.8, 99.4, 99.7, 99.9, 99.5, baseTarget
-    ]);
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const chartInstanceRef = useRef<ApexCharts | null>(null);
 
-    const [categories, setCategories] = useState<string[]>([
-        '10:45', '10:46', '10:47', '10:48', '10:49', '10:50', '10:51', '10:52', '10:53', '10:54', '10:55', '10:56', '10:57', '10:58', 'Sekarang'
-    ]);
-
-    // Realtime pulse interval: add new stream point every 2 seconds
     useEffect(() => {
-        const timer = setInterval(() => {
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-            
-            // Micro variation around the average uptime
-            const delta = (Math.random() - 0.48) * 0.3;
-            const newPoint = Math.min(100, Math.max(90, Number((baseTarget + delta).toFixed(2))));
+        if (!chartContainerRef.current) return;
 
-            setRealtimeSeries((prev) => [...prev.slice(1), newPoint]);
-            setCategories((prev) => [...prev.slice(1), timeStr]);
-        }, 2000);
+        const TICKINTERVAL = 1000;
+        const XAXISRANGE = 29 * TICKINTERVAL;
+        let lastX = new Date().getTime() - XAXISRANGE;
+        let lastY = Number(avgUptime) || 99.5;
+        const data: { x: number; y: number }[] = [];
 
-        return () => clearInterval(timer);
-    }, [baseTarget]);
+        function nextValue() {
+            const delta = (Math.random() - 0.48) * 0.35;
+            lastY = Math.max(91.5, Math.min(100, Number((lastY + delta).toFixed(2))));
+            return Number(lastY.toFixed(2));
+        }
 
-    const options: ApexCharts.ApexOptions = {
-        chart: {
-            type: 'area',
-            height: 280,
-            toolbar: { show: false },
-            zoom: { enabled: false },
-            fontFamily: 'Poppins, sans-serif',
-            animations: {
-                enabled: true,
-                easing: 'linear',
-                dynamicAnimation: {
-                    speed: 1000
-                }
-            }
-        },
-        colors: ['#0ea5a3'],
-        stroke: {
-            curve: 'smooth',
-            width: 3.5,
-        },
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.45,
-                opacityTo: 0.05,
-                stops: [0, 90, 100],
-            },
-        },
-        markers: {
-            size: 4,
-            colors: ['#0ea5a3'],
-            strokeColors: '#ffffff',
-            strokeWidth: 2,
-            hover: { size: 7 },
-        },
-        grid: {
-            borderColor: 'rgba(15,42,63,0.07)',
-            strokeDashArray: 4,
-            padding: { top: 10, right: 10, bottom: 0, left: 10 },
-        },
-        xaxis: {
-            categories: categories,
-            labels: {
-                style: {
-                    colors: '#7c93a3',
-                    fontSize: '11px',
-                    fontWeight: 500,
-                },
-            },
-            axisBorder: { show: false },
-            axisTicks: { show: false },
-        },
-        yaxis: {
-            min: 90,
-            max: 100,
-            tickAmount: 5,
-            labels: {
-                formatter: (val) => `${val.toFixed(1)}%`,
-                style: {
-                    colors: '#7c93a3',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                },
-            },
-        },
-        annotations: {
-            yaxis: [
+        while (data.length < 30) {
+            data.push({ x: lastX, y: nextValue() });
+            lastX += TICKINTERVAL;
+        }
+
+        const options: ApexCharts.ApexOptions = {
+            series: [
                 {
-                    y: 99.5,
-                    borderColor: '#ff7a6e',
-                    label: {
-                        borderColor: '#ff7a6e',
-                        style: {
-                            color: '#fff',
-                            background: '#ff7a6e',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                        },
-                        text: 'Target SLA (99.5%)',
-                    },
+                    name: 'Uptime Realtime',
+                    data: data.slice(),
                 },
             ],
-        },
-        tooltip: {
-            theme: 'light',
-            x: { show: true },
-            y: {
-                formatter: (val) => `${val.toFixed(2)}% Uptime`,
-            },
-            style: {
-                fontSize: '12px',
+            chart: {
+                id: 'realtime-streaming',
+                height: 280,
+                type: 'area',
                 fontFamily: 'Poppins, sans-serif',
+                animations: {
+                    enabled: true,
+                    easing: 'linear',
+                    dynamicAnimation: {
+                        speed: 1000,
+                    },
+                },
+                toolbar: {
+                    show: false,
+                },
+                zoom: {
+                    enabled: false,
+                },
             },
-        },
-    };
+            colors: ['#0ea5a3'],
+            dataLabels: {
+                enabled: false,
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 3.5,
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.45,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100],
+                },
+            },
+            markers: {
+                size: 0,
+            },
+            grid: {
+                borderColor: 'rgba(15,42,63,0.07)',
+                strokeDashArray: 4,
+                padding: { top: 10, right: 15, bottom: 0, left: 10 },
+            },
+            xaxis: {
+                type: 'datetime',
+                range: XAXISRANGE,
+                labels: {
+                    datetimeUTC: false,
+                    format: 'HH:mm:ss',
+                    style: {
+                        colors: '#7c93a3',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                    },
+                },
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+            },
+            yaxis: {
+                min: 90,
+                max: 100,
+                tickAmount: 5,
+                labels: {
+                    formatter: (val) => `${val.toFixed(1)}%`,
+                    style: {
+                        colors: '#7c93a3',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                    },
+                },
+            },
+            annotations: {
+                yaxis: [
+                    {
+                        y: 99.5,
+                        borderColor: '#ff7a6e',
+                        strokeDashArray: 3,
+                        label: {
+                            borderColor: '#ff7a6e',
+                            style: {
+                                color: '#fff',
+                                background: '#ff7a6e',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                            },
+                            text: 'Target SLA (99.5%)',
+                        },
+                    },
+                ],
+            },
+            tooltip: {
+                theme: 'light',
+                x: {
+                    format: 'HH:mm:ss',
+                },
+                y: {
+                    formatter: (val) => `${val.toFixed(2)}% Uptime`,
+                },
+                style: {
+                    fontSize: '12px',
+                    fontFamily: 'Poppins, sans-serif',
+                },
+            },
+            legend: {
+                show: false,
+            },
+        };
 
-    const series = [
-        {
-            name: 'Uptime Realtime',
-            data: realtimeSeries,
-        },
-    ];
+        const chart = new ApexCharts(chartContainerRef.current, options);
+        chart.render();
+        chartInstanceRef.current = chart;
+
+        const interval = window.setInterval(() => {
+            lastX += TICKINTERVAL;
+            chart.appendData([
+                {
+                    data: [{ x: lastX, y: nextValue() }],
+                },
+            ]);
+        }, TICKINTERVAL);
+
+        return () => {
+            clearInterval(interval);
+            chart.destroy();
+            chartInstanceRef.current = null;
+        };
+    }, [avgUptime]);
 
     return (
         <div style={{ width: '100%', minHeight: '280px' }}>
-            {typeof window !== 'undefined' && (
-                <Chart options={options} series={series} type="area" height={280} />
-            )}
+            <div ref={chartContainerRef} id="chart" />
         </div>
     );
 };
@@ -197,7 +239,12 @@ const IncidentCount = ({ seed, status }: { seed: string; status?: string }) => {
     return <>{count}</>;
 };
 
-export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
+export default function LaporanUptime({ 
+    sites, 
+    filters, 
+    stats, 
+    can = { export: true, viewDetail: true } 
+}: LaporanProps) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters.category || 'Semua Kategori Situs');
     const [rangeFilter, setRangeFilter] = useState(filters.range || '7d');
@@ -210,12 +257,23 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
     
 
 
-    const rangeTextMap: Record<string, string> = {
+    const [rangeTextMap] = useState<Record<string, string>>({
         '24h': '24 Jam',
         '7d': '7 Hari',
         '30d': '30 Hari',
         '90d': '90 Hari',
-    };
+    });
+
+    // Always keep URL address bar clean (mask query parameters)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.search) {
+            window.history.replaceState(
+                {}, 
+                document.title, 
+                window.location.pathname
+            );
+        }
+    }, [sites, filters]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -224,11 +282,15 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
 
         router.get(url, params, {
             preserveState: true,
+            preserveScroll: true,
             onFinish: () => {
                 const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, 450 - elapsed);
+                const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
                     setIsFiltering(false);
+                    if (typeof window !== 'undefined') {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
                 }, remaining);
             },
             onError: () => {
@@ -242,6 +304,11 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
             const msg = searchTerm.trim() ? `Mencari situs "${searchTerm.trim()}"...` : 'Memuat data Laporan Uptime...';
             executeFilter(route('reports.uptime'), { search: searchTerm, category: categoryFilter, range: rangeFilter }, msg);
         }
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        executeFilter(route('reports.uptime'), { search: '', category: categoryFilter, range: rangeFilter }, 'Memuat semua data laporan...');
     };
 
     const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -270,29 +337,26 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
         }
     };
 
+    const handlePrintOverall = () => {
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('.sigap-print-document').forEach(el => el.classList.remove('sigap-print-active'));
+            const target = document.getElementById('print-overall-report');
+            if (target) {
+                target.classList.add('sigap-print-active');
+            }
+        }
+        window.print();
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Laporan Uptime" />
 
-            <style>{`
-                @media print {
-                    header, nav, .report-toolbar, .btn-export, .pagination-footer { display: none !important; }
-                    .glass-card { background: white !important; border: 1px solid #ccc !important; box-shadow: none !important; }
-                    body { background: white !important; color: black !important; }
-                }
-            `}</style>
-
-            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
-                <div>
-                    <div className="page-title d-flex align-items-center gap-2 mb-2" style={{ margin: 0 }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
-                            <i className="bi bi-graph-up-arrow"></i>
-                        </div>
-                        Laporan Uptime
-                    </div>
-                    <p className="page-sub mb-0 ms-1">Ringkasan performa ketersediaan seluruh situs terpantau berdasarkan periode.</p>
-                </div>
-            </div>
+            <PageHeader 
+                title="Laporan Uptime"
+                subtitle="Ringkasan performa ketersediaan seluruh situs terpantau berdasarkan periode."
+                icon="bi-graph-up-arrow"
+            />
 
             {/* Report toolbar */}
             <div className="report-toolbar d-flex align-items-center gap-2 flex-wrap">
@@ -304,8 +368,18 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={handleSearch}
-                        style={{ borderRadius: '12px', border: '1.5px solid var(--line)', padding: '0.5rem 1rem 0.5rem 2.3rem', fontSize: '0.84rem', width: '100%', background: 'rgba(255,255,255,0.7)', fontFamily: 'Poppins, sans-serif' }}
+                        style={{ borderRadius: '12px', border: '1.5px solid var(--line)', padding: '0.5rem 2.2rem 0.5rem 2.3rem', fontSize: '0.84rem', width: '100%', background: 'rgba(255,255,255,0.7)', fontFamily: 'Poppins, sans-serif' }}
                     />
+                    {searchTerm && (
+                        <button
+                            type="button"
+                            onClick={handleClearSearch}
+                            style={{ position: 'absolute', right: '0.65rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink-faint)', cursor: 'pointer', padding: '0.2rem' }}
+                            title="Hapus pencarian"
+                        >
+                            <i className="bi bi-x-circle-fill"></i>
+                        </button>
+                    )}
                 </div>
 
                 <div className={`range-chip ${rangeFilter === '24h' ? 'active' : ''}`} onClick={() => handleRangeChange('24h')}>24 Jam</div>
@@ -320,9 +394,11 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                     <option value="PPID">PPID</option>
                 </select>
                 
-                <button className="btn-export ms-auto" onClick={() => window.print()}>
-                    <i className="bi bi-file-earmark-pdf-fill"></i><span>Cetak PDF</span>
-                </button>
+                {can?.export && (
+                    <button className="btn-export ms-auto" onClick={handlePrintOverall}>
+                        <i className="bi bi-file-earmark-pdf-fill"></i><span>Cetak PDF</span>
+                    </button>
+                )}
             </div>
 
             {/* SLA summary cards */}
@@ -441,9 +517,14 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                         <div 
                             key={site.id} 
                             className="report-row" 
-                            style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
-                            onClick={() => { setSelectedSite(site); setShowDetailModal(true); }}
-                            title="Klik untuk melihat rincian laporan situs ini"
+                            style={{ cursor: can?.viewDetail ? 'pointer' : 'default', transition: 'all 0.2s ease' }}
+                            onClick={() => {
+                                if (can?.viewDetail) {
+                                    setSelectedSite(site); 
+                                    setShowDetailModal(true);
+                                }
+                            }}
+                            title={can?.viewDetail ? "Klik untuk melihat rincian laporan situs ini" : undefined}
                         >
                             {getSiteFavicon(site.category)}
                             <div className="flex-grow-1 min-w-0">
@@ -483,32 +564,18 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
 
                 {/* Pagination */}
                 {sites.meta && sites.meta.last_page > 1 && (
-                    <div className="pagination-footer mt-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1.2rem', borderTop: '1px solid var(--line)' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--ink-faint)' }}>Menampilkan {sites.meta.from} - {sites.meta.to} dari {sites.meta.total} situs</span>
-                        <div className="d-flex gap-1">
-                            {sites.meta.links.map((link: any, index: number) => {
-                                if (link.label === '...') {
-                                    return (
-                                        <span key={index} className="pg-btn" style={{ background: 'transparent', border: 'none', cursor: 'default', color: 'var(--ink-soft)' }}>
-                                            ...
-                                        </span>
-                                    );
-                                }
-                                
-                                return (
-                                    <Link 
-                                        key={index} 
-                                        href={link.url || '#'}
-                                        className={`pg-btn ${link.active ? 'active' : ''} ${!link.url ? 'opacity-50' : ''}`}
-                                        style={!link.url ? { pointerEvents: 'none' } : {}}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                        preserveState
-                                        preserveScroll
-                                        data={{ search: searchTerm, category: categoryFilter, range: rangeFilter }}
-                                    />
+                    <div className="pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                        <Pagination 
+                            meta={sites.meta} 
+                            itemLabel="situs" 
+                            onPageChange={(page) => {
+                                executeFilter(
+                                    route('reports.uptime'),
+                                    { search: searchTerm, category: categoryFilter, range: rangeFilter, page },
+                                    `Memuat halaman ${page}...`
                                 );
-                            })}
-                        </div>
+                            }}
+                        />
                     </div>
                 )}
             </div>
@@ -526,6 +593,16 @@ export default function LaporanUptime({ sites, filters, stats }: LaporanProps) {
                 status="loading" 
                 message={loaderMessage} 
             />
+
+            {/* Official Government Print Document (Visible only when Printing / Exporting to PDF) */}
+            {!showDetailModal && (
+                <OfficialPrintDocument 
+                    type="all" 
+                    sites={sites.data} 
+                    stats={stats} 
+                    filters={filters} 
+                />
+            )}
 
         </AuthenticatedLayout>
     );

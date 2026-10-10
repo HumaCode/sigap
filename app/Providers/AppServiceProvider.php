@@ -23,6 +23,7 @@ use App\Repositories\UserRepository;
 use App\Models\DetectionLog;
 use App\Models\Site;
 use App\Policies\SitePolicy;
+use App\Policies\UptimeReportPolicy;
 use App\Observers\DetectionLogObserver;
 use Illuminate\Support\Facades\Gate;
 
@@ -50,5 +51,10 @@ class AppServiceProvider extends ServiceProvider
         Vite::prefetch(concurrency: 3);
         DetectionLog::observe(DetectionLogObserver::class);
         Gate::policy(Site::class, SitePolicy::class);
+
+        // Uptime Report Authorization Gates
+        Gate::define('view-uptime-reports', [UptimeReportPolicy::class, 'viewAny']);
+        Gate::define('export-uptime-reports', [UptimeReportPolicy::class, 'export']);
+        Gate::define('view-uptime-audit-detail', [UptimeReportPolicy::class, 'viewAuditDetail']);
     }
 }

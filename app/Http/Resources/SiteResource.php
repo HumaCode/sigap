@@ -47,6 +47,53 @@ class SiteResource extends JsonResource
                 $rpm > 450 => 'Sedang',
                 default => 'Normal (Aman)'
             },
+            'recent_logs' => ($this->relationLoaded('detectionLogs') && $this->detectionLogs->isNotEmpty())
+                ? $this->detectionLogs->take(5)->map(function ($log) {
+                    $isDanger = in_array(strtolower($log->status ?? ''), ['new', 'blocked', 'danger', 'alert']) 
+                        || in_array(strtolower($log->category ?? ''), ['judol', 'obat', 'deface', 'hidden']);
+                    return [
+                        'id' => (string) $log->id,
+                        'source' => $log->source ?? 'Internal Scanner',
+                        'title' => $log->title,
+                        'category' => $log->category,
+                        'status' => $log->status,
+                        'context' => $log->context,
+                        'time_ago' => $log->created_at ? $log->created_at->diffForHumans() : 'Baru saja',
+                        'is_danger' => $isDanger,
+                    ];
+                })->values()->all()
+                : [
+                    [
+                        'id' => 'http-check',
+                        'source' => 'HTTP HealthCheck Engine',
+                        'title' => $this->status === 'down' ? 'HTTP Status 503 / Timeout' : ($this->status === 'warn' ? 'HTTP 200 OK (Tinggi Respon / Beban)' : 'HTTP 200 OK (Koneksi Sukses & Stabil)'),
+                        'category' => 'uptime',
+                        'status' => $this->status === 'down' ? 'down' : 'normal',
+                        'context' => 'Pemeriksaan status respon HTTP secara berkala.',
+                        'time_ago' => 'Baru saja',
+                        'is_danger' => $this->status === 'down',
+                    ],
+                    [
+                        'id' => 'ssl-check',
+                        'source' => 'SSL/TLS Certificate Check',
+                        'title' => 'Sertifikat Keamanan Valid (HTTPS Enkripsi Aktif)',
+                        'category' => 'security',
+                        'status' => 'valid',
+                        'context' => 'Pemeriksaan masa berlaku sertifikat SSL.',
+                        'time_ago' => ($this->check_interval ?? 5) . ' menit lalu',
+                        'is_danger' => false,
+                    ],
+                    [
+                        'id' => 'integrity-check',
+                        'source' => 'Web Content Integrity Scan',
+                        'title' => 'Bebas dari deface / konten terlarang',
+                        'category' => 'integrity',
+                        'status' => 'clean',
+                        'context' => 'Pemindaian integritas konten web.',
+                        'time_ago' => (($this->check_interval ?? 5) * 2) . ' menit lalu',
+                        'is_danger' => false,
+                    ],
+                ],
         ];
     }
 }

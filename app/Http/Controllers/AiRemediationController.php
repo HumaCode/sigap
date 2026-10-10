@@ -78,7 +78,7 @@ class AiRemediationController extends Controller
                 'incident_id'  => $incident->id,
                 'user_message' => $userMsg,
                 'ai_response'  => $result['content'],
-                'model_used'   => $result['model'] ?? ($request->model ?: 'model-2'),
+                'model_used'   => $result['model'] ?? ($request->model ?: 'combo-maut'),
                 'provider'     => $result['provider'] ?? '9router AI Engine',
             ]);
         }

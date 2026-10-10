@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('incident_id')->constrained('incidents')->onDelete('cascade');
             $table->text('user_message');
             $table->text('ai_response');
-            $table->string('model_used')->default('model-2');
+            $table->string('model_used')->default('combo-maut');
             $table->string('provider')->nullable();
             $table->timestamps();
         });

@@ -4,7 +4,7 @@ import { PageProps } from '@/types';
 import { useState, useEffect } from 'react';
 import '../../../css/incidents.css';
 import DetailIncidentModal from './Partials/DetailIncidentModal';
-import AiRemediationModal from './Partials/AiRemediationModal';
+import AiRemediationModal from '@/Components/AiRemediationModal';
 import EmptyState from '@/Components/EmptyState';
 import Pagination from '@/Components/Pagination';
 import PopupLoader from '@/Components/PopupLoader';

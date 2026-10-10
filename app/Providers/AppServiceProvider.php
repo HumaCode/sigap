@@ -17,6 +17,8 @@ use App\Repositories\Interfaces\KeywordRepositoryInterface;
 use App\Repositories\KeywordRepository;
 use App\Repositories\Interfaces\SiteSecurityRepositoryInterface;
 use App\Repositories\SiteSecurityRepository;
+use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\UserRepository;
 
 use App\Models\DetectionLog;
 use App\Observers\DetectionLogObserver;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DetectionLogRepositoryInterface::class, DetectionLogRepository::class);
         $this->app->bind(KeywordRepositoryInterface::class, KeywordRepository::class);
         $this->app->bind(SiteSecurityRepositoryInterface::class, SiteSecurityRepository::class);
+        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
     }
 
     /**

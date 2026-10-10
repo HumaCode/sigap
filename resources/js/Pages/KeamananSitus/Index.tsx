@@ -4,7 +4,7 @@ import { Head, router } from '@inertiajs/react';
 import Pagination from '@/Components/Pagination';
 import EmptyState from '@/Components/EmptyState';
 import SecurityRow from './Partials/SecurityRow';
-import AiRemediationModal from '../Insiden/Partials/AiRemediationModal';
+import AiRemediationModal from '@/Components/AiRemediationModal';
 import { toast } from '@/Components/DynamicToast';
 import '../../../css/security.css';
 import PopupLoader from '@/Components/PopupLoader';

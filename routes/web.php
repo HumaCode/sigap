@@ -39,6 +39,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('keywords', \App\Http\Controllers\KeywordController::class)->except(['create', 'edit', 'show']);
     Route::get('/security', [\App\Http\Controllers\SiteSecurityController::class, 'index'])->name('security.index');
     Route::post('/security/scan', [\App\Http\Controllers\SiteSecurityController::class, 'scan'])->name('security.scan');
+    
+    Route::patch('/users/{id}/toggle-status', [\App\Http\Controllers\UserController::class, 'toggleStatus'])->name('users.toggle-status');
+    Route::resource('users', \App\Http\Controllers\UserController::class)->except(['create', 'edit', 'show']);
 });
 
 require __DIR__.'/auth.php';

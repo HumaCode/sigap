@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('url')->unique();
             $table->string('category')->default('Lainnya');
-            $table->string('pic_name')->nullable();
-            $table->string('pic_contact')->nullable();
+            $table->text('pic_name')->nullable();
+            $table->text('pic_contact')->nullable();
             $table->integer('check_interval')->default(5);
             $table->string('sitemap_url')->nullable();
             $table->json('critical_pages')->nullable();

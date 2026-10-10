@@ -20,6 +20,8 @@ class Site extends Model
         'critical_pages' => 'array',
         'is_active' => 'boolean',
         'requests_per_minute' => 'integer',
+        'pic_name' => 'encrypted',
+        'pic_contact' => 'encrypted',
         'ssh_password' => 'encrypted',
         'ssh_private_key' => 'encrypted',
     ];

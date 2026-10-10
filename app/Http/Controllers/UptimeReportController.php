@@ -2,28 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\UptimeReportService;
+use App\Http\Requests\UptimeReportIndexRequest;
 use App\Http\Resources\PaginateResource;
 use App\Http\Resources\SiteResource;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use App\Services\Interfaces\UptimeReportServiceInterface;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class UptimeReportController extends Controller
 {
-    protected $uptimeReportService;
+    protected UptimeReportServiceInterface $uptimeReportService;
 
-    public function __construct(UptimeReportService $uptimeReportService)
+    public function __construct(UptimeReportServiceInterface $uptimeReportService)
     {
         $this->uptimeReportService = $uptimeReportService;
     }
 
-    public function index(Request $request)
+    public function index(UptimeReportIndexRequest $request): Response
     {
-        Gate::authorize('view-uptime-reports');
+        $filters = $request->filters();
+        $perPage = (int) $request->input('per_page', 10);
 
-        $filters = $request->only(['search', 'category', 'range']);
-        $sites = $this->uptimeReportService->getPaginatedSites($request->input('per_page', 10), $filters);
+        $sites = $this->uptimeReportService->getPaginatedSites($perPage, $filters);
         $stats = $this->uptimeReportService->getSummaryStats($filters);
         $user = $request->user();
 
@@ -34,7 +34,7 @@ class UptimeReportController extends Controller
             'can' => [
                 'export' => $user?->can('export-uptime-reports') ?? false,
                 'viewDetail' => $user?->can('view-uptime-audit-detail') ?? false,
-            ]
+            ],
         ]);
     }
 }

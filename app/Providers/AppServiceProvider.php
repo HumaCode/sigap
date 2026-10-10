@@ -27,6 +27,9 @@ use App\Policies\UptimeReportPolicy;
 use App\Observers\DetectionLogObserver;
 use Illuminate\Support\Facades\Gate;
 
+use App\Services\Interfaces\UptimeReportServiceInterface;
+use App\Services\UptimeReportService;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -41,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(KeywordRepositoryInterface::class, KeywordRepository::class);
         $this->app->bind(SiteSecurityRepositoryInterface::class, SiteSecurityRepository::class);
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
+        $this->app->bind(UptimeReportServiceInterface::class, UptimeReportService::class);
     }
 
     /**

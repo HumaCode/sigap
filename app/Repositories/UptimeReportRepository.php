@@ -4,10 +4,11 @@ namespace App\Repositories;
 
 use App\Models\Site;
 use App\Repositories\Interfaces\UptimeReportRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class UptimeReportRepository implements UptimeReportRepositoryInterface
 {
-    public function getPaginatedSites(int $perPage = 10, array $filters = [])
+    public function getPaginatedSites(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
         $query = Site::query();
 
@@ -28,7 +29,7 @@ class UptimeReportRepository implements UptimeReportRepositoryInterface
         }])->latest()->paginate($perPage);
     }
 
-    public function getSummaryStats(array $filters = [])
+    public function getSummaryStats(array $filters = []): array
     {
         $query = Site::query();
         

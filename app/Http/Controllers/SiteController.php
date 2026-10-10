@@ -5,8 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SiteRequest;
 use App\Http\Resources\PaginateResource;
 use App\Http\Resources\SiteResource;
+use App\Models\Site;
 use App\Services\SiteService;
+use App\Services\UptimeCheckService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Net\SSH2;
 
 class SiteController extends Controller
 {
@@ -14,6 +19,8 @@ class SiteController extends Controller
 
     public function index(Request $request)
     {
+        Gate::authorize('viewAny', Site::class);
+
         $sites = $this->siteService->getSites(
             $request->input('per_page', 10),
             $request->input('search', ''),
@@ -21,49 +28,70 @@ class SiteController extends Controller
         );
 
         $stats = [
-            'total' => \App\Models\Site::count(),
-            'up' => \App\Models\Site::where('status', 'up')->count(),
-            'down' => \App\Models\Site::where('status', 'down')->count(),
-            'warn' => \App\Models\Site::where('status', 'warn')->count(),
-            'paused' => \App\Models\Site::where('status', 'paused')->count(),
+            'total' => Site::count(),
+            'up' => Site::where('status', 'up')->count(),
+            'down' => Site::where('status', 'down')->count(),
+            'warn' => Site::where('status', 'warn')->count(),
+            'paused' => Site::where('status', 'paused')->count(),
         ];
+
+        $user = $request->user();
 
         return inertia('Sites/Index', [
             'sites' => new PaginateResource($sites, SiteResource::class),
             'filters' => $request->only(['search', 'filter']),
-            'stats' => $stats
+            'stats' => $stats,
+            'can' => [
+                'create' => $user?->can('create', Site::class) ?? false,
+                'update' => $user?->can('update', Site::class) ?? false,
+                'delete' => $user?->can('delete', Site::class) ?? false,
+                'check' => $user?->can('checkUptime', Site::class) ?? false,
+                'manageSsh' => $user?->can('manageSsh', Site::class) ?? false,
+            ]
         ]);
     }
 
     public function store(SiteRequest $request)
     {
+        Gate::authorize('create', Site::class);
+
         $this->siteService->createSite($request->validated());
         return redirect()->route('sites.index')->with('success', 'Situs berhasil didaftarkan');
     }
 
     public function update(SiteRequest $request, $id)
     {
+        $site = Site::findOrFail($id);
+        Gate::authorize('update', $site);
+
         $this->siteService->updateSite($id, $request->validated());
         return redirect()->route('sites.index')->with('success', 'Situs berhasil diperbarui');
     }
 
     public function destroy($id)
     {
+        $site = Site::findOrFail($id);
+        Gate::authorize('delete', $site);
+
         $this->siteService->deleteSite($id);
         return redirect()->route('sites.index')->with('success', 'Situs berhasil dihapus');
     }
 
-    public function recheck($id, \App\Services\UptimeCheckService $uptimeCheckService)
+    public function recheck($id, UptimeCheckService $uptimeCheckService)
     {
-        $site = \App\Models\Site::findOrFail($id);
+        $site = Site::findOrFail($id);
+        Gate::authorize('checkUptime', $site);
+
         $result = $uptimeCheckService->checkSite($site);
 
         $statusText = $result['status'] === 'up' ? 'Online' : "Offline ({$result['status_code']})";
         return redirect()->back()->with('success', "Pengecekan ulang selesai. Status situs saat ini: {$statusText}");
     }
 
-    public function testSshConnection(\Illuminate\Http\Request $request)
+    public function testSshConnection(Request $request)
     {
+        Gate::authorize('manageSsh', Site::class);
+
         $host = $request->input('ssh_host');
         $port = (int)($request->input('ssh_port') ?: 22);
         $username = $request->input('ssh_username');
@@ -94,14 +122,14 @@ class SiteController extends Controller
             $banner = fgets($socket, 1024);
             fclose($socket);
 
-            $ssh = new \phpseclib3\Net\SSH2($host, $port, 10);
+            $ssh = new SSH2($host, $port, 10);
 
             $authenticated = false;
             if ($authType === 'key') {
                 if (!$privateKey) {
                     return response()->json(['success' => false, 'message' => 'SSH Private Key kosong.'], 422);
                 }
-                $key = \phpseclib3\Crypt\PublicKeyLoader::load($privateKey);
+                $key = PublicKeyLoader::load($privateKey);
                 $authenticated = $ssh->login($username, $key);
             } else {
                 $authenticated = $ssh->login($username, $password);

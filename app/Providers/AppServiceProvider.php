@@ -21,7 +21,10 @@ use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\UserRepository;
 
 use App\Models\DetectionLog;
+use App\Models\Site;
+use App\Policies\SitePolicy;
 use App\Observers\DetectionLogObserver;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -46,5 +49,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
         DetectionLog::observe(DetectionLogObserver::class);
+        Gate::policy(Site::class, SitePolicy::class);
     }
 }

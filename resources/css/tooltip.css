@@ -1,0 +1,255 @@
+/* ===== Sigap Modern Custom Tooltip Component ===== */
+
+.sigap-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Portal Tooltip Floating Bubble */
+.sigap-portal-tooltip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 10px;
+  color: #ffffff;
+  pointer-events: none;
+  animation: sigapTooltipFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.3), 0 4px 10px -2px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  min-width: max-content;
+  max-width: 260px;
+  cursor: default;
+  font-family: 'Poppins', sans-serif;
+}
+
+@keyframes sigapTooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Tooltip Title & Description */
+.sigap-tooltip-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.sigap-tooltip-desc {
+  font-size: 0.68rem;
+  font-weight: 400;
+  opacity: 0.88;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+  white-space: normal;
+}
+
+/* Caret / Arrow */
+.sigap-tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* Position Arrow Styling */
+.sigap-tooltip-top .sigap-tooltip-arrow {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0 5px;
+}
+
+.sigap-tooltip-bottom .sigap-tooltip-arrow {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px 5px;
+}
+
+.sigap-tooltip-left .sigap-tooltip-arrow {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 0 5px 5px;
+}
+
+.sigap-tooltip-right .sigap-tooltip-arrow {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 5px 5px 0;
+}
+
+/* ============================================================ */
+/* COLOR VARIANTS                                               */
+/* ============================================================ */
+
+/* 1. Dark (Default) */
+.sigap-tooltip-dark {
+  background: #0f172a;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.sigap-tooltip-dark.sigap-tooltip-top .sigap-tooltip-arrow {
+  border-color: #1e293b transparent transparent transparent;
+}
+.sigap-tooltip-dark.sigap-tooltip-bottom .sigap-tooltip-arrow {
+  border-color: transparent transparent #0f172a transparent;
+}
+.sigap-tooltip-dark.sigap-tooltip-left .sigap-tooltip-arrow {
+  border-color: transparent transparent transparent #1e293b;
+}
+.sigap-tooltip-dark.sigap-tooltip-right .sigap-tooltip-arrow {
+  border-color: transparent #0f172a transparent transparent;
+}
+
+/* 2. Info / Teal (Ping, Check, Info, View Detail) */
+.sigap-tooltip-info,
+.sigap-tooltip-teal {
+  background: #0d9488;
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 25px -4px rgba(13, 148, 136, 0.4), 0 4px 10px -2px rgba(13, 148, 136, 0.2);
+}
+.sigap-tooltip-info.sigap-tooltip-top .sigap-tooltip-arrow,
+.sigap-tooltip-teal.sigap-tooltip-top .sigap-tooltip-arrow {
+  border-color: #0d9488 transparent transparent transparent;
+}
+.sigap-tooltip-info.sigap-tooltip-bottom .sigap-tooltip-arrow,
+.sigap-tooltip-teal.sigap-tooltip-bottom .sigap-tooltip-arrow {
+  border-color: transparent transparent #0f766e transparent;
+}
+.sigap-tooltip-info.sigap-tooltip-left .sigap-tooltip-arrow,
+.sigap-tooltip-teal.sigap-tooltip-left .sigap-tooltip-arrow {
+  border-color: transparent transparent transparent #0d9488;
+}
+.sigap-tooltip-info.sigap-tooltip-right .sigap-tooltip-arrow,
+.sigap-tooltip-teal.sigap-tooltip-right .sigap-tooltip-arrow {
+  border-color: transparent #0f766e transparent transparent;
+}
+
+/* 3. Primary / Edit / Blue (Edit, Modify, Update) */
+.sigap-tooltip-primary,
+.sigap-tooltip-edit,
+.sigap-tooltip-blue {
+  background: #2563eb;
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 25px -4px rgba(37, 99, 235, 0.4), 0 4px 10px -2px rgba(37, 99, 235, 0.2);
+}
+.sigap-tooltip-primary.sigap-tooltip-top .sigap-tooltip-arrow,
+.sigap-tooltip-edit.sigap-tooltip-top .sigap-tooltip-arrow,
+.sigap-tooltip-blue.sigap-tooltip-top .sigap-tooltip-arrow {
+  border-color: #3b82f6 transparent transparent transparent;
+}
+.sigap-tooltip-primary.sigap-tooltip-bottom .sigap-tooltip-arrow,
+.sigap-tooltip-edit.sigap-tooltip-bottom .sigap-tooltip-arrow,
+.sigap-tooltip-blue.sigap-tooltip-bottom .sigap-tooltip-arrow {
+  border-color: transparent transparent #1d4ed8 transparent;
+}
+.sigap-tooltip-primary.sigap-tooltip-left .sigap-tooltip-arrow,
+.sigap-tooltip-edit.sigap-tooltip-left .sigap-tooltip-arrow,
+.sigap-tooltip-blue.sigap-tooltip-left .sigap-tooltip-arrow {
+  border-color: transparent transparent transparent #3b82f6;
+}
+.sigap-tooltip-primary.sigap-tooltip-right .sigap-tooltip-arrow,
+.sigap-tooltip-edit.sigap-tooltip-right .sigap-tooltip-arrow,
+.sigap-tooltip-blue.sigap-tooltip-right .sigap-tooltip-arrow {
+  border-color: transparent #1d4ed8 transparent transparent;
+}
+
+/* 4. Danger / Red (Delete, Remove, Terminate) */
+.sigap-tooltip-danger,
+.sigap-tooltip-red {
+  background: #dc2626;
+  background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 25px -4px rgba(220, 38, 38, 0.4), 0 4px 10px -2px rgba(220, 38, 38, 0.2);
+}
+.sigap-tooltip-danger.sigap-tooltip-top .sigap-tooltip-arrow,
+.sigap-tooltip-red.sigap-tooltip-top .sigap-tooltip-arrow {
+  border-color: #ef4444 transparent transparent transparent;
+}
+.sigap-tooltip-danger.sigap-tooltip-bottom .sigap-tooltip-arrow,
+.sigap-tooltip-red.sigap-tooltip-bottom .sigap-tooltip-arrow {
+  border-color: transparent transparent #b91c1c transparent;
+}
+.sigap-tooltip-danger.sigap-tooltip-left .sigap-tooltip-arrow,
+.sigap-tooltip-red.sigap-tooltip-left .sigap-tooltip-arrow {
+  border-color: transparent transparent transparent #ef4444;
+}
+.sigap-tooltip-danger.sigap-tooltip-right .sigap-tooltip-arrow,
+.sigap-tooltip-red.sigap-tooltip-right .sigap-tooltip-arrow {
+  border-color: transparent #b91c1c transparent transparent;
+}
+
+/* 5. Warning / Amber (Suspend, Restart, Caution) */
+.sigap-tooltip-warning,
+.sigap-tooltip-amber,
+.sigap-tooltip-yellow {
+  background: #d97706;
+  background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 25px -4px rgba(217, 119, 6, 0.4), 0 4px 10px -2px rgba(217, 119, 6, 0.2);
+}
+.sigap-tooltip-warning.sigap-tooltip-top .sigap-tooltip-arrow,
+.sigap-tooltip-amber.sigap-tooltip-top .sigap-tooltip-arrow,
+.sigap-tooltip-yellow.sigap-tooltip-top .sigap-tooltip-arrow {
+  border-color: #f59e0b transparent transparent transparent;
+}
+.sigap-tooltip-warning.sigap-tooltip-bottom .sigap-tooltip-arrow,
+.sigap-tooltip-amber.sigap-tooltip-bottom .sigap-tooltip-arrow,
+.sigap-tooltip-yellow.sigap-tooltip-bottom .sigap-tooltip-arrow {
+  border-color: transparent transparent #b45309 transparent;
+}
+.sigap-tooltip-warning.sigap-tooltip-left .sigap-tooltip-arrow,
+.sigap-tooltip-amber.sigap-tooltip-left .sigap-tooltip-arrow,
+.sigap-tooltip-yellow.sigap-tooltip-left .sigap-tooltip-arrow {
+  border-color: transparent transparent transparent #f59e0b;
+}
+.sigap-tooltip-warning.sigap-tooltip-right .sigap-tooltip-arrow,
+.sigap-tooltip-amber.sigap-tooltip-right .sigap-tooltip-arrow,
+.sigap-tooltip-yellow.sigap-tooltip-right .sigap-tooltip-arrow {
+  border-color: transparent #b45309 transparent transparent;
+}
+
+/* 6. Success / Green (Approve, Resolve, Active) */
+.sigap-tooltip-success,
+.sigap-tooltip-green {
+  background: #059669;
+  background: linear-gradient(135deg, #047857 0%, #10b981 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 25px -4px rgba(5, 150, 105, 0.4), 0 4px 10px -2px rgba(5, 150, 105, 0.2);
+}
+.sigap-tooltip-success.sigap-tooltip-top .sigap-tooltip-arrow,
+.sigap-tooltip-green.sigap-tooltip-top .sigap-tooltip-arrow {
+  border-color: #10b981 transparent transparent transparent;
+}
+.sigap-tooltip-success.sigap-tooltip-bottom .sigap-tooltip-arrow,
+.sigap-tooltip-green.sigap-tooltip-bottom .sigap-tooltip-arrow {
+  border-color: transparent transparent #047857 transparent;
+}
+.sigap-tooltip-success.sigap-tooltip-left .sigap-tooltip-arrow,
+.sigap-tooltip-green.sigap-tooltip-left .sigap-tooltip-arrow {
+  border-color: transparent transparent transparent #10b981;
+}
+.sigap-tooltip-success.sigap-tooltip-right .sigap-tooltip-arrow,
+.sigap-tooltip-green.sigap-tooltip-right .sigap-tooltip-arrow {
+  border-color: transparent #047857 transparent transparent;
+}

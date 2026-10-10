@@ -1,6 +1,7 @@
 import React from 'react';
 import EmptyState from '@/Components/EmptyState';
 import Pagination from '@/Components/Pagination';
+import Tooltip from '@/Components/Tooltip';
 
 interface UserItem {
     id: string;
@@ -129,14 +130,20 @@ export default function UserTable({ users, onEdit, onDelete, onToggleStatus }: U
                                     {/* Status Toggle */}
                                     <td className="py-3.5 px-3 text-center">
                                         <div className="d-inline-flex align-items-center gap-2">
-                                            <label className="status-toggle-switch mb-0" title={user.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={user.is_active}
-                                                    onChange={() => onToggleStatus(user)}
-                                                />
-                                                <span className="status-slider"></span>
-                                            </label>
+                                            <Tooltip
+                                                title={user.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                                                description={user.is_active ? 'Pengguna tidak dapat login' : 'Izinkan akses masuk'}
+                                                variant={user.is_active ? 'amber' : 'teal'}
+                                            >
+                                                <label className="status-toggle-switch mb-0">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={user.is_active}
+                                                        onChange={() => onToggleStatus(user)}
+                                                    />
+                                                    <span className="status-slider"></span>
+                                                </label>
+                                            </Tooltip>
                                             <span 
                                                 className="fw-semibold" 
                                                 style={{ 
@@ -152,20 +159,31 @@ export default function UserTable({ users, onEdit, onDelete, onToggleStatus }: U
                                     {/* Actions */}
                                     <td className="py-3.5 px-4 text-end">
                                         <div className="d-inline-flex align-items-center gap-1.5">
-                                            <button
-                                                onClick={() => onEdit(user)}
-                                                className="action-btn-custom edit"
-                                                title="Edit Pengguna"
+                                            <Tooltip 
+                                                title="Edit Pengguna" 
+                                                description="Ubah data & perizinan peran"
+                                                variant="blue"
                                             >
-                                                <i className="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button
-                                                onClick={() => onDelete(user)}
-                                                className="action-btn-custom delete"
-                                                title="Hapus Pengguna"
+                                                <button
+                                                    onClick={() => onEdit(user)}
+                                                    className="action-btn-custom edit"
+                                                >
+                                                    <i className="bi bi-pencil-square"></i>
+                                                </button>
+                                            </Tooltip>
+
+                                            <Tooltip 
+                                                title="Hapus Pengguna" 
+                                                description="Hapus akun secara permanen"
+                                                variant="danger"
                                             >
-                                                <i className="bi bi-trash3"></i>
-                                            </button>
+                                                <button
+                                                    onClick={() => onDelete(user)}
+                                                    className="action-btn-custom delete"
+                                                >
+                                                    <i className="bi bi-trash3"></i>
+                                                </button>
+                                            </Tooltip>
                                         </div>
                                     </td>
                                 </tr>

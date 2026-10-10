@@ -1,0 +1,91 @@
+/* ===== Reusable Standalone Pagination Component Styling ===== */
+
+.sigap-pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.6rem;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  border-top: 1px solid var(--line, rgba(15, 42, 63, 0.08));
+  background: transparent;
+  width: 100%;
+}
+
+.sigap-pagination-info {
+  font-size: 0.82rem;
+  color: var(--ink-faint, #64748b);
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+
+.sigap-pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Page Button Styling */
+.pg-btn {
+  min-width: 36px !important;
+  height: 36px !important;
+  padding: 0 0.55rem !important;
+  border-radius: 11px !important;
+  border: 1.5px solid rgba(15, 42, 63, 0.12) !important;
+  background: #ffffff !important;
+  color: var(--ink-soft, #475569) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer;
+  line-height: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+  user-select: none;
+}
+
+.pg-btn:hover:not(.active):not(:disabled) {
+  background: rgba(14, 165, 163, 0.08) !important;
+  color: var(--teal-1, #0ea5a3) !important;
+  border-color: rgba(14, 165, 163, 0.35) !important;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px rgba(14, 165, 163, 0.12);
+}
+
+.pg-btn.active {
+  background: #0ea5a3 !important;
+  background: linear-gradient(135deg, #0ea5a3 0%, #0284c7 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(14, 165, 163, 0.38) !important;
+  transform: translateY(-1px);
+}
+
+.pg-btn:disabled,
+.pg-btn.disabled,
+.pg-btn[disabled] {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  background: rgba(241, 245, 249, 0.6) !important;
+  border-color: rgba(15, 42, 63, 0.08) !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Ellipsis Separator */
+.pg-btn-ellipsis {
+  min-width: 28px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.95rem;
+  user-select: none;
+}

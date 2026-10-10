@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import React from 'react';
+import '../../css/pagination.css';
 
 export interface PaginationLink {
     url: string | null;
@@ -17,13 +18,21 @@ export interface PaginationMeta {
     per_page?: number;
 }
 
-interface PaginationProps {
+export interface PaginationProps {
     links?: PaginationLink[];
     meta?: PaginationMeta;
     itemLabel?: string;
+    className?: string;
+    onPageChange?: (page: number) => void;
 }
 
-export default function Pagination({ links, meta, itemLabel = 'entri' }: PaginationProps) {
+export default function Pagination({
+    links,
+    meta,
+    itemLabel = 'entri',
+    className = '',
+    onPageChange
+}: PaginationProps) {
     // If neither meta nor links provided, return null
     if (!meta && (!links || links.length === 0)) return null;
 
@@ -90,28 +99,47 @@ export default function Pagination({ links, meta, itemLabel = 'entri' }: Paginat
         return '#';
     };
 
+    const handleCleanUrl = () => {
+        if (typeof window !== 'undefined') {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    };
+
     const pageNumbers = getPageNumbers();
 
     return (
-        <div className="pagination-footer d-flex flex-wrap justify-content-between align-items-center gap-3 pt-3 mt-3" style={{ borderTop: '1px solid var(--line)' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--ink-faint)', fontWeight: 500 }}>
+        <div className={`sigap-pagination-container ${className}`}>
+            <span className="sigap-pagination-info">
                 {total > 0
                     ? `Menampilkan ${from}–${to} dari ${total} ${itemLabel}`
                     : `Menampilkan data`}
             </span>
 
-            <div className="d-flex align-items-center gap-1">
+            <div className="sigap-pagination-controls">
                 {/* Previous Button */}
                 {currentPage > 1 ? (
-                    <Link
-                        href={getPageUrl(currentPage - 1)}
-                        className="pg-btn"
-                        preserveScroll
-                        preserveState
-                        title="Halaman Sebelumnya"
-                    >
-                        <i className="bi bi-chevron-left"></i>
-                    </Link>
+                    onPageChange ? (
+                        <button
+                            type="button"
+                            onClick={() => onPageChange(currentPage - 1)}
+                            className="pg-btn"
+                            title="Halaman Sebelumnya"
+                        >
+                            <i className="bi bi-chevron-left"></i>
+                        </button>
+                    ) : (
+                        <Link
+                            href={getPageUrl(currentPage - 1)}
+                            className="pg-btn"
+                            preserveScroll
+                            preserveState
+                            onSuccess={handleCleanUrl}
+                            onFinish={handleCleanUrl}
+                            title="Halaman Sebelumnya"
+                        >
+                            <i className="bi bi-chevron-left"></i>
+                        </Link>
+                    )
                 ) : (
                     <button className="pg-btn opacity-50" disabled style={{ cursor: 'not-allowed' }}>
                         <i className="bi bi-chevron-left"></i>
@@ -134,6 +162,19 @@ export default function Pagination({ links, meta, itemLabel = 'entri' }: Paginat
                     const pageNum = page as number;
                     const isActive = pageNum === currentPage;
 
+                    if (onPageChange) {
+                        return (
+                            <button
+                                key={`page-${pageNum}`}
+                                type="button"
+                                onClick={() => onPageChange(pageNum)}
+                                className={`pg-btn ${isActive ? 'active' : ''}`}
+                            >
+                                {pageNum}
+                            </button>
+                        );
+                    }
+
                     return (
                         <Link
                             key={`page-${pageNum}`}
@@ -141,6 +182,8 @@ export default function Pagination({ links, meta, itemLabel = 'entri' }: Paginat
                             className={`pg-btn ${isActive ? 'active' : ''}`}
                             preserveScroll
                             preserveState
+                            onSuccess={handleCleanUrl}
+                            onFinish={handleCleanUrl}
                         >
                             {pageNum}
                         </Link>
@@ -149,15 +192,28 @@ export default function Pagination({ links, meta, itemLabel = 'entri' }: Paginat
 
                 {/* Next Button */}
                 {currentPage < lastPage ? (
-                    <Link
-                        href={getPageUrl(currentPage + 1)}
-                        className="pg-btn"
-                        preserveScroll
-                        preserveState
-                        title="Halaman Selanjutnya"
-                    >
-                        <i className="bi bi-chevron-right"></i>
-                    </Link>
+                    onPageChange ? (
+                        <button
+                            type="button"
+                            onClick={() => onPageChange(currentPage + 1)}
+                            className="pg-btn"
+                            title="Halaman Selanjutnya"
+                        >
+                            <i className="bi bi-chevron-right"></i>
+                        </button>
+                    ) : (
+                        <Link
+                            href={getPageUrl(currentPage + 1)}
+                            className="pg-btn"
+                            preserveScroll
+                            preserveState
+                            onSuccess={handleCleanUrl}
+                            onFinish={handleCleanUrl}
+                            title="Halaman Selanjutnya"
+                        >
+                            <i className="bi bi-chevron-right"></i>
+                        </Link>
+                    )
                 ) : (
                     <button className="pg-btn opacity-50" disabled style={{ cursor: 'not-allowed' }}>
                         <i className="bi bi-chevron-right"></i>
@@ -167,5 +223,3 @@ export default function Pagination({ links, meta, itemLabel = 'entri' }: Paginat
         </div>
     );
 }
-
-

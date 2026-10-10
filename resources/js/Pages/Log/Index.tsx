@@ -8,6 +8,7 @@ import '../../../css/detection.css';
 import EmptyState from '@/Components/EmptyState';
 import Pagination from '@/Components/Pagination';
 import PopupLoader from '@/Components/PopupLoader';
+import Tooltip from '@/Components/Tooltip';
 
 interface LogProps extends PageProps {
     logs: { data: any[]; links: any[]; meta: any };
@@ -278,9 +279,21 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                                 <div className="log-right">
                                     {getStatusBadge(log.status)}
                                     <div className="log-actions">
-                                        <button onClick={() => handleUpdateStatus(log.id, 'blocked')} className="mini-action" data-tooltip="Blokir"><i className="bi bi-slash-circle"></i></button>
-                                        <button onClick={() => handleUpdateStatus(log.id, 'false_positive')} className="mini-action" data-tooltip="Bukan spam"><i className="bi bi-flag"></i></button>
-                                        <button onClick={() => { setSelectedLog(log); setShowModal(true); }} className="mini-action" data-tooltip="Lihat detail"><i className="bi bi-eye"></i></button>
+                                        <Tooltip title="Blokir Konten" description="Blokir otomatis konten berbahaya" variant="danger">
+                                            <button onClick={() => handleUpdateStatus(log.id, 'blocked')} className="mini-action">
+                                                <i className="bi bi-slash-circle"></i>
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip title="Bukan Spam" description="Tandai aman (False positive)" variant="teal">
+                                            <button onClick={() => handleUpdateStatus(log.id, 'false_positive')} className="mini-action">
+                                                <i className="bi bi-flag"></i>
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip title="Lihat Detail" description="Inspeksi detail dan konteks" variant="blue">
+                                            <button onClick={() => { setSelectedLog(log); setShowModal(true); }} className="mini-action">
+                                                <i className="bi bi-eye"></i>
+                                            </button>
+                                        </Tooltip>
                                     </div>
                                 </div>
                             </div>

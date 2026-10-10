@@ -6,6 +6,7 @@ import Topbar from './Partials/Topbar';
 import Footer from './Partials/Footer';
 import DynamicToast from '@/Components/DynamicToast';
 import '../../css/global.css';
+import '../../css/tooltip.css';
 import '../global.js';
 
 export default function Authenticated({

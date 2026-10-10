@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Repositories\Interfaces\DetectionLogRepositoryInterface;
-use Illuminate\Pagination\LengthAwarePaginator;
+use App\Services\Interfaces\DetectionLogServiceInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class DetectionLogService
+class DetectionLogService implements DetectionLogServiceInterface
 {
     protected DetectionLogRepositoryInterface $detectionLogRepository;
 
@@ -14,13 +15,23 @@ class DetectionLogService
         $this->detectionLogRepository = $detectionLogRepository;
     }
 
-    public function getPaginatedLogs(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    public function getPaginatedLogs(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         return $this->detectionLogRepository->getPaginated($filters, $perPage);
     }
 
-    public function updateStatus(string $id, string $status): bool
+    public function getStats(array $filters = []): array
+    {
+        return $this->detectionLogRepository->getStats($filters);
+    }
+
+    public function updateStatus(string|int $id, string $status): bool
     {
         return $this->detectionLogRepository->updateStatus($id, $status);
+    }
+
+    public function markAllReviewed(): int
+    {
+        return $this->detectionLogRepository->markAllReviewed();
     }
 }

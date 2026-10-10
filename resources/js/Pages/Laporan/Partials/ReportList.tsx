@@ -176,15 +176,13 @@ export default function ReportList({
             </div>
 
             {/* Pagination */}
-            {sites.meta && sites.meta.last_page > 1 && (
-                <div className="pt-3" style={{ borderTop: '1px solid var(--line)' }}>
-                    <Pagination 
-                        meta={sites.meta} 
-                        itemLabel="situs" 
-                        onPageChange={onPageChange}
-                    />
-                </div>
-            )}
+            <div className="pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                <Pagination 
+                    meta={sites.meta} 
+                    itemLabel="situs" 
+                    onPageChange={onPageChange}
+                />
+            </div>
         </div>
     );
 }

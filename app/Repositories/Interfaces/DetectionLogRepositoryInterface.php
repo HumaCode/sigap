@@ -6,6 +6,11 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface DetectionLogRepositoryInterface
 {
-    public function getPaginated(array $filters = [], int $perPage = 10): LengthAwarePaginator;
-    public function updateStatus(string $id, string $status): bool;
+    public function getPaginated(array $filters = [], int $perPage = 20): LengthAwarePaginator;
+
+    public function getStats(array $filters = []): array;
+
+    public function updateStatus(string|int $id, string $status): bool;
+
+    public function markAllReviewed(): int;
 }

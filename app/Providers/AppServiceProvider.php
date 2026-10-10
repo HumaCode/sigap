@@ -24,11 +24,14 @@ use App\Models\DetectionLog;
 use App\Models\Site;
 use App\Policies\SitePolicy;
 use App\Policies\UptimeReportPolicy;
+use App\Policies\DetectionLogPolicy;
 use App\Observers\DetectionLogObserver;
 use Illuminate\Support\Facades\Gate;
 
 use App\Services\Interfaces\UptimeReportServiceInterface;
 use App\Services\UptimeReportService;
+use App\Services\Interfaces\DetectionLogServiceInterface;
+use App\Services\DetectionLogService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -44,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(KeywordRepositoryInterface::class, KeywordRepository::class);
         $this->app->bind(SiteSecurityRepositoryInterface::class, SiteSecurityRepository::class);
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
+        $this->app->bind(DetectionLogServiceInterface::class, DetectionLogService::class);
         $this->app->bind(UptimeReportServiceInterface::class, UptimeReportService::class);
     }
 
@@ -55,10 +59,16 @@ class AppServiceProvider extends ServiceProvider
         Vite::prefetch(concurrency: 3);
         DetectionLog::observe(DetectionLogObserver::class);
         Gate::policy(Site::class, SitePolicy::class);
+        Gate::policy(DetectionLog::class, DetectionLogPolicy::class);
 
         // Uptime Report Authorization Gates
         Gate::define('view-uptime-reports', [UptimeReportPolicy::class, 'viewAny']);
         Gate::define('export-uptime-reports', [UptimeReportPolicy::class, 'export']);
         Gate::define('view-uptime-audit-detail', [UptimeReportPolicy::class, 'viewAuditDetail']);
+
+        // Detection Logs Authorization Gates
+        Gate::define('view-detection-logs', [DetectionLogPolicy::class, 'viewAny']);
+        Gate::define('manage-detection-status', [DetectionLogPolicy::class, 'updateStatus']);
+        Gate::define('mark-all-detection-logs', [DetectionLogPolicy::class, 'markAllReviewed']);
     }
 }

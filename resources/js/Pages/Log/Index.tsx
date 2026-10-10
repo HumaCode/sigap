@@ -1,31 +1,68 @@
+import React, { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
-import { useState } from 'react';
-import { toast } from '@/Components/DynamicToast';
-import DetailLogModal from './Partials/DetailLogModal';
 import '../../../css/detection.css';
-import EmptyState from '@/Components/EmptyState';
-import Pagination from '@/Components/Pagination';
+
+import PageHeader from '@/Components/PageHeader';
 import PopupLoader from '@/Components/PopupLoader';
-import Tooltip from '@/Components/Tooltip';
+import { toast } from '@/Components/DynamicToast';
+
+import DetectionStatCards from './Partials/DetectionStatCards';
+import DetectionToolbar from './Partials/DetectionToolbar';
+import DetectionLogList, { DetectionLogItem } from './Partials/DetectionLogList';
+import DetailLogModal from './Partials/DetailLogModal';
 
 interface LogProps extends PageProps {
-    logs: { data: any[]; links: any[]; meta: any };
-    filters: { search?: string; filter?: string; status?: string };
-    stats: any;
+    logs: {
+        data: DetectionLogItem[];
+        links: any[];
+        meta: any;
+    };
+    filters: {
+        search?: string;
+        filter?: string;
+        status?: string;
+    };
+    stats: {
+        total_scanned: number;
+        total_detections: number;
+        drugs_category: number;
+        gambling_category: number;
+    };
+    can?: {
+        manageStatus?: boolean;
+        markAllReviewed?: boolean;
+    };
 }
 
-export default function DetectionLog({ logs, filters, stats }: LogProps) {
+export default function DetectionLog({ 
+    logs, 
+    filters, 
+    stats,
+    can = { manageStatus: true, markAllReviewed: true }
+}: LogProps) {
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const [activeFilter, setActiveFilter] = useState(filters?.filter || 'all');
     const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
-    const [selectedLog, setSelectedLog] = useState<any | null>(null);
+    const [selectedLog, setSelectedLog] = useState<DetectionLogItem | null>(null);
     const [showModal, setShowModal] = useState(false);
 
     // Popup loader modal state
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Always keep URL address bar clean (mask query parameters like ?filter=judol&search=&status=all)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.search) {
+            window.history.replaceState(
+                {}, 
+                document.title, 
+                window.location.pathname
+            );
+        }
+    }, [logs, filters]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -37,13 +74,18 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
             preserveScroll: true,
             onFinish: () => {
                 const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, 450 - elapsed);
+                const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
                     setIsFiltering(false);
+                    setIsRefreshing(false);
+                    if (typeof window !== 'undefined') {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
                 }, remaining);
             },
             onError: () => {
                 setIsFiltering(false);
+                setIsRefreshing(false);
             }
         });
     };
@@ -55,7 +97,12 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
         }
     };
 
-    const handleFilter = (filter: string) => {
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        executeFilter(route('logs.detection'), { search: '', filter: activeFilter, status: statusFilter }, 'Memuat semua data log deteksi...');
+    };
+
+    const handleFilterChange = (filter: string) => {
         setActiveFilter(filter);
         const categoryMap: Record<string, string> = {
             'all': 'semua deteksi keamanan',
@@ -63,7 +110,7 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
             'obat': 'deteksi Obat Terlarang',
             'hidden': 'deteksi Teks Tersembunyi',
             'newpage': 'deteksi Halaman Baru',
-            'uptime': 'log Uptime HTTP'
+            'uptime': 'log Uptime HTTP',
         };
         const msg = `Memuat ${categoryMap[filter] || filter}...`;
         executeFilter(route('logs.detection'), { search: searchTerm, filter, status: statusFilter }, msg);
@@ -77,7 +124,7 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
             'new': 'status Baru (Ditemukan)',
             'reviewed': 'status Ditinjau',
             'blocked': 'status Diblokir',
-            'false_positive': 'status Bukan Spam'
+            'false_positive': 'status Bukan Spam',
         };
         executeFilter(route('logs.detection'), { search: searchTerm, filter: activeFilter, status: val }, `Memuat ${statusTextMap[val] || val}...`);
     };
@@ -98,6 +145,9 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
                 if (status === 'blocked') actionText = 'diblokir';
                 if (status === 'false_positive') actionText = 'ditandai sebagai bukan spam';
                 toast.success('Berhasil', `Status log deteksi berhasil ${actionText}.`);
+                if (typeof window !== 'undefined') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
             },
             onError: () => {
                 setIsFiltering(false);
@@ -110,9 +160,8 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
         executeFilter(route('logs.detection.mark-all-reviewed'), {}, 'Menandai semua log baru sebagai telah ditinjau...');
     };
 
-    const [isRefreshing, setIsRefreshing] = useState(false);
-
     const handleRefresh = () => {
+        setIsRefreshing(true);
         executeFilter(route('logs.detection'), { search: searchTerm, filter: activeFilter, status: statusFilter }, 'Menyegarkan data log deteksi...');
     };
 
@@ -155,166 +204,62 @@ export default function DetectionLog({ logs, filters, stats }: LogProps) {
         <AuthenticatedLayout>
             <Head title="Log Deteksi Konten" />
 
-            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                <div className="d-flex align-items-center gap-3">
-                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.4rem', flexShrink: 0, boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
-                        <i className="bi bi-bug-fill"></i>
-                    </div>
-                    <div>
-                        <h2 className="page-title m-0" style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)' }}>Log Deteksi Konten</h2>
-                        <p className="page-sub m-0 mt-1" style={{ fontSize: '0.85rem', color: 'var(--ink-soft)' }}>Riwayat mesin pemindai mendeteksi sisipan kata kunci, tautan, dan konten mencurigakan.</p>
-                    </div>
-                </div>
-                
-                <div className="d-flex align-items-center gap-2">
-                    <button 
-                        className="btn shadow-sm d-flex align-items-center gap-1.5"
-                        style={{ border: '1px solid var(--line)', color: 'var(--ink)', background: 'rgba(255,255,255,0.9)', borderRadius: '12px', padding: '0.5rem 0.95rem', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'Poppins, sans-serif' }}
-                        onClick={handleMarkAllReviewed}
-                        title="Tandai Semua Baru Sebagai Ditinjau"
-                    >
-                        <i className="bi bi-check2-all text-teal" style={{ color: 'var(--teal-1)', fontSize: '1rem' }}></i>
-                        <span>Tandai Semua Ditinjau</span>
-                    </button>
+            {/* Standard Reusable Page Header */}
+            <PageHeader 
+                title="Log Deteksi Konten"
+                subtitle="Riwayat mesin pemindai mendeteksi sisipan kata kunci, tautan, dan konten mencurigakan."
+                icon="bi-bug-fill"
+            />
 
-                    <button 
-                        className="btn btn-light shadow-sm d-flex align-items-center justify-content-center"
-                        style={{ border: '1px solid var(--line)', color: 'var(--ink-soft)', background: 'rgba(255,255,255,0.8)', borderRadius: '12px', width: '42px', height: '42px' }}
-                        title="Segarkan Data"
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                    >
-                        <i className={`bi bi-arrow-clockwise ${isRefreshing ? 'spinner-border spinner-border-sm' : ''}`} style={isRefreshing ? { borderWidth: '2px' } : {}}></i>
-                    </button>
-                </div>
-            </div>
+            {/* 4 Metric Stat Cards */}
+            <DetectionStatCards stats={stats} />
 
-            {/* Stat pills */}
-            <div className="row g-3 mb-4">
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--teal-1),var(--teal-2))'}}><i className="bi bi-search"></i></div>
-                        <div><div className="val">{stats.total_scanned.toLocaleString()}</div><div className="lbl">Halaman dipindai hari ini</div></div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--coral),#ff9d6e)'}}><i className="bi bi-bug"></i></div>
-                        <div><div className="val">{stats.total_detections}</div><div className="lbl">Deteksi ditemukan</div></div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--violet),#a78bfa)'}}><i className="bi bi-capsule"></i></div>
-                        <div><div className="val">{stats.drugs_category}</div><div className="lbl">Kategori obat terlarang</div></div>
-                    </div>
-                </div>
-                <div className="col-6 col-md-3">
-                    <div className="glass-card stat-pill">
-                        <div className="icon-circle" style={{background: 'linear-gradient(135deg,var(--sun),#ff9d6e)'}}><i className="bi bi-dice-5"></i></div>
-                        <div><div className="val">{stats.gambling_category}</div><div className="lbl">Kategori judi online</div></div>
-                    </div>
-                </div>
-            </div>
-
+            {/* Main Glass Card container */}
             <div className="glass-card">
-                {/* Live feed header */}
-                <div className="live-feed-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div className="d-flex align-items-center gap-2">
-                        <span className="scan-pulse"></span>
-                        <span style={{fontSize: '0.85rem', fontWeight: 500, color: 'var(--ink-soft)'}}>Pemindaian berjalan otomatis — entri baru akan muncul di atas secara real-time</span>
-                    </div>
-                    <div className="d-flex align-items-center gap-2 me-2">
-                        <span style={{ fontSize: '0.8rem', color: 'var(--ink-soft)', fontWeight: 500 }}>Status:</span>
-                        <select 
-                            value={statusFilter} 
-                            onChange={handleStatusFilterChange}
-                            style={{ borderRadius: '10px', border: '1px solid var(--line)', padding: '0.25rem 0.65rem', fontSize: '0.8rem', background: '#fff', color: 'var(--ink)', fontWeight: 500 }}
-                        >
-                            <option value="all">Semua Status</option>
-                            <option value="new">Baru (Ditemukan)</option>
-                            <option value="reviewed">Telah Ditinjau</option>
-                            <option value="blocked">Diblokir</option>
-                            <option value="false_positive">Bukan Spam</option>
-                        </select>
-                    </div>
-                </div>
+                {/* Live Feed Header Bar & Filter Toolbar */}
+                <DetectionToolbar 
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    onSearchKeyDown={handleSearch}
+                    onClearSearch={handleClearSearch}
+                    activeFilter={activeFilter}
+                    onFilterChange={handleFilterChange}
+                    statusFilter={statusFilter}
+                    onStatusFilterChange={handleStatusFilterChange}
+                    onMarkAllReviewed={handleMarkAllReviewed}
+                    canMarkAllReviewed={can?.markAllReviewed}
+                    onRefresh={handleRefresh}
+                    isRefreshing={isRefreshing}
+                />
 
-                {/* Toolbar */}
-                <div className="toolbar">
-                    <div className="search-local">
-                        <i className="bi bi-search"></i>
-                        <input 
-                            type="text" 
-                            placeholder="Cari kata kunci, URL, situs..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            onKeyDown={handleSearch}
-                        />
-                    </div>
-                    <div className={`filter-chip ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilter('all')}>Semua Deteksi</div>
-                    <div className={`filter-chip ${activeFilter === 'judol' ? 'active' : ''}`} onClick={() => handleFilter('judol')}><span style={{width:'6px',height:'6px',borderRadius:'50%',background:'#c8332a',display:'inline-block'}}></span>Judi Online</div>
-                    <div className={`filter-chip ${activeFilter === 'obat' ? 'active' : ''}`} onClick={() => handleFilter('obat')}><span style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--violet)',display:'inline-block'}}></span>Obat Terlarang</div>
-                    <div className={`filter-chip ${activeFilter === 'hidden' ? 'active' : ''}`} onClick={() => handleFilter('hidden')}><span style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--blue-1)',display:'inline-block'}}></span>Teks Tersembunyi</div>
-                    <div className={`filter-chip ${activeFilter === 'newpage' ? 'active' : ''}`} onClick={() => handleFilter('newpage')}><span style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--teal-1)',display:'inline-block'}}></span>Halaman Baru</div>
-                    <div className={`filter-chip ${activeFilter === 'uptime' ? 'active' : ''}`} onClick={() => handleFilter('uptime')}><span style={{width:'6px',height:'6px',borderRadius:'50%',background:'#0284c7',display:'inline-block'}}></span>Log Uptime HTTP</div>
-                </div>
-
-                {/* Log feed */}
-                <div>
-                    {logs.data.length > 0 ? logs.data.map(log => {
-                        const iconData = getIconInfo(log.category);
-                        return (
-                            <div key={log.id} className="log-item">
-                                <div className="log-icon" style={{background: iconData.bg}}><i className={`bi ${iconData.icon}`}></i></div>
-                                <div className="flex-grow-1 min-w-0">
-                                    <p className="log-title">{log.title} {getCatBadge(log.category)}</p>
-                                    <div className="log-context" dangerouslySetInnerHTML={{ __html: log.context }}></div>
-                                    <div className="log-meta">
-                                        <span><i className="bi bi-globe2"></i> {log.site?.name || 'Situs Tidak Diketahui'}</span>
-                                        <span><i className="bi bi-link-45deg"></i> {log.url_path || '/'}</span>
-                                        <span><i className="bi bi-clock"></i> {log.created_at}</span>
-                                    </div>
-                                </div>
-                                <div className="log-right">
-                                    {getStatusBadge(log.status)}
-                                    <div className="log-actions">
-                                        <Tooltip title="Blokir Konten" description="Blokir otomatis konten berbahaya" variant="danger">
-                                            <button onClick={() => handleUpdateStatus(log.id, 'blocked')} className="mini-action">
-                                                <i className="bi bi-slash-circle"></i>
-                                            </button>
-                                        </Tooltip>
-                                        <Tooltip title="Bukan Spam" description="Tandai aman (False positive)" variant="teal">
-                                            <button onClick={() => handleUpdateStatus(log.id, 'false_positive')} className="mini-action">
-                                                <i className="bi bi-flag"></i>
-                                            </button>
-                                        </Tooltip>
-                                        <Tooltip title="Lihat Detail" description="Inspeksi detail dan konteks" variant="blue">
-                                            <button onClick={() => { setSelectedLog(log); setShowModal(true); }} className="mini-action">
-                                                <i className="bi bi-eye"></i>
-                                            </button>
-                                        </Tooltip>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    }) : (
-                        <EmptyState 
-                            icon="bi-receipt-cutoff"
-                            title="Belum Ada Log Deteksi"
-                            description="Riwayat log pemindaian konten masih kosong. Seluruh aktivitas deteksi sisipan konten mencurigakan akan muncul di sini."
-                        />
-                    )}
-                </div>
-
-                {/* Pagination */}
-                <Pagination meta={logs.meta} links={logs.links} />
+                {/* Feed Items List & Pagination */}
+                <DetectionLogList 
+                    logs={logs}
+                    canManageStatus={can?.manageStatus}
+                    onSelectLog={(log) => {
+                        setSelectedLog(log);
+                        setShowModal(true);
+                    }}
+                    onUpdateStatus={handleUpdateStatus}
+                    onPageChange={(page) => {
+                        executeFilter(
+                            route('logs.detection'),
+                            { search: searchTerm, filter: activeFilter, status: statusFilter, page },
+                            `Memuat halaman ${page}...`
+                        );
+                    }}
+                    getCatBadge={getCatBadge}
+                    getIconInfo={getIconInfo}
+                    getStatusBadge={getStatusBadge}
+                />
             </div>
 
+            {/* Detail Log Modal with BaseModal */}
             <DetailLogModal
                 showModal={showModal}
                 setShowModal={setShowModal}
                 selectedLog={selectedLog}
+                canManageStatus={can?.manageStatus}
                 handleUpdateStatus={handleUpdateStatus}
                 getCatBadge={getCatBadge}
                 getIconInfo={getIconInfo}

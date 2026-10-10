@@ -112,7 +112,7 @@ export default function Pagination({
             <span className="sigap-pagination-info">
                 {total > 0
                     ? `Menampilkan ${from}–${to} dari ${total} ${itemLabel}`
-                    : `Menampilkan data`}
+                    : `Menampilkan 0 dari 0 ${itemLabel}`}
             </span>
 
             <div className="sigap-pagination-controls">

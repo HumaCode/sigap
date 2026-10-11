@@ -172,4 +172,21 @@ class AiRemediationController extends Controller
             'conversations' => $conversations,
         ]);
     }
+
+    /**
+     * Get available models from 9router settings.
+     */
+    public function models(): JsonResponse
+    {
+        Gate::authorize('view-incidents');
+
+        $savedModels = \App\Models\Setting::getValue('ninerouter_available_models');
+        $defaultModel = \App\Models\Setting::getValue('ninerouter_model') ?: env('NINEROUTER_MODEL', 'combo-maut');
+
+        return response()->json([
+            'success'       => true,
+            'default_model' => $defaultModel,
+            'models'        => is_array($savedModels) ? $savedModels : [],
+        ]);
+    }
 }

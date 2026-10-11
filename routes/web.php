@@ -48,6 +48,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
     Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('/notifications/clear-all', [\App\Http\Controllers\NotificationController::class, 'clearAll'])->name('notifications.clear-all');
+
+    Route::get('/incidents/ai-models', [\App\Http\Controllers\AiRemediationController::class, 'models'])->name('incidents.ai-models');
+
+    Route::get('/settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [\App\Http\Controllers\SettingController::class, 'update'])->name('settings.update');
+    Route::post('/settings/ninerouter/test', [\App\Http\Controllers\SettingController::class, 'testNineRouter'])->name('settings.ninerouter.test');
 });
 
 require __DIR__.'/auth.php';

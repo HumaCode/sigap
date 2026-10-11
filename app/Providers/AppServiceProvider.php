@@ -55,6 +55,10 @@ use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\NotificationRepository;
 use App\Services\Interfaces\NotificationServiceInterface;
 use App\Services\NotificationService;
+use App\Repositories\Interfaces\SettingRepositoryInterface;
+use App\Repositories\SettingRepository;
+use App\Services\Interfaces\SettingServiceInterface;
+use App\Services\SettingService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -78,6 +82,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserServiceInterface::class, UserService::class);
         $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
         $this->app->bind(NotificationServiceInterface::class, NotificationService::class);
+        $this->app->bind(SettingRepositoryInterface::class, SettingRepository::class);
+        $this->app->bind(SettingServiceInterface::class, SettingService::class);
     }
 
     /**

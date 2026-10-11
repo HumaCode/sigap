@@ -102,7 +102,7 @@ class MenuSeeder extends Seeder
             ],
             [
                 'name' => 'Pengaturan',
-                'url' => 'profile.edit',
+                'url' => 'settings.index',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-gear',
                 'orders' => 10,

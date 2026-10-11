@@ -13,9 +13,9 @@ class AiRemediationService
 
     public function __construct()
     {
-        $this->endpoint = env('NINEROUTER_API_ENDPOINT', 'https://9router.humacode.my.id/v1');
-        $this->apiKey = env('NINEROUTER_API_KEY', '');
-        $this->model = env('NINEROUTER_MODEL', 'combo-maut');
+        $this->endpoint = \App\Models\Setting::getValue('ninerouter_endpoint') ?: env('NINEROUTER_API_ENDPOINT', 'https://9router.humacode.my.id/v1');
+        $this->apiKey = \App\Models\Setting::getValue('ninerouter_api_key') ?: env('NINEROUTER_API_KEY', '');
+        $this->model = \App\Models\Setting::getValue('ninerouter_model') ?: env('NINEROUTER_MODEL', 'combo-maut');
     }
 
     public function generateRemediationPlan(array $incidentData, ?string $extraContext = null, ?string $selectedModel = null, array $conversationHistory = []): array

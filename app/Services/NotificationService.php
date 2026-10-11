@@ -24,8 +24,8 @@ class NotificationService implements NotificationServiceInterface
         Log::warning("[SIGAP-SECURITY-ALERT] " . $message);
 
         // 2. Try to dispatch Telegram Alert
-        $botToken = env('TELEGRAM_BOT_TOKEN');
-        $chatId = env('TELEGRAM_CHAT_ID');
+        $botToken = \App\Models\Setting::getValue('telegram_bot_token') ?: env('TELEGRAM_BOT_TOKEN');
+        $chatId = \App\Models\Setting::getValue('telegram_chat_id') ?: env('TELEGRAM_CHAT_ID');
 
         if ($botToken && $chatId) {
             try {

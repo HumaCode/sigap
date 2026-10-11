@@ -126,11 +126,32 @@ export default function AiRemediationModal({ show, onClose, incident, onResolved
         };
     }, [isLoadingHistory]);
 
-    const availableModels = [
+    const defaultFallbackModels = [
         { id: 'ag/gemini-3.8-flash', label: 'Gemini 3.8 Flash (Paling Cepat & Responsif)', desc: 'Kecepatan tinggi, analisis kontekstual & responsif' },
         { id: 'ag/claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (Expert Cyber Security)', desc: 'Penalaran analisis insiden mendalam & presisi' },
         { id: 'ag/gemini-3-flash', label: 'Gemini 3 Flash (Ringan & Cepat)', desc: 'Eksekusi instruksi perbaikan instan' }
     ];
+
+    const [availableModels, setAvailableModels] = useState(defaultFallbackModels);
+
+    useEffect(() => {
+        if (!show) return;
+        axios.get('/incidents/ai-models')
+            .then(res => {
+                if (res.data?.success && Array.isArray(res.data.models) && res.data.models.length > 0) {
+                    const mapped = res.data.models.map((m: any) => ({
+                        id: m.id,
+                        label: m.id + (m.owned_by ? ` (${m.owned_by})` : ''),
+                        desc: m.has_reasoning ? 'Model penalaran cerdas & reasoning' : (m.has_vision ? 'Mendukung analisis visual & teks' : 'Model komputasi 9Router Gateway')
+                    }));
+                    setAvailableModels(mapped);
+                    if (res.data.default_model) {
+                        setSelectedModel(res.data.default_model);
+                    }
+                }
+            })
+            .catch(() => {});
+    }, [show]);
 
     useEffect(() => {
         if (!show || !incident?.id) {

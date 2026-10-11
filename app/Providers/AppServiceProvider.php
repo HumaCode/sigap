@@ -49,6 +49,13 @@ use App\Services\IncidentService;
 use App\Services\Interfaces\UserServiceInterface;
 use App\Services\UserService;
 
+use Illuminate\Notifications\DatabaseNotification;
+use App\Policies\NotificationPolicy;
+use App\Repositories\Interfaces\NotificationRepositoryInterface;
+use App\Repositories\NotificationRepository;
+use App\Services\Interfaces\NotificationServiceInterface;
+use App\Services\NotificationService;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -69,6 +76,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SiteSecurityServiceInterface::class, SiteSecurityService::class);
         $this->app->bind(IncidentServiceInterface::class, IncidentService::class);
         $this->app->bind(UserServiceInterface::class, UserService::class);
+        $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
+        $this->app->bind(NotificationServiceInterface::class, NotificationService::class);
     }
 
     /**
@@ -84,6 +93,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(SiteSecurity::class, SiteSecurityPolicy::class);
         Gate::policy(Incident::class, IncidentPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
 
         // Incident Authorization Gates
         Gate::define('view-incidents', [IncidentPolicy::class, 'viewAny']);
@@ -112,5 +122,8 @@ class AppServiceProvider extends ServiceProvider
         // User Management Authorization Gates
         Gate::define('view-users', [UserPolicy::class, 'viewAny']);
         Gate::define('manage-users', [UserPolicy::class, 'create']);
+
+        // Notification Authorization Gates
+        Gate::define('view-notifications', [NotificationPolicy::class, 'viewAny']);
     }
 }

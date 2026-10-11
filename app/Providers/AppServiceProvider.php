@@ -23,10 +23,12 @@ use App\Repositories\UserRepository;
 use App\Models\DetectionLog;
 use App\Models\Site;
 use App\Models\Keyword;
+use App\Models\SiteSecurity;
 use App\Policies\SitePolicy;
 use App\Policies\UptimeReportPolicy;
 use App\Policies\DetectionLogPolicy;
 use App\Policies\KeywordPolicy;
+use App\Policies\SiteSecurityPolicy;
 use App\Observers\DetectionLogObserver;
 use Illuminate\Support\Facades\Gate;
 
@@ -36,6 +38,8 @@ use App\Services\Interfaces\DetectionLogServiceInterface;
 use App\Services\DetectionLogService;
 use App\Services\Interfaces\KeywordServiceInterface;
 use App\Services\KeywordService;
+use App\Services\Interfaces\SiteSecurityServiceInterface;
+use App\Services\SiteSecurityService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DetectionLogServiceInterface::class, DetectionLogService::class);
         $this->app->bind(UptimeReportServiceInterface::class, UptimeReportService::class);
         $this->app->bind(KeywordServiceInterface::class, KeywordService::class);
+        $this->app->bind(SiteSecurityServiceInterface::class, SiteSecurityService::class);
     }
 
     /**
@@ -66,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Site::class, SitePolicy::class);
         Gate::policy(DetectionLog::class, DetectionLogPolicy::class);
         Gate::policy(Keyword::class, KeywordPolicy::class);
+        Gate::policy(SiteSecurity::class, SiteSecurityPolicy::class);
 
         // Uptime Report Authorization Gates
         Gate::define('view-uptime-reports', [UptimeReportPolicy::class, 'viewAny']);
@@ -82,5 +88,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('create-keywords', [KeywordPolicy::class, 'create']);
         Gate::define('edit-keywords', [KeywordPolicy::class, 'update']);
         Gate::define('delete-keywords', [KeywordPolicy::class, 'delete']);
+
+        // Site Security Authorization Gates
+        Gate::define('view-site-security', [SiteSecurityPolicy::class, 'viewAny']);
+        Gate::define('scan-site-security', [SiteSecurityPolicy::class, 'scan']);
     }
 }

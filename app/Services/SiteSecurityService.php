@@ -3,17 +3,19 @@
 namespace App\Services;
 
 use App\Repositories\Interfaces\SiteSecurityRepositoryInterface;
+use App\Services\Interfaces\SiteSecurityServiceInterface;
 use App\Models\Site;
 use App\Models\Keyword;
 use App\Models\DetectionLog;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
-class SiteSecurityService
+class SiteSecurityService implements SiteSecurityServiceInterface
 {
     public function __construct(protected SiteSecurityRepositoryInterface $siteSecurityRepository) {}
 
-    public function getPaginatedSecurities(array $filters, int $perPage = 10)
+    public function getPaginatedSecurities(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         // Auto-seed security findings for existing sites if none exist
         $this->ensureSecuritiesExist();
@@ -21,14 +23,23 @@ class SiteSecurityService
         return $this->siteSecurityRepository->getPaginatedSecurities($filters, $perPage);
     }
 
-    public function ensureSecuritiesExist()
+    public function getStats(): array
     {
-        $sites = Site::all();
-        foreach ($sites as $site) {
-            // Check if site security report exists
-            $exists = \App\Models\SiteSecurity::where('site_id', $site->id)->exists();
-            if (!$exists) {
-                $this->scanSite($site->id);
+        return $this->siteSecurityRepository->getStats();
+    }
+
+    public function ensureSecuritiesExist(): void
+    {
+        // Fast count check to avoid N+1 queries on every page request
+        $totalSites = Site::count();
+        $totalSecurities = \App\Models\SiteSecurity::count();
+
+        if ($totalSecurities < $totalSites) {
+            $existingSiteIds = \App\Models\SiteSecurity::pluck('site_id')->all();
+            $missingSiteIds = Site::whereNotIn('id', $existingSiteIds)->pluck('id');
+
+            foreach ($missingSiteIds as $siteId) {
+                $this->scanSite($siteId);
             }
         }
     }
@@ -64,7 +75,7 @@ class SiteSecurityService
         ];
     }
 
-    public function scanSite(string $siteId)
+    public function scanSite(string|int $siteId)
     {
         $site = Site::findOrFail($siteId);
         

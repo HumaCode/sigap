@@ -2,81 +2,56 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SiteSecurityIndexRequest;
 use App\Http\Requests\SiteSecurityRequest;
 use App\Http\Resources\PaginateResource;
 use App\Http\Resources\SiteSecurityResource;
-use App\Services\SiteSecurityService;
-use App\Models\SiteSecurity;
-use Illuminate\Http\Request;
+use App\Services\Interfaces\SiteSecurityServiceInterface;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class SiteSecurityController extends Controller
 {
-    public function __construct(protected SiteSecurityService $siteSecurityService) {}
+    public function __construct(protected SiteSecurityServiceInterface $siteSecurityService) {}
 
-    public function index(Request $request)
+    /**
+     * Display a paginated listing of site security audits and system stats.
+     */
+    public function index(SiteSecurityIndexRequest $request): Response
     {
-        $filters = $request->only(['search', 'filter']);
-        
-        $securities = $this->siteSecurityService->getPaginatedSecurities(
-            $filters,
-            $request->input('per_page', 10)
-        );
+        $filters = $request->filters();
+        $perPage = (int) $request->input('per_page', 10);
 
-        $allSecurities = SiteSecurity::all();
-        $totalSec = $allSecurities->count();
-        
-        $exposedEnv = 0;
-        $missingCsp = 0;
-        $sslWarning = 0;
-
-        foreach ($allSecurities as $sec) {
-            if (is_array($sec->checks)) {
-                foreach ($sec->checks as $c) {
-                    $key = $c['key'] ?? '';
-                    $status = $c['status'] ?? '';
-                    $desc = $c['desc'] ?? '';
-                    if (str_contains($desc, 'Pemindaian gagal')) {
-                        continue;
-                    }
-                    if ($key === 'env' && $status === 'fail') {
-                        $exposedEnv++;
-                    }
-                    if ($key === 'csp' && $status === 'warn') {
-                        $missingCsp++;
-                    }
-                    if ($key === 'ssl' && ($status === 'warn' || $status === 'fail')) {
-                        $sslWarning++;
-                    }
-                }
-            }
-        }
-
-        $stats = [
-            'avg_score' => $totalSec > 0 ? round($allSecurities->avg('score')) : 0,
-            'env_exposed' => $exposedEnv,
-            'csp_missing' => $missingCsp,
-            'ssl_warning' => $sslWarning,
-        ];
-
+        $securities = $this->siteSecurityService->getPaginatedSecurities($filters, $perPage);
+        $stats = $this->siteSecurityService->getStats();
+        $user = $request->user();
 
         return Inertia::render('KeamananSitus/Index', [
             'securities' => new PaginateResource($securities, SiteSecurityResource::class),
             'filters' => (object) $filters,
             'stats' => (object) $stats,
+            'can' => [
+                'scan' => $user?->can('scan-site-security') ?? false,
+            ],
         ]);
     }
 
-    public function scan(SiteSecurityRequest $request)
+    /**
+     * Trigger security scan for a specific site or all registered sites.
+     */
+    public function scan(SiteSecurityRequest $request): RedirectResponse
     {
+        Gate::authorize('scan-site-security');
         $validated = $request->validated();
 
         if (!empty($validated['site_id'])) {
             $this->siteSecurityService->scanSite($validated['site_id']);
-            return redirect()->back()->with('success', 'Situs berhasil dipindai.');
+            return redirect()->back()->with('success', 'Situs berhasil dipindai ulang.');
         }
 
         $this->siteSecurityService->scanAllSites();
-        return redirect()->back()->with('success', 'Semua situs berhasil dipindai ulang.');
+        return redirect()->back()->with('success', 'Seluruh situs berhasil dipindai ulang.');
     }
 }

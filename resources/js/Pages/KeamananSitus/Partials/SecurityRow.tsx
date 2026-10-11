@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { toast } from '@/Components/DynamicToast';
+import Tooltip from '@/Components/Tooltip';
 
 interface CheckItem {
     key: string;
@@ -142,21 +143,27 @@ export default function SecurityRow({ security, onOpenAi }: SecurityRowProps) {
 
                 {getIssueBadge()}
 
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleScan();
-                    }}
-                    disabled={isScanning}
-                    className="btn-scan-single ms-2"
-                    title="Pindai Ulang Situs Ini"
+                <Tooltip 
+                    title="Pindai Ulang Situs Ini" 
+                    description={`Audit keamanan header HTTP dan SSL untuk ${security.site.name}`}
+                    variant="teal"
                 >
-                    {isScanning ? (
-                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '14px', height: '14px', borderWidth: '1.5px', color: 'var(--teal-1)' }}></span>
-                    ) : (
-                        <i className="bi bi-arrow-repeat"></i>
-                    )}
-                </button>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleScan();
+                        }}
+                        disabled={isScanning}
+                        className="btn-scan-single ms-2"
+                    >
+                        {isScanning ? (
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '14px', height: '14px', borderWidth: '1.5px', color: 'var(--teal-1)' }}></span>
+                        ) : (
+                            <i className="bi bi-arrow-repeat"></i>
+                        )}
+                    </button>
+                </Tooltip>
                 
                 <i className="bi bi-chevron-down chevron-toggle ms-2"></i>
             </div>

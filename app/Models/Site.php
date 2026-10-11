@@ -30,4 +30,9 @@ class Site extends Model
     {
         return $this->hasMany(DetectionLog::class);
     }
+
+    public function security()
+    {
+        return $this->hasOne(SiteSecurity::class);
+    }
 }

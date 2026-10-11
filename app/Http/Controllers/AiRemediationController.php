@@ -36,11 +36,28 @@ class AiRemediationController extends Controller
         if (is_numeric($incidentId)) {
             $incident = Incident::with(['site', 'conversations'])->find($incidentId);
         } else {
-            // Virtual/Security audit item, find by title or create temporary DB incident for conversation persistence
-            $incident = Incident::with(['site', 'conversations'])->where('title', $request->title ?: 'Security Audit AuditItem')->first();
-            
+            // Virtual/Security audit item, find by payload first
+            $incident = Incident::with(['site', 'conversations'])
+                ->where('payload', $incidentId)
+                ->first();
+
+            // Next fallback: find by title and site
             if (!$incident) {
-                $site = \App\Models\Site::where('name', $request->site_name)->first();
+                $site = !empty($request->site_name) ? \App\Models\Site::where('name', $request->site_name)->first() : null;
+                $query = Incident::with(['site', 'conversations'])->where('title', $request->title ?: 'Security Audit AuditItem');
+                if ($site) {
+                    $query->where('site_id', $site->id);
+                }
+                $incident = $query->first();
+
+                if ($incident) {
+                    $incident->update(['payload' => $incidentId]);
+                }
+            }
+            
+            // If still not found, create new incident record
+            if (!$incident) {
+                $site = !empty($request->site_name) ? \App\Models\Site::where('name', $request->site_name)->first() : null;
                 $incident = Incident::create([
                     'site_id'     => $site ? $site->id : 1,
                     'title'       => $request->title ?: 'Audit Keamanan Situs',
@@ -48,6 +65,7 @@ class AiRemediationController extends Controller
                     'severity'    => $request->severity ?: 'high',
                     'status'      => 'investigating',
                     'description' => $request->description ?: 'Temuan audit keamanan situs.',
+                    'payload'     => $incidentId,
                     'detected_at' => now(),
                 ]);
             }
@@ -72,38 +90,80 @@ class AiRemediationController extends Controller
 
         // Save conversation record into DB if incident exists
         if ($incident && !empty($result['content'])) {
-            $userMsg = $request->extra_context ?: ($incident->conversations()->count() === 0 ? 'Minta rekomendasi perbaikan awal' : 'Pertanyaan lanjutan');
+            $userMsg = $request->extra_context ?: ($incident->conversations->count() === 0 ? 'Minta rekomendasi perbaikan awal' : 'Pertanyaan lanjutan');
             
             \App\Models\IncidentConversation::create([
                 'incident_id'  => $incident->id,
                 'user_message' => $userMsg,
                 'ai_response'  => $result['content'],
-                'model_used'   => $result['model'] ?? ($request->model ?: 'combo-maut'),
+                'model_used'   => $result['model'] ?? ($request->model ?: 'ag/gemini-3.8-flash'),
                 'provider'     => $result['provider'] ?? '9router AI Engine',
             ]);
         }
 
         // Return updated conversation list
-        $conversations = $incident ? $incident->conversations()->get() : [];
+        $conversations = $incident ? $incident->conversations()->orderBy('created_at', 'asc')->get() : [];
 
         return response()->json([
             'success'       => true,
             'data'          => $result,
+            'incident_id'   => $incident ? $incident->id : $incidentId,
             'conversations' => $conversations,
         ]);
     }
 
-    public function history($incident): JsonResponse
+    public function history(Request $request, $incident): JsonResponse
     {
+        $inc = null;
+        $withRelations = ['conversations' => fn($q) => $q->orderBy('created_at', 'asc')];
+
         if (is_numeric($incident)) {
-            $inc = Incident::find($incident);
-            $conversations = $inc ? $inc->conversations()->get() : [];
+            $inc = Incident::with($withRelations)->find($incident);
         } else {
-            $conversations = [];
+            // First lookup by payload key
+            $inc = Incident::with($withRelations)->where('payload', $incident)->first();
+
+            // Next lookup by title & optional site
+            if (!$inc) {
+                $title = $request->query('title');
+                $siteName = $request->query('site_name');
+
+                if ($title) {
+                    $query = Incident::with($withRelations)->where('title', $title);
+                    if ($siteName) {
+                        $site = \App\Models\Site::where('name', $siteName)->first();
+                        if ($site) {
+                            $query->where('site_id', $site->id);
+                        }
+                    }
+                    $inc = $query->first();
+                }
+            }
+
+            // Fallback for sec-{site_id}-{check_key}: match by site_id & security_audit type
+            if (!$inc && str_starts_with($incident, 'sec-')) {
+                $parts = explode('-', $incident, 3);
+                if (count($parts) >= 2) {
+                    $siteId = $parts[1];
+                    $query = Incident::with($withRelations)->where('site_id', $siteId)->where('type', 'security_audit');
+                    if ($request->query('title')) {
+                        $query->where('title', $request->query('title'));
+                    }
+                    $inc = $query->first();
+                }
+            }
+
+            // Cache payload association if previously null
+            if ($inc && empty($inc->payload)) {
+                $inc->update(['payload' => $incident]);
+            }
         }
+
+        $conversations = $inc && $inc->relationLoaded('conversations') ? $inc->conversations : ($inc ? $inc->conversations()->orderBy('created_at', 'asc')->get() : []);
 
         return response()->json([
             'success'       => true,
+            'incident_id'   => $inc ? $inc->id : null,
             'conversations' => $conversations,
         ]);
     }

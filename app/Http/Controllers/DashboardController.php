@@ -44,7 +44,7 @@ class DashboardController extends Controller
         $detectionsCount = DetectionLog::count();
 
         // 6. Security posture stats
-        $securities = SiteSecurity::all();
+        $securities = SiteSecurity::select(['id', 'issues_count', 'checks'])->get();
         $totalSec = $securities->count();
         $cleanSec = $securities->where('issues_count', 0)->count();
         $pctSecure = $totalSec > 0 ? round(($cleanSec / $totalSec) * 100) : 0;

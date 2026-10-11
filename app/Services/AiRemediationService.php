@@ -27,14 +27,25 @@ class AiRemediationService
         $description = $incidentData['description'] ?? '';
         $type = $incidentData['type'] ?? 'security';
 
-        $modelToUse = !empty($selectedModel) ? $selectedModel : $this->model;
+        $primaryModel = !empty($selectedModel) ? $selectedModel : $this->model;
+        if ($primaryModel === 'combo-maut') {
+            $primaryModel = 'ag/gemini-3.8-flash';
+        }
+
+        $candidateModels = array_values(array_unique(array_filter([
+            $primaryModel,
+            'ag/gemini-3.8-flash',
+            'ag/claude-sonnet-4-6',
+            'ag/gemini-3-flash',
+        ])));
 
         $systemInstruction = "Anda adalah Pakar Cyber Security Senior & Lead Incident Responder resmi untuk SIGAP Web Pemkot Pekalongan.\n\n" .
-            "ATURAN KETAT & BATASAN KEAMANAN PERCAKAPAN (STRICT GUARDRAILS):\n" .
-            "1. BATASAN TOPIK INSIDEN: Anda HANYA boleh menjawab pertanyaan yang BERHUBUNGAN LANGSUNG dengan penanganan insiden ini: \"{$title}\" (Situs: {$siteName}, Tipe: {$type}, Urgensi: " . strtoupper($severity) . ").\n" .
-            "2. PENOLAKAN PROMPT DILUAR TOPIK: Jika pengguna meminta hal-hal yang tidak relevan dengan keamanan/insiden ini (seperti resep makanan, lelucon, tips umum, kuis, atau pertanyaan umum di luar penanganan insiden), ANDA WAJIB MENOLAK secara sopan dengan balasan: \"Mohon maaf, saya adalah Asisten Khusus Penanganan Insiden Keamanan SIGAP. Saya hanya dapat membantu analisis & langkah mitigasi celah keamanan untuk insiden '{$title}' pada situs {$siteName}.\"\n" .
-            "3. EMBARGO INFRASTRUKTUR INTERNAL: JANGAN PERNAH membocorkan atau memberikan struktur direktori asli server/proyek SIGAP ini secara detail jika diminta. Berikan hanya panduan umum pemeriksaan file berisiko tanpa mengekspos rahasia sistem.\n" .
-            "4. FOKUS SOLUSI: Setiap jawaban Anda harus selalu terfokus pada investigasi, penambalan celah (patching), pembersihan script jahat, dan pemulihan situs terkait insiden ini.";
+            "ATURAN KETAT & PERILAKU ASISTEN:\n" .
+            "1. FLEKSIBEL & EMPATIS: Bersikaplah adaptif dan ramah terhadap pengguna. Jika pengguna bingung, bimbing mereka langkah demi langkah secara sederhana (bahasa awam/mudah dipahami).\n" .
+            "2. BATASAN TOPIK INSIDEN: Tetap fokus pada penanganan insiden: \"{$title}\" (Situs: {$siteName}, Tipe: {$type}, Urgensi: " . strtoupper($severity) . ").\n" .
+            "3. PENOLAKAN HAL DI LUAR TOPIK: Jika pengguna meminta hal-hal yang benar-benar tidak relevan (seperti resep makanan, lelucon, atau materi luar konteks), tolak dengan sopan dan arahkan kembali ke pemulihan situs.\n" .
+            "4. EMBARGO INFRASTRUKTUR INTERNAL: Jangan membocorkan struktur direktori server internal SIGAP. Berikan panduan umum perbaikan tanpa mengekspos rahasia sistem.\n" .
+            "5. SOLUSI PRAKTIS: Berikan instruksi teknis yang jelas, perintah shell bash/Nginx/Apache bila relevan, dan checklist verifikasi.";
 
         $systemMessage = [
             'role' => 'system',
@@ -72,80 +83,82 @@ class AiRemediationService
         } else if (count($conversationHistory) === 0) {
             $messages[] = [
                 'role' => 'user',
-                'content' => "Berikan analisis diagnosa, langkah penanganan bertahap, dan perintah shell perbaikan."
+                'content' => "Berikan analisis diagnosa, langkah penanganan bertahap, dan perintah perbaikan untuk insiden ini."
             ];
         }
 
         if (!empty($this->apiKey) && !str_contains($this->apiKey, '•••')) {
-            try {
-                $response = Http::withoutVerifying()
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                    'Content-Type'  => 'application/json',
-                ])
-                ->timeout(30)
-                ->post(rtrim($this->endpoint, '/') . '/chat/completions', [
-                    'model' => $modelToUse,
-                    'messages' => $messages,
-                    'temperature' => 0.4,
-                    'max_tokens' => 1500,
-                ]);
+            foreach ($candidateModels as $candidateModel) {
+                try {
+                    $response = Http::withoutVerifying()
+                        ->withHeaders([
+                            'Authorization' => 'Bearer ' . $this->apiKey,
+                            'Content-Type'  => 'application/json',
+                        ])
+                        ->timeout(15)
+                        ->post(rtrim($this->endpoint, '/') . '/chat/completions', [
+                            'model'       => $candidateModel,
+                            'messages'    => $messages,
+                            'temperature' => 0.5,
+                            'max_tokens'  => 1800,
+                        ]);
 
-                if ($response->successful()) {
-                    $rawBody = trim($response->body());
-                    $aiContent = null;
+                    if ($response->successful()) {
+                        $rawBody = trim($response->body());
+                        $aiContent = null;
 
-                    // 1. Try standard JSON response format
-                    $json = json_decode($rawBody, true);
-                    if (is_array($json) && isset($json['choices'][0]['message']['content'])) {
-                        $aiContent = $json['choices'][0]['message']['content'];
-                    }
+                        // 1. Standard JSON response
+                        $json = json_decode($rawBody, true);
+                        if (is_array($json) && isset($json['choices'][0]['message']['content'])) {
+                            $aiContent = $json['choices'][0]['message']['content'];
+                        }
 
-                    // 2. If response is SSE stream (data: {"choices": [...]}), assemble delta contents
-                    if (empty($aiContent) && str_contains($rawBody, 'data:')) {
-                        $streamContent = '';
-                        $lines = explode("\n", $rawBody);
-                        foreach ($lines as $line) {
-                            $line = trim($line);
-                            if (str_starts_with($line, 'data:')) {
-                                $dataStr = trim(substr($line, 5));
-                                if ($dataStr === '[DONE]') continue;
-                                $chunk = json_decode($dataStr, true);
-                                if (is_array($chunk)) {
-                                    $delta = $chunk['choices'][0]['delta']['content'] ?? null;
-                                    if ($delta) {
-                                        $streamContent .= $delta;
+                        // 2. SSE stream chunks (data: {...})
+                        if (empty($aiContent) && str_contains($rawBody, 'data:')) {
+                            $streamContent = '';
+                            $lines = explode("\n", $rawBody);
+                            foreach ($lines as $line) {
+                                $line = trim($line);
+                                if (str_starts_with($line, 'data:')) {
+                                    $dataStr = trim(substr($line, 5));
+                                    if ($dataStr === '[DONE]') continue;
+                                    $chunk = json_decode($dataStr, true);
+                                    if (is_array($chunk)) {
+                                        $delta = $chunk['choices'][0]['delta']['content'] ?? null;
+                                        if ($delta) {
+                                            $streamContent .= $delta;
+                                        }
                                     }
                                 }
                             }
+                            if (!empty($streamContent)) {
+                                $aiContent = $streamContent;
+                            }
                         }
-                        if (!empty($streamContent)) {
-                            $aiContent = $streamContent;
+
+                        if (!empty($aiContent)) {
+                            return [
+                                'status'   => 'success',
+                                'provider' => '9router AI Engine',
+                                'model'    => $candidateModel,
+                                'content'  => $aiContent,
+                            ];
                         }
                     }
 
-                    if (!empty($aiContent)) {
-                        return [
-                            'status' => 'success',
-                            'provider' => '9router AI Engine',
-                            'model' => $modelToUse,
-                            'content' => $aiContent,
-                        ];
-                    }
+                    Log::warning("AI call to {$candidateModel} failed: " . substr($response->body(), 0, 200));
+                } catch (\Throwable $e) {
+                    Log::warning("AI candidate {$candidateModel} exception: " . $e->getMessage());
                 }
-                
-                Log::warning('9router AI API Call Unsuccessful: ' . $response->body());
-            } catch (\Exception $e) {
-                Log::error('9router AI Exception: ' . $e->getMessage());
             }
         }
 
-        // High Quality Expert Fallback Template if API key is pending or offline
+        // High Quality Expert Fallback Template only if internet is fully offline
         return [
-            'status' => 'fallback',
+            'status'   => 'fallback',
             'provider' => 'SIGAP Security Knowledge Base',
-            'model' => 'Expert Rulebook',
-            'content' => $this->generateFallbackPlan($title, $siteName, $siteUrl, $severity, $type, $extraContext),
+            'model'    => 'Expert Rulebook',
+            'content'  => $this->generateFallbackPlan($title, $siteName, $siteUrl, $severity, $type, $extraContext),
         ];
     }
 

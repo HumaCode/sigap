@@ -23,10 +23,10 @@ class UpdateKeywordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'keyword' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'string', 'in:judol,obat,hidden,newpage,phising,lainnya'],
-            'type' => ['required', 'string', 'in:plain,regex'],
-            'is_active' => ['boolean'],
+            'keyword' => ['sometimes', 'required', 'string', 'max:255'],
+            'category' => ['sometimes', 'required', 'string', 'in:judol,obat,hidden,newpage,phising,lainnya'],
+            'type' => ['sometimes', 'required', 'string', 'in:plain,regex'],
+            'is_active' => ['sometimes', 'boolean'],
             'description' => ['nullable', 'string', 'max:500'],
         ];
     }

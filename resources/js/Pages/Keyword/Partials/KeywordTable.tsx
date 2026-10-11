@@ -99,14 +99,22 @@ export default function KeywordTable({
                                         description={kw.is_active ? "Klik untuk menonaktifkan pemindaian" : "Klik untuk mengaktifkan pemindaian"}
                                         variant={kw.is_active ? "teal" : "dark"}
                                     >
-                                        <input 
-                                            type="checkbox" 
-                                            className="form-check-input toggle-active" 
-                                            checked={kw.is_active} 
-                                            onChange={() => onToggleStatus(kw)}
-                                            disabled={!canEdit}
-                                            style={{ cursor: canEdit ? 'pointer' : 'default' }}
-                                        />
+                                        <div 
+                                            style={{ display: 'inline-flex', alignItems: 'center', cursor: canEdit ? 'pointer' : 'default' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (canEdit) onToggleStatus(kw);
+                                            }}
+                                        >
+                                            <input 
+                                                type="checkbox" 
+                                                className="form-check-input toggle-active m-0" 
+                                                checked={kw.is_active} 
+                                                readOnly
+                                                disabled={!canEdit}
+                                                style={{ pointerEvents: 'none' }}
+                                            />
+                                        </div>
                                     </Tooltip>
                                 </td>
                                 <td>

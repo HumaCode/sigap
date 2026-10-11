@@ -14,6 +14,7 @@ import KeywordToolbar from './Partials/KeywordToolbar';
 import KeywordTable, { KeywordItem } from './Partials/KeywordTable';
 import KeywordModal from './Partials/KeywordModal';
 import DeleteKeywordModal from './Partials/DeleteKeywordModal';
+import ToggleKeywordModal from './Partials/ToggleKeywordModal';
 
 interface KeywordProps extends PageProps {
     keywords: {
@@ -53,6 +54,7 @@ export default function KeywordIndex({
     const [showModal, setShowModal] = useState(false);
     const [selectedKeyword, setSelectedKeyword] = useState<KeywordItem | null>(null);
     const [keywordToDelete, setKeywordToDelete] = useState<KeywordItem | null>(null);
+    const [keywordToToggle, setKeywordToToggle] = useState<KeywordItem | null>(null);
 
     // Popup loader modal state
     const [isFiltering, setIsFiltering] = useState(false);
@@ -133,20 +135,7 @@ export default function KeywordIndex({
     };
 
     const handleToggleStatus = (keyword: KeywordItem) => {
-        const nextStatus = !keyword.is_active;
-        router.patch(route('keywords.update', keyword.id), { ...keyword, is_active: nextStatus }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast.success(
-                    'Status Diperbarui', 
-                    `Kata kunci "${keyword.keyword}" berhasil di${nextStatus ? 'aktifkan' : 'nonaktifkan'}.`
-                );
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
-            },
-            onError: () => toast.error('Gagal', 'Terjadi kesalahan saat mengubah status.'),
-        });
+        setKeywordToToggle(keyword);
     };
 
     return (
@@ -207,6 +196,13 @@ export default function KeywordIndex({
                 show={!!keywordToDelete}
                 onClose={() => setKeywordToDelete(null)}
                 keyword={keywordToDelete}
+            />
+
+            {/* Status Toggle Confirmation Modal */}
+            <ToggleKeywordModal 
+                show={!!keywordToToggle}
+                onClose={() => setKeywordToToggle(null)}
+                keyword={keywordToToggle}
             />
 
             {/* Popup Loader Modal for Filters */}

@@ -14,6 +14,7 @@ export interface ConfirmModalProps {
     maxWidth?: string;
     confirmText?: string;
     cancelText?: string;
+    warningTitle?: string;
     warningPoints?: string[];
     onConfirm: () => void;
     onCancel: () => void;
@@ -32,6 +33,7 @@ export default function ConfirmModal({
     maxWidth,
     confirmText = 'Ya, Hapus Data',
     cancelText = 'Batal',
+    warningTitle,
     warningPoints,
     onConfirm,
     onCancel,
@@ -78,7 +80,12 @@ export default function ConfirmModal({
             btnShadow: '0 8px 22px -4px rgba(239, 68, 68, 0.45)',
             badgeBg: 'rgba(239, 68, 68, 0.09)',
             badgeColor: '#dc2626',
-            badgeText: 'Tindakan Kritis & Permanen'
+            badgeText: 'Tindakan Kritis & Permanen',
+            alertBg: 'rgba(239, 68, 68, 0.05)',
+            alertBorder: 'rgba(239, 68, 68, 0.16)',
+            alertColor: '#b91c1c',
+            alertIcon: 'bi bi-shield-exclamation',
+            defaultWarningTitle: 'Konsekuensi & dampak penghapusan:'
         },
         warning: {
             accentColor: '#f59e0b',
@@ -89,7 +96,12 @@ export default function ConfirmModal({
             btnShadow: '0 8px 22px -4px rgba(245, 158, 11, 0.45)',
             badgeBg: 'rgba(245, 158, 11, 0.09)',
             badgeColor: '#d97706',
-            badgeText: 'Peringatan Sistem'
+            badgeText: 'Peringatan Sistem',
+            alertBg: 'rgba(245, 158, 11, 0.06)',
+            alertBorder: 'rgba(245, 158, 11, 0.22)',
+            alertColor: '#b45309',
+            alertIcon: 'bi bi-exclamation-triangle-fill',
+            defaultWarningTitle: 'Informasi penonaktifan:'
         },
         primary: {
             accentColor: '#0ea5a3',
@@ -100,7 +112,12 @@ export default function ConfirmModal({
             btnShadow: '0 8px 22px -4px rgba(14, 165, 163, 0.45)',
             badgeBg: 'rgba(14, 165, 163, 0.09)',
             badgeColor: '#0ea5a3',
-            badgeText: 'Konfirmasi Aksi'
+            badgeText: 'Konfirmasi Aksi',
+            alertBg: 'rgba(14, 165, 163, 0.06)',
+            alertBorder: 'rgba(14, 165, 163, 0.2)',
+            alertColor: '#0f766e',
+            alertIcon: 'bi bi-info-circle-fill',
+            defaultWarningTitle: 'Informasi & dampak aktivasi:'
         }
     }[variant];
 
@@ -294,15 +311,15 @@ export default function ConfirmModal({
                             <div 
                                 className="p-3.5 mb-3 text-start rounded-4"
                                 style={{ 
-                                    background: 'rgba(239, 68, 68, 0.05)', 
-                                    border: '1px solid rgba(239, 68, 68, 0.16)',
+                                    background: variantStyles.alertBg, 
+                                    border: `1px solid ${variantStyles.alertBorder}`,
                                     fontSize: '0.82rem',
-                                    color: '#b91c1c'
+                                    color: variantStyles.alertColor
                                 }}
                             >
                                 <div className="fw-semibold mb-2 d-flex align-items-center gap-1.5" style={{ fontSize: '0.85rem' }}>
-                                    <i className="bi bi-shield-exclamation" style={{ fontSize: '1rem' }} />
-                                    <span>Konsekuensi & dampak penghapusan:</span>
+                                    <i className={variantStyles.alertIcon} style={{ fontSize: '1rem' }} />
+                                    <span>{warningTitle || variantStyles.defaultWarningTitle}</span>
                                 </div>
                                 <ul className="m-0 ps-3" style={{ lineHeight: '1.55' }}>
                                     {warningPoints.map((pt, i) => (

@@ -18,10 +18,15 @@ export default function DeleteUserModal({ show, onClose, user }: DeleteUserModal
         setIsDeleting(true);
         router.delete(route('users.destroy', user.id), {
             preserveScroll: true,
-            onSuccess: () => {
-                toast.success('Berhasil', `Akun pengguna "${user.name}" telah dihapus.`);
+            onSuccess: (page: any) => {
                 setIsDeleting(false);
                 onClose();
+                if (page?.props?.flash?.error) {
+                    return;
+                }
+                if (!page?.props?.flash?.success) {
+                    toast.success('Berhasil', `Akun pengguna "${user.name}" telah dihapus.`);
+                }
             },
             onError: (errs) => {
                 const firstErr = Object.values(errs)[0];

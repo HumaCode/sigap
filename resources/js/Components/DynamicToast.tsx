@@ -10,11 +10,22 @@ export interface ToastMessage {
 }
 
 type Listener = (toast: ToastMessage) => void;
-let listeners: Listener[] = [];
+const listeners = new Set<Listener>();
 let nextId = 0;
+let lastToastKey = '';
+let lastToastTime = 0;
 
 export const toast = {
     show: (type: ToastType, title: string, description?: string) => {
+        const key = `${type}:${title}:${description || ''}`;
+        const now = Date.now();
+        // Cegah toast ganda jika pesan identik dikirim dalam selang waktu < 1.5 detik
+        if (key === lastToastKey && now - lastToastTime < 1500) {
+            return;
+        }
+        lastToastKey = key;
+        lastToastTime = now;
+
         const message: ToastMessage = { id: nextId++, type, title, description };
         listeners.forEach(listener => listener(message));
     },
@@ -29,14 +40,20 @@ export default function DynamicToast() {
 
     useEffect(() => {
         const listener = (toastMessage: ToastMessage) => {
-            setToasts(prev => [...prev, toastMessage]);
+            setToasts(prev => {
+                // Cegah penambahan jika toast yang identik sedang tampil di layar
+                if (prev.some(t => t.type === toastMessage.type && t.title === toastMessage.title && t.description === toastMessage.description)) {
+                    return prev;
+                }
+                return [...prev, toastMessage];
+            });
             setTimeout(() => {
                 setToasts(prev => prev.filter(t => t.id !== toastMessage.id));
             }, 4000); // Hapus setelah 4 detik
         };
-        listeners.push(listener);
+        listeners.add(listener);
         return () => {
-            listeners = listeners.filter(l => l !== listener);
+            listeners.delete(listener);
         };
     }, []);
 

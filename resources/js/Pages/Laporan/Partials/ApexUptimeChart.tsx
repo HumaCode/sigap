@@ -100,7 +100,7 @@ export default function ApexUptimeChart({ avgUptime = 99.8 }: ApexUptimeChartPro
                 max: 100,
                 tickAmount: 5,
                 labels: {
-                    formatter: (val) => `${val.toFixed(1)}%`,
+                    formatter: (val: number) => `${val?.toFixed ? val.toFixed(1) : val}%`,
                     style: {
                         colors: '#7c93a3',
                         fontSize: '12px',
@@ -133,7 +133,7 @@ export default function ApexUptimeChart({ avgUptime = 99.8 }: ApexUptimeChartPro
                     format: 'HH:mm:ss',
                 },
                 y: {
-                    formatter: (val) => `${val.toFixed(2)}% Uptime`,
+                    formatter: (val: number) => `${val?.toFixed ? val.toFixed(2) : val}% Uptime`,
                 },
                 style: {
                     fontSize: '12px',

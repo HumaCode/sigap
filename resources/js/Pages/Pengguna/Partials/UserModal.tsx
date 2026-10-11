@@ -64,8 +64,13 @@ export default function UserModal({ show, onClose, user, roles }: UserModalProps
         if (isEdit) {
             patch(route('users.update', user.id), {
                 preserveScroll: true,
-                onSuccess: () => {
-                    toast.success('Berhasil', `Data pengguna "${data.name}" berhasil diperbarui.`);
+                onSuccess: (page: any) => {
+                    if (page?.props?.flash?.error) {
+                        return;
+                    }
+                    if (!page?.props?.flash?.success) {
+                        toast.success('Berhasil', `Data pengguna "${data.name}" berhasil diperbarui.`);
+                    }
                     onClose();
                 },
                 onError: (errs) => {
@@ -76,8 +81,13 @@ export default function UserModal({ show, onClose, user, roles }: UserModalProps
         } else {
             post(route('users.store'), {
                 preserveScroll: true,
-                onSuccess: () => {
-                    toast.success('Berhasil', `Pengguna baru "${data.name}" berhasil didaftarkan.`);
+                onSuccess: (page: any) => {
+                    if (page?.props?.flash?.error) {
+                        return;
+                    }
+                    if (!page?.props?.flash?.success) {
+                        toast.success('Berhasil', `Pengguna baru "${data.name}" berhasil didaftarkan.`);
+                    }
                     onClose();
                 },
                 onError: (errs) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
@@ -84,14 +84,23 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
         }
     }, [users, filters]);
 
-    // Flash notifications
+    // Flash notifications (cegah pemanggilan ganda dengan ref)
+    const lastFlashRef = useRef<string | null>(null);
     useEffect(() => {
-        if (pageProps.flash?.success) {
-            toast.success('Berhasil', pageProps.flash.success);
-        } else if (pageProps.flash?.error) {
-            toast.error('Peringatan', pageProps.flash.error);
+        const success = pageProps.flash?.success;
+        const error = pageProps.flash?.error;
+        const key = `${success || ''}#${error || ''}`;
+
+        if (key === '#') return;
+        if (lastFlashRef.current === key) return;
+        lastFlashRef.current = key;
+
+        if (success) {
+            toast.success('Berhasil', success);
+        } else if (error) {
+            toast.error('Peringatan', error);
         }
-    }, [pageProps.flash]);
+    }, [pageProps.flash?.success, pageProps.flash?.error]);
 
     const executeFilter = (params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -187,8 +196,12 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
                 if (typeof window !== 'undefined') {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
-                const successMsg = page?.props?.flash?.success || `Status akun "${user.name}" berhasil diubah.`;
-                toast.success('Berhasil', successMsg);
+                if (page?.props?.flash?.error) {
+                    return;
+                }
+                if (!page?.props?.flash?.success) {
+                    toast.success('Berhasil', `Status akun "${user.name}" berhasil diubah.`);
+                }
             },
             onFinish: () => {
                 setIsLoading(false);

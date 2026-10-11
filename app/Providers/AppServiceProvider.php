@@ -24,11 +24,13 @@ use App\Models\DetectionLog;
 use App\Models\Site;
 use App\Models\Keyword;
 use App\Models\SiteSecurity;
+use App\Models\Incident;
 use App\Policies\SitePolicy;
 use App\Policies\UptimeReportPolicy;
 use App\Policies\DetectionLogPolicy;
 use App\Policies\KeywordPolicy;
 use App\Policies\SiteSecurityPolicy;
+use App\Policies\IncidentPolicy;
 use App\Observers\DetectionLogObserver;
 use Illuminate\Support\Facades\Gate;
 
@@ -40,6 +42,8 @@ use App\Services\Interfaces\KeywordServiceInterface;
 use App\Services\KeywordService;
 use App\Services\Interfaces\SiteSecurityServiceInterface;
 use App\Services\SiteSecurityService;
+use App\Services\Interfaces\IncidentServiceInterface;
+use App\Services\IncidentService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -59,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UptimeReportServiceInterface::class, UptimeReportService::class);
         $this->app->bind(KeywordServiceInterface::class, KeywordService::class);
         $this->app->bind(SiteSecurityServiceInterface::class, SiteSecurityService::class);
+        $this->app->bind(IncidentServiceInterface::class, IncidentService::class);
     }
 
     /**
@@ -72,6 +77,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(DetectionLog::class, DetectionLogPolicy::class);
         Gate::policy(Keyword::class, KeywordPolicy::class);
         Gate::policy(SiteSecurity::class, SiteSecurityPolicy::class);
+        Gate::policy(Incident::class, IncidentPolicy::class);
+
+        // Incident Authorization Gates
+        Gate::define('view-incidents', [IncidentPolicy::class, 'viewAny']);
+        Gate::define('resolve-all-incidents', [IncidentPolicy::class, 'resolveAll']);
 
         // Uptime Report Authorization Gates
         Gate::define('view-uptime-reports', [UptimeReportPolicy::class, 'viewAny']);

@@ -543,8 +543,8 @@ class SiteSecurityService implements SiteSecurityServiceInterface
         }
 
         // --- PART A: Heuristic Regex Scan to Extract Suspicious Words dynamically ---
-        $judolRoots = ['slot', 'gacor', 'judi', 'casino', 'togel', 'maxwin', 'sbobet', 'poker', 'depo', 'betting', 'linkalternatif', 'apk-download'];
-        $obatRoots = ['tramadol', 'hexymer', 'aborsi', 'cytotec'];
+        $judolRoots = ['slot', 'gacor', 'judi', 'casino', 'togel', 'maxwin', 'sbobet', 'poker', 'depo', 'betting', 'linkalternatif', 'apk-download', 'zeus', 'pragmatic'];
+        $obatRoots  = ['tramadol', 'hexymer', 'aborsi', 'cytotec', 'misoprostol', 'gastrul', 'obataborsi', 'telatbulan', 'penggugur', 'trihexyphenidyl', 'trihex', 'kamagra'];
         
         $allRoots = array_merge($judolRoots, $obatRoots);
         
@@ -668,6 +668,29 @@ class SiteSecurityService implements SiteSecurityServiceInterface
             "Potongan Teks: \"{$snippet}\"\n" .
             "Tindakan: Segera periksa konten website dan hapus script/teks sisipan."
         );
+
+        // Auto-create incident on /incidents feed
+        try {
+            $existingIncident = \App\Models\Incident::where('site_id', $site->id)
+                ->where('title', 'like', '%' . $keyword . '%')
+                ->whereNotIn('status', ['resolved', 'false_positive'])
+                ->first();
+
+            if (!$existingIncident) {
+                \App\Models\Incident::create([
+                    'site_id'     => $site->id,
+                    'title'       => "Susupan Konten ({$categoryName}): \"{$keyword}\"",
+                    'type'        => 'keyword_found',
+                    'severity'    => 'critical',
+                    'status'      => 'open',
+                    'description' => "Terdeteksi susupan kata kunci '{$keyword}' ({$categoryName}) pada konten website.",
+                    'payload'     => 'kw-' . $site->id . '-' . md5($keyword),
+                    'detected_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $incEx) {
+            // Silently continue if incident table is temporarily locked
+        }
     }
 
     /**

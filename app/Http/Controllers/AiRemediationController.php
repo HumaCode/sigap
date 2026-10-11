@@ -6,6 +6,7 @@ use App\Services\AiRemediationService;
 use App\Models\Incident;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 
 class AiRemediationController extends Controller
 {
@@ -18,6 +19,8 @@ class AiRemediationController extends Controller
 
     public function generate(Request $request): JsonResponse
     {
+        Gate::authorize('view-incidents');
+
         $request->validate([
             'incident_id'   => 'required',
             'extra_context' => 'nullable|string|max:1000',
@@ -114,6 +117,8 @@ class AiRemediationController extends Controller
 
     public function history(Request $request, $incident): JsonResponse
     {
+        Gate::authorize('view-incidents');
+
         $inc = null;
         $withRelations = ['conversations' => fn($q) => $q->orderBy('created_at', 'asc')];
 

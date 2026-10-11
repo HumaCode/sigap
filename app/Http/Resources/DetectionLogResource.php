@@ -19,7 +19,7 @@ class DetectionLogResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'category' => $this->category,
-            'context' => $this->context,
+            'context' => strip_tags((string) $this->context, '<mark><b><strong><i><em><br>'),
             'url_path' => $this->url_path,
             'status' => $this->status,
             'source' => $this->source,

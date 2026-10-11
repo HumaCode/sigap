@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
 import '../../../css/users.css';
@@ -50,9 +50,13 @@ interface UsersProps extends PageProps {
         user: number;
     };
     roles: RoleOption[];
+    can?: {
+        create?: boolean;
+    };
 }
 
-export default function Index({ users, filters, stats, roles }: UsersProps) {
+export default function Index({ users, filters, stats, roles, can }: UsersProps) {
+    const pageProps = usePage<PageProps>().props as any;
     const safeFilters = filters || {};
     const [searchTerm, setSearchTerm] = useState(safeFilters.search || '');
     const [selectedRole, setSelectedRole] = useState(safeFilters.role || 'all');
@@ -69,6 +73,26 @@ export default function Index({ users, filters, stats, roles }: UsersProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Memuat data pengguna...');
 
+    // URL parameter masking (hide queries like ?role=admin&search=&status=all from address bar)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.search) {
+            window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname
+            );
+        }
+    }, [users, filters]);
+
+    // Flash notifications
+    useEffect(() => {
+        if (pageProps.flash?.success) {
+            toast.success('Berhasil', pageProps.flash.success);
+        } else if (pageProps.flash?.error) {
+            toast.error('Peringatan', pageProps.flash.error);
+        }
+    }, [pageProps.flash]);
+
     const executeFilter = (params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
         setIsLoading(true);
@@ -77,11 +101,20 @@ export default function Index({ users, filters, stats, roles }: UsersProps) {
         router.get(route('users.index'), params, {
             preserveState: true,
             preserveScroll: true,
+            replace: true,
+            onSuccess: () => {
+                if (typeof window !== 'undefined') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            },
             onFinish: () => {
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
                     setIsLoading(false);
+                    if (typeof window !== 'undefined') {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
                 }, remaining);
             },
             onError: () => {
@@ -149,13 +182,29 @@ export default function Index({ users, filters, stats, roles }: UsersProps) {
 
         router.patch(route('users.toggle-status', user.id), {}, {
             preserveScroll: true,
-            onFinish: () => setIsLoading(false),
+            replace: true,
+            onSuccess: (page: any) => {
+                if (typeof window !== 'undefined') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+                const successMsg = page?.props?.flash?.success || `Status akun "${user.name}" berhasil diubah.`;
+                toast.success('Berhasil', successMsg);
+            },
+            onFinish: () => {
+                setIsLoading(false);
+                if (typeof window !== 'undefined') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            },
             onError: (errs) => {
+                setIsLoading(false);
                 const firstErr = Object.values(errs)[0];
                 toast.error('Gagal', typeof firstErr === 'string' ? firstErr : 'Tidak dapat mengubah status pengguna.');
             }
         });
     };
+
+    const canCreate = can?.create ?? true;
 
     return (
         <AuthenticatedLayout>
@@ -170,34 +219,36 @@ export default function Index({ users, filters, stats, roles }: UsersProps) {
                     <div>
                         <div className="page-title mb-0" style={{ lineHeight: 1.2 }}>Pengguna & Peran</div>
                         <p className="page-sub mb-0 mt-1" style={{ margin: 0 }}>
-                            Kelola akun pengguna, penetapan peran (RBAC), dan hak akses sistem SIGAP — {stats.total} total akun.
+                            Kelola akun pengguna, penetapan peran (RBAC), dan hak akses sistem SIGAP — {stats.total} total akun terdaftar.
                         </p>
                     </div>
                 </div>
 
-                <div className="d-flex align-items-center gap-2">
-                    <button
-                        onClick={handleOpenCreateModal}
-                        className="btn shadow-sm d-flex align-items-center gap-1.5"
-                        style={{
-                            background: 'linear-gradient(135deg, var(--teal-1), var(--teal-2))',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '12px',
-                            padding: '0.55rem 1.15rem',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
-                            fontFamily: 'Poppins, sans-serif'
-                        }}
-                    >
-                        <i className="bi bi-person-plus-fill"></i>
-                        <span>Tambah Pengguna</span>
-                    </button>
-                </div>
+                {canCreate && (
+                    <div className="d-flex align-items-center gap-2">
+                        <button
+                            onClick={handleOpenCreateModal}
+                            className="btn shadow-sm d-flex align-items-center gap-1.5"
+                            style={{
+                                background: 'linear-gradient(135deg, var(--teal-1), var(--teal-2))',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '12px',
+                                padding: '0.55rem 1.15rem',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                fontFamily: 'Poppins, sans-serif'
+                            }}
+                        >
+                            <i className="bi bi-person-plus-fill"></i>
+                            <span>Tambah Pengguna</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Stat Cards Partial */}
-            <StatCards stats={stats} onFilterRole={handleRoleChange} />
+            <StatCards stats={stats} activeRole={selectedRole} onFilterRole={handleRoleChange} />
 
             {/* Filter & Toolbar Partial */}
             <UserFilter
@@ -210,6 +261,7 @@ export default function Index({ users, filters, stats, roles }: UsersProps) {
                 onStatusChange={handleStatusChange}
                 onReset={handleReset}
                 onOpenCreateModal={handleOpenCreateModal}
+                canCreate={canCreate}
             />
 
             {/* User Table Partial */}

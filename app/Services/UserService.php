@@ -2,17 +2,20 @@
 
 namespace App\Services;
 
+use App\Models\User;
+use App\Services\Interfaces\UserServiceInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
-class UserService
+class UserService implements UserServiceInterface
 {
     public function __construct(
         protected UserRepositoryInterface $userRepository
     ) {}
 
-    public function getPaginatedUsers(int $perPage = 10, array $filters = [])
+    public function getPaginatedUsers(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
         return $this->userRepository->getPaginatedUsers($perPage, $filters);
     }
@@ -27,12 +30,12 @@ class UserService
         return $this->userRepository->getAllRoles();
     }
 
-    public function getUserById(string $id)
+    public function getUserById(string $id): User
     {
         return $this->userRepository->findById($id);
     }
 
-    public function createUser(array $data)
+    public function createUser(array $data): User
     {
         $role = $data['role'] ?? 'user';
         unset($data['role']);
@@ -46,7 +49,7 @@ class UserService
         return $user;
     }
 
-    public function updateUser(string $id, array $data)
+    public function updateUser(string $id, array $data): User
     {
         $role = $data['role'] ?? null;
         unset($data['role']);
@@ -70,7 +73,7 @@ class UserService
         return $user;
     }
 
-    public function deleteUser(string $id)
+    public function deleteUser(string $id): bool
     {
         $currentUser = Auth::user();
         if ($currentUser && $currentUser->id === $id) {
@@ -82,10 +85,10 @@ class UserService
             throw new \Exception('Tidak dapat menghapus satu-satunya akun Developer/Superadmin.');
         }
 
-        return $this->userRepository->delete($id);
+        return (bool) $this->userRepository->delete($id);
     }
 
-    public function toggleStatus(string $id)
+    public function toggleStatus(string $id): User
     {
         $currentUser = Auth::user();
         if ($currentUser && $currentUser->id === $id) {

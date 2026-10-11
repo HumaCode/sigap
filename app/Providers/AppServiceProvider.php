@@ -25,12 +25,14 @@ use App\Models\Site;
 use App\Models\Keyword;
 use App\Models\SiteSecurity;
 use App\Models\Incident;
+use App\Models\User;
 use App\Policies\SitePolicy;
 use App\Policies\UptimeReportPolicy;
 use App\Policies\DetectionLogPolicy;
 use App\Policies\KeywordPolicy;
 use App\Policies\SiteSecurityPolicy;
 use App\Policies\IncidentPolicy;
+use App\Policies\UserPolicy;
 use App\Observers\DetectionLogObserver;
 use Illuminate\Support\Facades\Gate;
 
@@ -44,6 +46,8 @@ use App\Services\Interfaces\SiteSecurityServiceInterface;
 use App\Services\SiteSecurityService;
 use App\Services\Interfaces\IncidentServiceInterface;
 use App\Services\IncidentService;
+use App\Services\Interfaces\UserServiceInterface;
+use App\Services\UserService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -64,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(KeywordServiceInterface::class, KeywordService::class);
         $this->app->bind(SiteSecurityServiceInterface::class, SiteSecurityService::class);
         $this->app->bind(IncidentServiceInterface::class, IncidentService::class);
+        $this->app->bind(UserServiceInterface::class, UserService::class);
     }
 
     /**
@@ -78,6 +83,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Keyword::class, KeywordPolicy::class);
         Gate::policy(SiteSecurity::class, SiteSecurityPolicy::class);
         Gate::policy(Incident::class, IncidentPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
 
         // Incident Authorization Gates
         Gate::define('view-incidents', [IncidentPolicy::class, 'viewAny']);
@@ -102,5 +108,9 @@ class AppServiceProvider extends ServiceProvider
         // Site Security Authorization Gates
         Gate::define('view-site-security', [SiteSecurityPolicy::class, 'viewAny']);
         Gate::define('scan-site-security', [SiteSecurityPolicy::class, 'scan']);
+
+        // User Management Authorization Gates
+        Gate::define('view-users', [UserPolicy::class, 'viewAny']);
+        Gate::define('manage-users', [UserPolicy::class, 'create']);
     }
 }

@@ -10,6 +10,7 @@ interface UserFilterProps {
     onStatusChange: (status: string) => void;
     onReset: () => void;
     onOpenCreateModal: () => void;
+    canCreate?: boolean;
 }
 
 export default function UserFilter({
@@ -22,6 +23,7 @@ export default function UserFilter({
     onStatusChange,
     onReset,
     onOpenCreateModal,
+    canCreate = true,
 }: UserFilterProps) {
     const roles = [
         { id: 'all', label: 'Semua Peran' },
@@ -48,13 +50,34 @@ export default function UserFilter({
                         style={{
                             borderRadius: '12px',
                             border: '1.5px solid var(--line)',
-                            padding: '0.55rem 1rem 0.55rem 2.4rem',
+                            padding: '0.55rem 2.2rem 0.55rem 2.4rem',
                             fontSize: '0.85rem',
                             width: '100%',
                             background: 'rgba(255,255,255,0.75)',
                             fontFamily: 'Poppins, sans-serif'
                         }}
                     />
+                    {searchTerm.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onSearchChange('');
+                                onReset();
+                            }}
+                            className="position-absolute border-0 bg-transparent p-0"
+                            style={{
+                                right: '0.75rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                color: 'var(--ink-faint)',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem'
+                            }}
+                            title="Hapus pencarian"
+                        >
+                            <i className="bi bi-x-circle-fill"></i>
+                        </button>
+                    )}
                 </div>
 
                 {/* Role Chips */}
@@ -120,25 +143,27 @@ export default function UserFilter({
             </div>
 
             {/* Right side: Add User button */}
-            <div>
-                <button
-                    onClick={onOpenCreateModal}
-                    className="btn d-flex align-items-center gap-1.5 shadow-sm"
-                    style={{
-                        background: 'linear-gradient(135deg, var(--teal-1), var(--teal-2))',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '12px',
-                        padding: '0.55rem 1.1rem',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        fontFamily: 'Poppins, sans-serif'
-                    }}
-                >
-                    <i className="bi bi-person-plus-fill" style={{ fontSize: '0.95rem' }}></i>
-                    <span>Tambah Pengguna</span>
-                </button>
-            </div>
+            {canCreate && (
+                <div>
+                    <button
+                        onClick={onOpenCreateModal}
+                        className="btn d-flex align-items-center gap-1.5 shadow-sm"
+                        style={{
+                            background: 'linear-gradient(135deg, var(--teal-1), var(--teal-2))',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '12px',
+                            padding: '0.55rem 1.1rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            fontFamily: 'Poppins, sans-serif'
+                        }}
+                    >
+                        <i className="bi bi-person-plus-fill" style={{ fontSize: '0.95rem' }}></i>
+                        <span>Tambah Pengguna</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

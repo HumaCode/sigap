@@ -241,3 +241,33 @@ input:checked + .status-slider:before {
     background: #f8fafc;
 }
 
+.user-stat-card {
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.user-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.user-stat-card.stat-active-teal {
+    border-color: var(--teal-1) !important;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.user-stat-card.stat-active-dev {
+    border-color: #8b5cf6 !important;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.user-stat-card.stat-active-admin {
+    border-color: #d97706 !important;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.user-stat-card.stat-active-user {
+    border-color: #0284c7 !important;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+

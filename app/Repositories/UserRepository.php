@@ -72,13 +72,30 @@ class UserRepository implements UserRepositoryInterface
 
     public function getStats(): array
     {
+        $userStats = User::query()
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive
+            ")
+            ->first();
+
+        $roleCounts = \DB::table('roles')
+            ->leftJoin('model_has_roles', function ($join) {
+                $join->on('roles.id', '=', 'model_has_roles.role_id')
+                     ->where('model_has_roles.model_type', '=', User::class);
+            })
+            ->groupBy('roles.name')
+            ->selectRaw('roles.name, count(model_has_roles.model_id) as count')
+            ->pluck('count', 'name');
+
         return [
-            'total'     => User::count(),
-            'active'    => User::where('is_active', true)->count(),
-            'inactive'  => User::where('is_active', false)->count(),
-            'dev'       => User::role('dev')->count(),
-            'admin'     => User::role('admin')->count(),
-            'user'      => User::role('user')->count(),
+            'total'     => (int) ($userStats->total ?? 0),
+            'active'    => (int) ($userStats->active ?? 0),
+            'inactive'  => (int) ($userStats->inactive ?? 0),
+            'dev'       => (int) ($roleCounts['dev'] ?? 0),
+            'admin'     => (int) ($roleCounts['admin'] ?? 0),
+            'user'      => (int) ($roleCounts['user'] ?? 0),
         ];
     }
 

@@ -8,7 +8,13 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $userId = $this->route('user');
+        $targetUser = \App\Models\User::find($userId);
+        if (!$targetUser) {
+            return false;
+        }
+
+        return $this->user()?->can('update', $targetUser) ?? false;
     }
 
     public function rules(): array

@@ -12,18 +12,19 @@ export interface ToastMessage {
 type Listener = (toast: ToastMessage) => void;
 const listeners = new Set<Listener>();
 let nextId = 0;
-let lastToastKey = '';
+let lastToastType = '';
+let lastToastTitle = '';
 let lastToastTime = 0;
 
 export const toast = {
     show: (type: ToastType, title: string, description?: string) => {
-        const key = `${type}:${title}:${description || ''}`;
         const now = Date.now();
-        // Cegah toast ganda jika pesan identik dikirim dalam selang waktu < 1.5 detik
-        if (key === lastToastKey && now - lastToastTime < 1500) {
+        // Cegah toast ganda jika toast bertipe dan bertitle sama dikirim dalam selang waktu < 1.5 detik
+        if (type === lastToastType && title === lastToastTitle && now - lastToastTime < 1500) {
             return;
         }
-        lastToastKey = key;
+        lastToastType = type;
+        lastToastTitle = title;
         lastToastTime = now;
 
         const message: ToastMessage = { id: nextId++, type, title, description };
@@ -41,9 +42,10 @@ export default function DynamicToast() {
     useEffect(() => {
         const listener = (toastMessage: ToastMessage) => {
             setToasts(prev => {
-                // Cegah penambahan jika toast yang identik sedang tampil di layar
-                if (prev.some(t => t.type === toastMessage.type && t.title === toastMessage.title && t.description === toastMessage.description)) {
-                    return prev;
+                // Cegah penumpukan jika toast bertipe dan bertitle sama sedang tampil di layar
+                if (prev.some(t => t.type === toastMessage.type && t.title === toastMessage.title)) {
+                    // Update pesan toast yang sedang tampil daripada ditumpuk ganda
+                    return prev.map(t => (t.type === toastMessage.type && t.title === toastMessage.title ? toastMessage : t));
                 }
                 return [...prev, toastMessage];
             });

@@ -1,54 +1,64 @@
 services:
+  # ==========================================================
+  # 1. Web Application Container (Laravel Octane FrankenPHP)
+  # ==========================================================
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: sijaga-frankenphp
+    image: sigap-app:latest
+    container_name: sigap-app
     ports:
-      - "8093:8000"
-      - "5182:5173" # Port Vite untuk HMR
+      - "8000:8000"
+      - "5173:5173" # Port Vite untuk HMR di mode dev
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - DB_CONNECTION=mysql
+      - APP_NAME=${APP_NAME:-SIGAP Web}
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_URL=${APP_URL:-http://localhost:8000}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=sijaga
-      - DB_USERNAME=sijaga
-      - DB_PASSWORD=sijaga2026
+      - DB_DATABASE=${DB_DATABASE:-db_sigap}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
       - REDIS_HOST=redis
-      - CHOKIDAR_USEPOLLING=true # Penting untuk Vite HMR di Docker
-      - NINEROUTER_API_ENDPOINT=https://9router.humacode.my.id/v1
-      - NINEROUTER_API_KEY=sk-bb945c3357223494-kwdegr-5454082f
-      - NINEROUTER_MODEL=combo-maut
+      - REDIS_PORT=6379
+      - CHOKIDAR_USEPOLLING=true # Mendukung Vite HMR di Docker
     volumes:
       - .:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
-      - sijaga-network
-    # Mode dev: jalankan octane dengan opsi --watch agar me-reload otomatis saat file berubah
+      - sigap-network
+    restart: unless-stopped
     command: ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8000", "--watch"]
 
+  # ==========================================================
+  # 2. Scheduler Container (Cron & Auto-Prune Engine)
+  # ==========================================================
   scheduler:
     build:
       context: .
       dockerfile: Dockerfile
-    image: sijaga-frankenphp
+    image: sigap-app:latest
+    container_name: sigap-scheduler
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - DB_CONNECTION=mysql
+      - APP_NAME=${APP_NAME:-SIGAP Web}
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_URL=${APP_URL:-http://localhost:8000}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=sijaga
-      - DB_USERNAME=sijaga
-      - DB_PASSWORD=sijaga2026
+      - DB_DATABASE=${DB_DATABASE:-db_sigap}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
       - REDIS_HOST=redis
-      - NINEROUTER_API_ENDPOINT=https://9router.humacode.my.id/v1
-      - NINEROUTER_API_KEY=sk-bb945c3357223494-kwdegr-5454082f
-      - NINEROUTER_MODEL=combo-maut
+      - REDIS_PORT=6379
     volumes:
       - .:/app
     depends_on:
@@ -56,37 +66,86 @@ services:
       - db
       - redis
     networks:
-      - sijaga-network
+      - sigap-network
     restart: unless-stopped
+    # Menjalankan scheduler Laravel terus menerus (setiap menit)
+    # Menjalankan monitor:check-uptime dan logs:prune (Daily Auto-Prune)
     command: ["php", "artisan", "schedule:work"]
 
+  # ==========================================================
+  # 3. Queue Worker Container (Background Jobs / Asinkron)
+  # ==========================================================
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sigap-app:latest
+    container_name: sigap-queue
+    environment:
+      - APP_NAME=${APP_NAME:-SIGAP Web}
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_URL=${APP_URL:-http://localhost:8000}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-db_sigap}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - .:/app
+    depends_on:
+      - app
+      - db
+      - redis
+    networks:
+      - sigap-network
+    restart: unless-stopped
+    # Menjalankan antrean pekerjaan async seperti notifikasi, crawler, dll
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120"]
+
+  # ==========================================================
+  # 4. Database MySQL Container
+  # ==========================================================
   db:
     image: mysql:8.0
+    container_name: sigap-db
     ports:
-      - "3314:3306"
+      - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=secret
-      - MYSQL_DATABASE=sijaga
-      - MYSQL_USER=sijaga
-      - MYSQL_PASSWORD=sijaga2026
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-db_sigap}
     volumes:
-      - sijaga-mysql-data:/var/lib/mysql
+      - sigap-mysql-data:/var/lib/mysql
     networks:
-      - sijaga-network
+      - sigap-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-secret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
+  # ==========================================================
+  # 5. Redis Container (Cache, Session, & Queue Broker)
+  # ==========================================================
   redis:
     image: redis:alpine
+    container_name: sigap-redis
     ports:
       - "6379:6379"
     volumes:
-      - sijaga-redis-data:/data
+      - sigap-redis-data:/data
     networks:
-      - sijaga-network
+      - sigap-network
+    restart: unless-stopped
 
 networks:
-  sijaga-network:
+  sigap-network:
     driver: bridge
 
 volumes:
-  sijaga-mysql-data:
-  sijaga-redis-data:
+  sigap-mysql-data:
+  sigap-redis-data:

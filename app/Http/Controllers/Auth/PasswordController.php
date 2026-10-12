@@ -20,10 +20,17 @@ class PasswordController extends Controller
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
-        $request->user()->update([
+        $user = $request->user();
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
 
-        return back();
+        activity('user')
+            ->causedBy($user)
+            ->performedOn($user)
+            ->event('updated')
+            ->log("Pengguna \"{$user->name}\" telah memperbarui kata sandi akun");
+
+        return back()->with('success', 'Kata sandi Anda telah berhasil diperbarui.');
     }
 }

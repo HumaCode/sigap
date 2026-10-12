@@ -36,14 +36,21 @@ export default function Pagination({
     // If neither meta nor links provided, return null
     if (!meta && (!links || links.length === 0)) return null;
 
-    // Normalize pagination state from either meta or links
+    // Normalize pagination state from either meta, unwrapped paginator, or links
     let currentPage = 1;
     let lastPage = 1;
     let from = 0;
     let to = 0;
     let total = 0;
 
-    if (meta) {
+    const sourceMeta: any = meta || (links as any)?.meta || (links as any);
+    if (sourceMeta && typeof sourceMeta === 'object' && sourceMeta.total !== undefined) {
+        currentPage = sourceMeta.current_page || 1;
+        lastPage = sourceMeta.last_page || 1;
+        from = sourceMeta.from || 0;
+        to = sourceMeta.to || 0;
+        total = sourceMeta.total || 0;
+    } else if (meta) {
         currentPage = meta.current_page || 1;
         lastPage = meta.last_page || 1;
         from = meta.from || 0;

@@ -26,8 +26,8 @@ class SettingService implements SettingServiceInterface
         // 2. SEO Settings
         $seoMetaTitle = Setting::getValue('seo_meta_title') ?: 'SIGAP Web - Sistem Informasi Gawat & Antisipasi Pengamanan Website';
         $seoMetaDescription = Setting::getValue('seo_meta_description') ?: 'Platform monitoring keamanan, defacement detection, uptime ketersediaan, dan postur keamanan aset digital pemerintah secara real-time.';
-        $seoMetaKeywords = Setting::getValue('seo_meta_keywords') ?: 'monitoring website, deface detection, cyber security, government web, sigap, uptime monitoring, pekalongan kota';
-        $seoAuthor = Setting::getValue('seo_author') ?: 'Dinas Komunikasi dan Informatika';
+        $seoMetaKeywords = Setting::getValue('seo_meta_keywords') ?: 'monitoring website, deface detection, cyber security, government web, sigap, uptime monitoring';
+        $seoAuthor = Setting::getValue('seo_author') ?: '';
         $seoRobotsIndex = Setting::getValue('seo_robots_index', true);
         $seoGoogleVerification = Setting::getValue('seo_google_verification') ?: '';
 
@@ -38,8 +38,8 @@ class SettingService implements SettingServiceInterface
 
         // 4. General Settings
         $appName = Setting::getValue('app_name') ?: config('app.name', 'SIGAP Web');
-        $picEmail = Setting::getValue('pic_contact_email') ?: 'csirt@pekalongankota.go.id';
-        $picWa = Setting::getValue('pic_contact_wa') ?: '081234567890';
+        $picEmail = Setting::getValue('pic_contact_email') ?: '';
+        $picWa = Setting::getValue('pic_contact_wa') ?: '';
         $telegramBotToken = Setting::getValue('telegram_bot_token') ?: env('TELEGRAM_BOT_TOKEN', '');
         $telegramChatId = Setting::getValue('telegram_chat_id') ?: env('TELEGRAM_CHAT_ID', '');
 
@@ -58,6 +58,7 @@ class SettingService implements SettingServiceInterface
                 'author' => $seoAuthor,
                 'robots_index' => (bool) $seoRobotsIndex,
                 'google_verification' => $seoGoogleVerification,
+                'app_url' => config('app.url') ?: env('APP_URL', 'http://localhost:8000'),
             ],
             'activity_log' => [
                 'retention_days' => $logRetentionDays,

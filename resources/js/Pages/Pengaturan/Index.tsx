@@ -29,6 +29,7 @@ interface SettingsData {
         author: string;
         robots_index: boolean;
         google_verification: string;
+        app_url?: string;
     };
     activity_log: {
         retention_days: number;
@@ -45,11 +46,56 @@ interface SettingsData {
     };
 }
 
-interface SettingsIndexProps extends PageProps {
-    settings: SettingsData;
+export interface ActivityLogItem {
+    id: string;
+    log_name: string;
+    description: string;
+    event?: string;
+    subject_type?: string | null;
+    subject_id?: string | null;
+    causer?: {
+        name: string;
+        username: string;
+        email: string;
+    } | null;
+    attribute_changes?: {
+        old?: Record<string, any>;
+        attributes?: Record<string, any>;
+    } | null;
+    properties?: Record<string, any> | null;
+    created_at: string;
+    created_at_human: string;
 }
 
-export default function Index({ settings }: SettingsIndexProps) {
+interface SettingsIndexProps extends PageProps {
+    settings: SettingsData;
+    activityLogs?: {
+        data: ActivityLogItem[];
+        links: any[];
+        meta: any;
+    };
+    activityFilters?: {
+        log_search?: string;
+        log_event?: string;
+        log_module?: string;
+    };
+    activityStats?: {
+        total: number;
+        today: number;
+        created: number;
+        updated: number;
+        deleted: number;
+    };
+    availableModules?: string[];
+}
+
+export default function Index({
+    settings,
+    activityLogs,
+    activityFilters,
+    activityStats,
+    availableModules = [],
+}: SettingsIndexProps) {
     const pageProps = usePage<PageProps>().props;
 
     // Detect tab from URL parameter if available
@@ -172,6 +218,10 @@ return;
                         data={settings.activity_log}
                         onSave={(data) => handleSaveGroup('activity_log', data)}
                         isSaving={isSaving}
+                        activityLogs={activityLogs}
+                        activityFilters={activityFilters}
+                        activityStats={activityStats}
+                        availableModules={availableModules}
                     />
                 )}
 

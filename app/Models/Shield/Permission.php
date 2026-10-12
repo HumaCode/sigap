@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Permission as SpatiePermission;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property string $id
@@ -18,7 +20,17 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 #[Fillable(['name', 'guard_name', 'is_active'])]
 class Permission extends SpatiePermission
 {
-    use HasUlids;
+    use HasUlids, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('permission')
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->setDescriptionForEvent(fn(string $eventName) => "Hak akses (Permission) \"{$this->name}\" telah di-{$eventName}");
+    }
 
     public function menus()
     {

@@ -8,6 +8,7 @@ interface SeoTabProps {
         author: string;
         robots_index: boolean;
         google_verification: string;
+        app_url?: string;
     };
     onSave: (settings: Record<string, any>) => void;
     isSaving: boolean;
@@ -20,6 +21,9 @@ export default function SeoTab({ data, onSave, isSaving }: SeoTabProps) {
     const [author, setAuthor] = useState(data.author || '');
     const [robotsIndex, setRobotsIndex] = useState(Boolean(data.robots_index));
     const [googleVerification, setGoogleVerification] = useState(data.google_verification || '');
+
+    // URL dinamis dari ENV APP_URL / config('app.url')
+    const displayUrl = (data.app_url || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost')).replace(/\/$/, '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,7 +60,7 @@ export default function SeoTab({ data, onSave, isSaving }: SeoTabProps) {
                     </div>
                     <div style={{ maxWidth: '600px' }}>
                         <div style={{ fontSize: '0.8rem', color: '#202124' }}>
-                            https://sigap.pekalongankota.go.id
+                            {displayUrl}
                         </div>
                         <div style={{ fontSize: '1.05rem', color: '#1a0dab', fontWeight: 500, lineHeight: 1.3, cursor: 'pointer' }}>
                             {metaTitle || 'SIGAP Web - Sistem Informasi Gawat & Antisipasi Pengamanan Website'}
@@ -127,7 +131,7 @@ export default function SeoTab({ data, onSave, isSaving }: SeoTabProps) {
                             className="settings-input"
                             value={author}
                             onChange={(e) => setAuthor(e.target.value)}
-                            placeholder="Dinas Komunikasi dan Informatika"
+                            placeholder="Nama Instansi / Pengelola"
                         />
                         <div className="settings-hint">Nama OPD atau pengelola resmi sistem</div>
                     </div>

@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('monitor:check-uptime')->everyFiveMinutes();
+Schedule::command('logs:prune')->dailyAt('00:30');
 

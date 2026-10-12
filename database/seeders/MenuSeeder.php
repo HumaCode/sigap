@@ -108,6 +108,14 @@ class MenuSeeder extends Seeder
                 'orders' => 10,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
+            [
+                'name' => 'Profil Saya',
+                'url' => 'profile.edit',
+                'category' => 'Sistem',
+                'icon' => 'bi bi-person-circle',
+                'orders' => 11,
+                'permissions' => ['menu', 'create', 'read', 'show', 'update'],
+            ],
         ];
 
         foreach ($menus as $item) {
@@ -125,8 +133,14 @@ class MenuSeeder extends Seeder
             $menuModel = Menu::find($item['id']);
             
             if ($menuModel) {
-                $this->attachMenupermission($menuModel, $permissions, ['dev']);
+                // Menu profil dapat diakses oleh semua role
+                $assignedRoles = ($item['url'] === 'profile.edit') ? ['dev', 'admin', 'user'] : ['dev'];
+                $this->attachMenupermission($menuModel, $permissions, $assignedRoles);
             }
         }
+
+        // Refresh cache menu
+        \Illuminate\Support\Facades\Cache::forget('menus_data');
+        \Illuminate\Support\Facades\Cache::forget('menus_url_list');
     }
 }

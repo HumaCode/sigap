@@ -72,12 +72,22 @@ export default function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
 
                 <div className="sidebar-footer">
                     <div className="pic-mini">
-                        <div className="avatar-mini">
+                        <Link 
+                            href={typeof route !== 'undefined' && route().has('profile.edit') ? route('profile.edit') : '/profile'} 
+                            className="avatar-mini text-decoration-none"
+                            title="Buka Profil Saya"
+                        >
                             {user.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block' }}>{user.name}</span>
-                            <small>{user.email}</small>
+                        </Link>
+                        <div style={{ overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                            <Link 
+                                href={typeof route !== 'undefined' && route().has('profile.edit') ? route('profile.edit') : '/profile'} 
+                                className="text-decoration-none text-reset"
+                                title="Buka Profil Saya"
+                            >
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block' }} className="text-truncate">{user.name}</span>
+                            </Link>
+                            <small className="text-truncate d-block">{user.email}</small>
                         </div>
                         <button onClick={() => setShowLogoutModal(true)} className="ms-auto btn-logout-sidebar" title="Keluar">
                             <i className="bi bi-box-arrow-right"></i>

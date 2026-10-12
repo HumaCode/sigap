@@ -51,14 +51,14 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
             <form onSubmit={submit} noValidate>
                 <div className="mb-4">
-                    <label htmlFor="email" className="form-label">Email Instansi</label>
+                    <label htmlFor="email" className="form-label">Email Akun</label>
                     <div className="input-modern">
                         <i className={`bi bi-envelope icon-left ${errors.email ? 'text-danger' : ''}`}></i>
                         <input 
                             type="email" 
                             className={`form-control ${errors.email ? 'is-invalid' : ''}`} 
                             id="email" 
-                            placeholder="nama@instansi.go.id" 
+                            placeholder="user@humacode.com atau email terdaftar" 
                             autoComplete="email" 
                             required 
                             autoFocus

@@ -43,23 +43,32 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $login = $this->string('login')->toString();
+        $password = $this->string('password')->toString();
         $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        $credentials = [
-            $field => $login,
-            'password' => $this->string('password')->toString(),
-            'is_active' => 1,
-        ];
+        $user = \App\Models\User::where($field, $login)->first();
 
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        // Cek jika kredensial user ditemukan dan password cocok
+        if ($user && \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+            // Cek jika user berstatus tidak aktif (is_active: 0)
+            if (! (bool) $user->is_active) {
+                RateLimiter::hit($this->throttleKey());
 
-            throw ValidationException::withMessages([
-                'login' => trans('auth.failed'),
-            ]);
+                throw ValidationException::withMessages([
+                    'login' => 'Akun Anda dinonaktifkan (status tidak aktif). Silakan hubungi administrator.',
+                ]);
+            }
+
+            Auth::login($user, $this->boolean('remember'));
+            RateLimiter::clear($this->throttleKey());
+            return;
         }
 
-        RateLimiter::clear($this->throttleKey());
+        RateLimiter::hit($this->throttleKey());
+
+        throw ValidationException::withMessages([
+            'login' => trans('auth.failed'),
+        ]);
     }
 
     /**

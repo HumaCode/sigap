@@ -69,7 +69,7 @@ export default function GeneralTab({ data, onSave, isSaving }: GeneralTabProps) 
                             className="settings-input"
                             value={picEmail}
                             onChange={(e) => setPicEmail(e.target.value)}
-                            placeholder="csirt@pekalongankota.go.id"
+                            placeholder="csirt@instansi.go.id"
                         />
                         <div className="settings-hint">Email penerima laporan insiden kritis dan rekap ketersediaan</div>
                     </div>
@@ -82,7 +82,7 @@ export default function GeneralTab({ data, onSave, isSaving }: GeneralTabProps) 
                             className="settings-input"
                             value={picWa}
                             onChange={(e) => setPicWa(e.target.value)}
-                            placeholder="081234567890"
+                            placeholder="Contoh: 081234567890"
                         />
                         <div className="settings-hint">Nomor kontak darurat teknis tim penanganan insiden</div>
                     </div>
@@ -95,7 +95,7 @@ export default function GeneralTab({ data, onSave, isSaving }: GeneralTabProps) 
                             className="settings-input"
                             value={telegramChatId}
                             onChange={(e) => setTelegramChatId(e.target.value)}
-                            placeholder="-100xxxxxxxxxx"
+                            placeholder="Contoh: -100xxxxxxxxxx"
                         />
                         <div className="settings-hint">ID Grup atau Channel Telegram untuk siaran alert otomatis</div>
                     </div>

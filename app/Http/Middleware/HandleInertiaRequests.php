@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Setting;
+use App\Models\Site;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -40,6 +43,38 @@ class HandleInertiaRequests extends Middleware
             ],
             'unread_notifications_count' => fn () => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             'menus' => $request->user() ? menus(true) : [],
+            'seo' => [
+                'meta_title' => Setting::getValue('seo_meta_title', config('app.name', 'SIGAP Web')),
+                'meta_description' => Setting::getValue('seo_meta_description', ''),
+            ],
+            'telemetry' => fn () => Cache::remember('auth_telemetry_stats', 60, function () {
+                try {
+                    $totalSites = Site::count();
+                    $activeSites = Site::where('is_active', true)->count();
+                    $warnSites = Site::where('status', 'warn')->count();
+                    $upSites = Site::where('status', 'up')->count();
+
+                    $avgUptime = 99.9;
+                    if ($totalSites > 0) {
+                        $computed = (($upSites * 100) + ($warnSites * 95)) / $totalSites;
+                        $avgUptime = round($computed, 1);
+                    }
+
+                    return [
+                        'total_sites' => $totalSites,
+                        'active_sites' => $activeSites,
+                        'avg_uptime' => $avgUptime . '%',
+                        'ai_sentinel' => '24/7',
+                    ];
+                } catch (\Throwable $e) {
+                    return [
+                        'total_sites' => 0,
+                        'active_sites' => 0,
+                        'avg_uptime' => '99.9%',
+                        'ai_sentinel' => '24/7',
+                    ];
+                }
+            }),
         ];
     }
 }

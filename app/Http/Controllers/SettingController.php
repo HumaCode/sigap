@@ -27,8 +27,68 @@ class SettingController extends Controller
 
         $settings = $this->settingService->getSettingsData();
 
+        // 5. Activity Logs query with filters
+        $logQuery = \App\Models\Activity::with('causer')->latest('created_at');
+
+        if ($request->filled('log_search')) {
+            $search = trim((string) $request->input('log_search'));
+            $logQuery->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhere('log_name', 'like', "%{$search}%")
+                  ->orWhere('event', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('log_event') && $request->input('log_event') !== 'all') {
+            $logQuery->where('event', $request->input('log_event'));
+        }
+
+        if ($request->filled('log_module') && $request->input('log_module') !== 'all') {
+            $logQuery->where('log_name', $request->input('log_module'));
+        }
+
+        $activityLogs = $logQuery->paginate(10)->withQueryString()->through(function ($log) {
+            return [
+                'id' => $log->id,
+                'log_name' => $log->log_name ?? 'default',
+                'description' => $log->description,
+                'event' => $log->event,
+                'subject_type' => $log->subject_type ? class_basename($log->subject_type) : null,
+                'subject_id' => $log->subject_id,
+                'causer' => $log->causer ? [
+                    'name' => $log->causer->name,
+                    'username' => $log->causer->username,
+                    'email' => $log->causer->email,
+                ] : null,
+                'attribute_changes' => $log->attribute_changes,
+                'properties' => $log->properties,
+                'created_at' => $log->created_at ? $log->created_at->format('d M Y, H:i:s') : '-',
+                'created_at_human' => $log->created_at ? $log->created_at->diffForHumans() : '-',
+            ];
+        });
+
+        // Available modules for filter dropdown
+        $availableModules = \App\Models\Activity::select('log_name')
+            ->distinct()
+            ->whereNotNull('log_name')
+            ->pluck('log_name');
+
         return Inertia::render('Pengaturan/Index', [
             'settings' => $settings,
+            'activityLogs' => $activityLogs,
+            'activityFilters' => [
+                'log_search' => $request->input('log_search', ''),
+                'log_event' => $request->input('log_event', 'all'),
+                'log_module' => $request->input('log_module', 'all'),
+            ],
+            'activityStats' => [
+                'total' => \App\Models\Activity::count(),
+                'today' => \App\Models\Activity::whereDate('created_at', today())->count(),
+                'created' => \App\Models\Activity::where('event', 'created')->count(),
+                'updated' => \App\Models\Activity::where('event', 'updated')->count(),
+                'deleted' => \App\Models\Activity::where('event', 'deleted')->count(),
+            ],
+            'availableModules' => $availableModules,
         ]);
     }
 
@@ -74,5 +134,24 @@ class SettingController extends Controller
         );
 
         return response()->json($result);
+    }
+
+    /**
+     * Clear all activity logs.
+     */
+    public function clearActivityLogs(Request $request): RedirectResponse
+    {
+        if (!$request->user() || !$request->user()->hasAnyRole(['dev', 'admin'])) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $count = \App\Models\Activity::count();
+        \App\Models\Activity::truncate();
+
+        activity('activity_log')
+            ->causedBy($request->user())
+            ->log("Membersihkan seluruh jejak log audit sistem ({$count} data log dihapus)");
+
+        return redirect()->back()->with('success', "Riwayat log aktivitas ({$count} entri) berhasil dibersihkan.");
     }
 }

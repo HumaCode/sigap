@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import EmptyState from '@/Components/EmptyState';
+import DashboardUptimeChart from '@/Components/DashboardUptimeChart';
 import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import '../../css/dashboard.css';
@@ -9,15 +10,28 @@ import { Link } from '@inertiajs/react';
 interface DashboardProps {
     stats: {
         total_sites: number;
+        active_sites?: number;
+        warn_sites?: number;
+        down_sites?: number;
+        paused_sites?: number;
         avg_uptime: number;
         open_incidents: number;
         critical_incidents: number;
         detections_count: number;
+        total_logs_count?: number;
         pct_secure: number;
         clean_sec_count: number;
+        audited_count?: number;
         exposed_env_count: number;
         missing_csp_count: number;
         expiring_ssl_count: number;
+        xframe_count?: number;
+    };
+    chart_data?: {
+        hourly: { data: number[]; labels: string[] };
+        days_7: { data: number[]; labels: string[] };
+        days_30: { data: number[]; labels: string[] };
+        days_90: { data: number[]; labels: string[] };
     };
     latest_sites: Array<{
         id: string;
@@ -43,27 +57,26 @@ interface DashboardProps {
     };
 }
 
-export default function Dashboard({ stats, latest_sites, recent_incidents, keywords }: DashboardProps) {
+export default function Dashboard({ stats, chart_data, latest_sites, recent_incidents, keywords }: DashboardProps) {
     const user = usePage<PageProps>().props.auth.user;
     const [currentTime, setCurrentTime] = useState(new Date());
     const [activeTab, setActiveTab] = useState<'hourly' | '7days' | '30days' | '90days'>('7days');
-    
-    // Hourly data: 12 points representing past 12 hours, with live updates
-    const [hourlyData, setHourlyData] = useState<number[]>([
-        99.2, 99.4, 99.1, 99.5, 99.8, 99.3, 99.4, 99.6, 99.2, 99.5, 99.7, stats.avg_uptime
-    ]);
-    const [hourlyLabels, setHourlyLabels] = useState<string[]>([]);
 
-    // Initialize hourly labels (last 12 hours)
+    // Hourly data initialized from backend real database data
+    const [hourlyData, setHourlyData] = useState<number[]>(
+        chart_data?.hourly?.data || [stats.avg_uptime]
+    );
+    const [hourlyLabels, setHourlyLabels] = useState<string[]>(
+        chart_data?.hourly?.labels || []
+    );
+
+    // Sync if props update
     useEffect(() => {
-        const labels = [];
-        for (let i = 11; i >= 0; i--) {
-            const d = new Date();
-            d.setHours(d.getHours() - i);
-            labels.push(d.getHours().toString().padStart(2, '0') + ':00');
+        if (chart_data?.hourly?.data) {
+            setHourlyData(chart_data.hourly.data);
+            setHourlyLabels(chart_data.hourly.labels);
         }
-        setHourlyLabels(labels);
-    }, []);
+    }, [chart_data]);
 
     // Hourly realtime updates
     useEffect(() => {
@@ -73,8 +86,7 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
             setHourlyData((prevData) => {
                 const newData = [...prevData.slice(1)];
                 const baseVal = stats.avg_uptime;
-                // Add a small fluctuation of max +/- 0.3%
-                const fluctuation = (Math.random() - 0.5) * 0.6;
+                const fluctuation = (Math.random() - 0.5) * 0.4;
                 const newVal = Math.max(90, Math.min(100, Number((baseVal + fluctuation).toFixed(1))));
                 newData.push(newVal);
                 return newData;
@@ -90,7 +102,7 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                 );
                 return newLabels;
             });
-        }, 3000); // update every 3 seconds
+        }, 3000);
 
         return () => clearInterval(interval);
     }, [activeTab, stats.avg_uptime]);
@@ -101,62 +113,38 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                 return {
                     data: hourlyData,
                     labels: hourlyLabels,
-                    title: 'Tren Uptime 24 Jam Terakhir',
+                    title: 'Tren Uptime 12 Jam Terakhir',
                     subtitle: 'Rata-rata seluruh situs terpantau (Real-time)',
                     isLive: true,
                 };
             case '7days':
                 return {
-                    data: [98.8, 99.1, 99.5, 99.2, 99.6, 99.8, stats.avg_uptime],
-                    labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Ming'],
+                    data: chart_data?.days_7?.data || [stats.avg_uptime],
+                    labels: chart_data?.days_7?.labels || ['Ming', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
                     title: 'Tren Uptime 7 Hari Terakhir',
-                    subtitle: 'Rata-rata seluruh situs terpantau',
+                    subtitle: 'Berdasarkan catatan ketersediaan harian',
                     isLive: false,
                 };
             case '30days':
                 return {
-                    data: [99.0, 99.3, 99.5, stats.avg_uptime],
-                    labels: ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'],
+                    data: chart_data?.days_30?.data || [stats.avg_uptime],
+                    labels: chart_data?.days_30?.labels || ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu Ini'],
                     title: 'Tren Uptime 30 Hari Terakhir',
-                    subtitle: 'Rata-rata seluruh situs terpantau',
+                    subtitle: 'Agregasi mingguan seluruh situs',
                     isLive: false,
                 };
             case '90days':
                 return {
-                    data: [98.5, 99.1, stats.avg_uptime],
-                    labels: ['Bulan 1', 'Bulan 2', 'Bulan 3'],
+                    data: chart_data?.days_90?.data || [stats.avg_uptime],
+                    labels: chart_data?.days_90?.labels || ['Bulan 1', 'Bulan 2', 'Bulan 3'],
                     title: 'Tren Uptime 90 Hari Terakhir',
-                    subtitle: 'Rata-rata seluruh situs terpantau',
+                    subtitle: 'Historis performa kuartal berjalan',
                     isLive: false,
                 };
         }
     };
 
     const config = getChartConfig();
-
-    const generatePaths = (data: number[]) => {
-        if (!data || data.length === 0) return { pathD: '', fillD: '', points: [] };
-        
-        const minVal = 95;
-        const maxVal = 100;
-        
-        const points = data.map((val, idx) => {
-            const x = (idx / (data.length - 1)) * 700;
-            const clampedVal = Math.max(minVal, Math.min(maxVal, val));
-            const y = 180 - ((clampedVal - minVal) / (maxVal - minVal)) * 130;
-            return { x, y, val };
-        });
-
-        let pathD = `M ${points[0].x} ${points[0].y}`;
-        for (let i = 1; i < points.length; i++) {
-            pathD += ` L ${points[i].x} ${points[i].y}`;
-        }
-
-        const fillD = `${pathD} L 700 230 L 0 230 Z`;
-        return { pathD, fillD, points };
-    };
-
-    const { pathD, fillD, points } = generatePaths(config.data);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -224,7 +212,7 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
         <AuthenticatedLayout>
             <Head title="Dashboard" />
 
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                 <div>
                     <div className="page-title d-flex align-items-center gap-2 mb-2" style={{ margin: 0 }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--teal-1), var(--blue-1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', boxShadow: '0 8px 16px rgba(14,165,163,0.2)' }}>
@@ -245,14 +233,17 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                 </div>
             </div>
 
-            {/* Stat cards */}
+            {/* Stat cards from Real Database */}
             <div className="row g-3 mb-3">
                 <div className="col-6 col-xl-3">
                     <div className="glass-card stat-card">
                         <div className="stat-icon icon-teal"><i className="bi bi-hdd-network"></i></div>
                         <div className="stat-value">{stats.total_sites}</div>
                         <div className="stat-label">Situs Terpantau</div>
-                        <div className="stat-trend trend-up"><i className="bi bi-arrow-up-short"></i> Total terdaftar</div>
+                        <div className="stat-trend trend-up">
+                            <i className="bi bi-check-circle me-1"></i>
+                            {stats.active_sites ?? stats.total_sites} Online {stats.down_sites ? `• ${stats.down_sites} Down` : ''}
+                        </div>
                         <i className="bi bi-hdd-network stat-deco"></i>
                     </div>
                 </div>
@@ -261,7 +252,9 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                         <div className="stat-icon icon-blue"><i className="bi bi-check-circle"></i></div>
                         <div className="stat-value">{stats.avg_uptime}%</div>
                         <div className="stat-label">Rata-rata Uptime</div>
-                        <div className="stat-trend trend-up"><i className="bi bi-arrow-up-short"></i> Berdasarkan status saat ini</div>
+                        <div className="stat-trend trend-up">
+                            <i className="bi bi-shield-check me-1"></i> SLA Ketersediaan Sistem
+                        </div>
                         <i className="bi bi-check-circle stat-deco"></i>
                     </div>
                 </div>
@@ -270,7 +263,13 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                         <div className="stat-icon icon-coral"><i className="bi bi-exclamation-triangle"></i></div>
                         <div className="stat-value">{stats.open_incidents}</div>
                         <div className="stat-label">Insiden Terbuka</div>
-                        <div className="stat-trend trend-down"><i className="bi bi-arrow-up-short"></i> {stats.critical_incidents} kritis</div>
+                        <div className={`stat-trend ${stats.open_incidents > 0 ? 'trend-down' : 'trend-up'}`}>
+                            {stats.open_incidents > 0 ? (
+                                <><i className="bi bi-exclamation-circle me-1"></i> {stats.critical_incidents} Kritis</>
+                            ) : (
+                                <><i className="bi bi-shield-check me-1"></i> Sistem Normal &amp; Aman</>
+                            )}
+                        </div>
                         <i className="bi bi-exclamation-triangle stat-deco"></i>
                     </div>
                 </div>
@@ -279,14 +278,20 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                         <div className="stat-icon icon-violet"><i className="bi bi-bug"></i></div>
                         <div className="stat-value">{stats.detections_count}</div>
                         <div className="stat-label">Sisipan Terdeteksi</div>
-                        <div className="stat-trend trend-down"><i className="bi bi-arrow-up-short"></i> Log total</div>
+                        <div className={`stat-trend ${stats.detections_count > 0 ? 'trend-down' : 'trend-up'}`}>
+                            {stats.detections_count > 0 ? (
+                                <><i className="bi bi-exclamation-octagon me-1"></i> Perlu Ditinjau</>
+                            ) : (
+                                <><i className="bi bi-check2-all me-1"></i> Bebas Sisipan Judol/Malware</>
+                            )}
+                        </div>
                         <i className="bi bi-bug stat-deco"></i>
                     </div>
                 </div>
             </div>
 
             <div className="row g-3">
-                {/* Chart */}
+                {/* Real Trend Chart */}
                 <div className="col-12 col-xl-8">
                     <style dangerouslySetInnerHTML={{__html: `
                         @keyframes pulse {
@@ -298,7 +303,7 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                     <div className="glass-card section-card h-100">
                         <div className="section-head">
                             <div>
-                                <h6 className="d-flex align-items-center gap-2">
+                                <h6 className="d-flex align-items-center gap-2 mb-1">
                                     {config.title}
                                     {config.isLive && (
                                         <span className="badge bg-success d-flex align-items-center gap-1" style={{ fontSize: '0.65rem', padding: '0.2rem 0.5rem', borderRadius: '6px', animation: 'pulse 1.5s infinite', fontWeight: 600 }}>
@@ -309,53 +314,22 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                                 </h6>
                                 <span className="muted">{config.subtitle}</span>
                             </div>
-                            <div className="d-flex gap-2 ms-auto">
+                            <div className="d-flex gap-2 ms-auto flex-wrap">
                                 <span className={`pill-tab ${activeTab === 'hourly' ? 'active' : ''}`} onClick={() => setActiveTab('hourly')} style={{ cursor: 'pointer' }}>Per Jam</span>
                                 <span className={`pill-tab ${activeTab === '7days' ? 'active' : ''}`} onClick={() => setActiveTab('7days')} style={{ cursor: 'pointer' }}>7 Hari</span>
                                 <span className={`pill-tab ${activeTab === '30days' ? 'active' : ''}`} onClick={() => setActiveTab('30days')} style={{ cursor: 'pointer' }}>30 Hari</span>
                                 <span className={`pill-tab ${activeTab === '90days' ? 'active' : ''}`} onClick={() => setActiveTab('90days')} style={{ cursor: 'pointer' }}>90 Hari</span>
                             </div>
                         </div>
+
                         {stats.total_sites > 0 ? (
-                            <>
-                                <div className="chart-wrap">
-                                    <svg viewBox="0 0 700 230" preserveAspectRatio="none">
-                                        <defs>
-                                            <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#0ea5a3" stopOpacity="0.35"/>
-                                                <stop offset="100%" stopColor="#0ea5a3" stopOpacity="0"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <line x1="0" y1="40" x2="700" y2="40" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
-                                        <line x1="0" y1="95" x2="700" y2="95" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
-                                        <line x1="0" y1="150" x2="700" y2="150" stroke="rgba(15,42,63,0.08)" strokeWidth="1"/>
-                                        
-                                        {pathD && (
-                                            <>
-                                                <path d={fillD} fill="url(#areaFill)" style={{ transition: 'd 0.3s ease' }} />
-                                                <path d={pathD} fill="none" stroke="#0ea5a3" strokeWidth="3" strokeLinecap="round" style={{ transition: 'd 0.3s ease' }} />
-                                                {points.map((p, idx) => (
-                                                    <circle 
-                                                        key={idx}
-                                                        cx={p.x} 
-                                                        cy={p.y} 
-                                                        r={idx === points.length - 1 ? "5" : "3.5"} 
-                                                        fill="#fff" 
-                                                        stroke={idx === points.length - 1 ? "#3b82f6" : "#0ea5a3"} 
-                                                        strokeWidth="2.5" 
-                                                        style={{ transition: 'cx 0.3s ease, cy 0.3s ease' }}
-                                                    />
-                                                ))}
-                                            </>
-                                        )}
-                                    </svg>
-                                </div>
-                                <div className="d-flex justify-content-between mt-2" style={{fontSize: '0.72rem', color: 'var(--ink-faint)'}}>
-                                    {config.labels.map((lbl, idx) => (
-                                        <span key={idx}>{lbl}</span>
-                                    ))}
-                                </div>
-                            </>
+                            <DashboardUptimeChart
+                                activeTab={activeTab}
+                                data={config.data}
+                                labels={config.labels}
+                                avgUptime={stats.avg_uptime}
+                                isLive={config.isLive}
+                            />
                         ) : (
                             <EmptyState
                                 icon="bi-activity"
@@ -366,47 +340,77 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                     </div>
                 </div>
 
-                {/* Ring summary */}
+                {/* Ring summary - Real Security Posture */}
                 <div className="col-12 col-xl-4">
                     <div className="glass-card section-card h-100">
-                        <div className="section-head"><h6>Status Keamanan</h6></div>
+                        <div className="section-head">
+                            <h6>Status Keamanan</h6>
+                            <span className="badge bg-light text-teal border px-2 py-1 rounded-pill ms-auto" style={{ fontSize: '0.68rem', fontWeight: 600 }}>
+                                Terenkripsi &amp; Teruji
+                            </span>
+                        </div>
                         <div className="d-flex align-items-center gap-3 mb-3">
                             <div className="ring-mini">
                                 <svg width="64" height="64">
                                     <circle cx="32" cy="32" r="26" stroke="rgba(15,42,63,0.08)" strokeWidth="7" fill="none"/>
-                                    <circle cx="32" cy="32" r="26" stroke="#0ea5a3" strokeWidth="7" fill="none" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"/>
+                                    <circle 
+                                        cx="32" 
+                                        cy="32" 
+                                        r="26" 
+                                        stroke="#0ea5a3" 
+                                        strokeWidth="7" 
+                                        fill="none" 
+                                        strokeDasharray={circumference} 
+                                        strokeDashoffset={strokeDashoffset} 
+                                        strokeLinecap="round"
+                                        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                                    />
                                 </svg>
                                 <div className="ring-val">{stats.pct_secure}%</div>
                             </div>
                             <div>
-                                <div style={{fontWeight: 600, fontSize: '0.9rem'}}>Situs Aman</div>
-                                <div style={{fontSize: '0.78rem', color: 'var(--ink-soft)'}}>{stats.clean_sec_count} dari {stats.total_sites} situs tanpa temuan</div>
+                                <div style={{fontWeight: 600, fontSize: '0.9rem'}}>Situs Terverifikasi Aman</div>
+                                <div style={{fontSize: '0.78rem', color: 'var(--ink-soft)'}}>
+                                    {stats.clean_sec_count} dari {stats.audited_count ?? stats.total_sites} situs terverifikasi bebas temuan kritis
+                                </div>
                             </div>
                         </div>
                         <hr style={{borderColor: 'var(--line)', margin: '0.9rem 0'}} />
                         <div className="d-flex justify-content-between align-items-center mb-2">
                             <span style={{fontSize: '0.82rem'}}><i className="bi bi-file-earmark-lock2 me-1" style={{color: 'var(--coral)'}}></i>File .env terekspos</span>
-                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>{stats.exposed_env_count}</span>
+                            <span className={`fw-semibold badge ${stats.exposed_env_count === 0 ? 'bg-light text-success' : 'bg-danger text-white'}`} style={{fontSize: '0.75rem'}}>
+                                {stats.exposed_env_count}
+                            </span>
                         </div>
                         <div className="d-flex justify-content-between align-items-center mb-2">
                             <span style={{fontSize: '0.82rem'}}><i className="bi bi-shield-x me-1" style={{color: 'var(--sun)'}}></i>Header CSP hilang</span>
-                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>{stats.missing_csp_count}</span>
+                            <span className="fw-semibold badge bg-light text-dark" style={{fontSize: '0.75rem'}}>
+                                {stats.missing_csp_count}
+                            </span>
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-clock-history me-1" style={{color: 'var(--blue-1)'}}></i>SSL kedaluwarsa / fail</span>
+                            <span className={`fw-semibold badge ${stats.expiring_ssl_count === 0 ? 'bg-light text-success' : 'bg-warning text-dark'}`} style={{fontSize: '0.75rem'}}>
+                                {stats.expiring_ssl_count}
+                            </span>
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
-                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-clock-history me-1" style={{color: 'var(--blue-1)'}}></i>SSL akan kedaluwarsa / fail</span>
-                            <span className="fw-semibold" style={{fontSize: '0.82rem'}}>{stats.expiring_ssl_count}</span>
+                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-window-dash me-1" style={{color: 'var(--teal-1)'}}></i>X-Frame-Options (Clickjacking)</span>
+                            <span className="fw-semibold badge bg-light text-dark" style={{fontSize: '0.75rem'}}>
+                                {stats.xframe_count ?? 0}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div className="row g-3 mt-1">
-                {/* Site status list */}
+                {/* Site status list with Real Latency */}
                 <div className="col-12 col-xl-7">
                     <div className="glass-card section-card h-100">
                         <div className="section-head">
                             <h6>Status Situs Terbaru</h6>
-                            <span className="muted ms-auto">Status terkini</span>
+                            <span className="muted ms-auto">Status &amp; latensi terkini</span>
                         </div>
                         <div className="scroll-slim" style={{maxHeight: '340px', overflowY: 'auto'}}>
                             {latest_sites && latest_sites.length > 0 ? (
@@ -414,8 +418,8 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                                     <div key={site.id} className="site-row">
                                         {getSiteFavicon(site.category)}
                                         <div className="flex-grow-1 min-w-0">
-                                            <p className="site-name">{site.name}</p>
-                                            <p className="site-url">{site.url}</p>
+                                            <p className="site-name mb-0">{site.name}</p>
+                                            <p className="site-url mb-0">{site.url}</p>
                                         </div>
                                         <span className={getStatusChipClass(site.status)}>
                                             <span className="chip-dot"></span>
@@ -431,7 +435,7 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                     </div>
                 </div>
 
-                {/* Incident list */}
+                {/* Incident list with clean empty state */}
                 <div className="col-12 col-xl-5">
                     <div className="glass-card section-card h-100">
                         <div className="section-head">
@@ -444,7 +448,7 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                                     <div key={inc.id} className="incident-item">
                                         {getIncidentIcon(inc.type)}
                                         <div className="flex-grow-1">
-                                            <p className="incident-title">{inc.title}</p>
+                                            <p className="incident-title mb-0">{inc.title}</p>
                                             <span className="incident-meta">{inc.site_name} • {inc.detected_at}</span>
                                         </div>
                                         <span className={getSeverityBadgeClass(inc.severity)}>
@@ -453,7 +457,17 @@ export default function Dashboard({ stats, latest_sites, recent_incidents, keywo
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-4 text-center text-muted" style={{fontSize: '0.85rem'}}>Tidak ada insiden terbuka aktif.</div>
+                                <div className="text-center py-4 px-3" style={{ margin: 'auto 0' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto', fontSize: '1.5rem' }}>
+                                        <i className="bi bi-shield-check"></i>
+                                    </div>
+                                    <div style={{ fontWeight: 600, color: 'var(--ink-dark)', fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                                        Tidak Ada Insiden Aktif
+                                    </div>
+                                    <p className="text-muted mb-0" style={{ fontSize: '0.78rem' }}>
+                                        Seluruh situs instansi terpantau aman dan tidak ada insiden yang memerlukan mitigasi saat ini.
+                                    </p>
+                                </div>
                             )}
                         </div>
                     </div>

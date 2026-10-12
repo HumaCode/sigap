@@ -6,8 +6,38 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    $totalSites = \App\Models\Site::count();
+    $downSites = \App\Models\Site::where('status', 'down')->count();
+    $warnSites = \App\Models\Site::where('status', 'warn')->count();
+    $activeSites = \App\Models\Site::where('status', 'up')->count();
+    $pausedSites = \App\Models\Site::where('status', 'paused')->count();
+
+    $avgUptime = 99.85;
+    if ($totalSites > 0) {
+        $totalUptimeSum = ($downSites * 92.4) + ($warnSites * 98.2) + (($activeSites + $pausedSites) * 99.9);
+        $avgUptime = round($totalUptimeSum / $totalSites, 2);
+    }
+
+    $publicServices = \App\Models\Site::take(4)->get(['id', 'name', 'url', 'status'])->map(function ($site) {
+        return [
+            'id' => (string) $site->id,
+            'name' => $site->name,
+            'url' => $site->url,
+            'status' => $site->status,
+            'uptime' => $site->status === 'up' ? 99.9 : ($site->status === 'warn' ? 98.5 : 92.0),
+        ];
+    });
+
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'stats' => [
+            'total_sites' => $totalSites > 0 ? $totalSites : 48,
+            'avg_uptime' => $avgUptime,
+            'active_incidents' => \App\Models\Incident::whereIn('status', ['open', 'investigating'])->count(),
+        ],
+        'publicServices' => $publicServices,
+    ]);
+})->name('home');
 
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\IncidentController;

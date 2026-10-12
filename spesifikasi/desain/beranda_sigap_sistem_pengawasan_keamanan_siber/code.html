@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="id"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>SIGAP - Sistem Informasi Pengawasan &amp; Tanggap Keamanan Siber Situs Instansi Pemerintah</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;background-image:linear-gradient(to right,rgba(14,165,163,0.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(14,165,163,0.04) 1px,transparent 1px);background-size:32px 32px;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface-tint":"#4fdbc8","error-container":"#93000a","primary-fixed":"#71f8e4","on-error-container":"#ffdad6","primary":"#4fdbc8","on-error":"#690005","surface-container-highest":"#2d3449","on-surface":"#dae2fd","surface-bright":"#31394d","tertiary-fixed":"#eaddff","on-background":"#dae2fd","secondary-container":"#3198dc","primary-fixed-dim":"#4fdbc8","surface-container":"#171f33","on-primary-fixed-variant":"#005048","surface-container-lowest":"#060e20","surface-variant":"#2d3449","on-tertiary-fixed-variant":"#5a00c6","on-tertiary":"#3f008e","surface-container-low":"#131b2e","tertiary-fixed-dim":"#d2bbff","on-secondary-container":"#002c47","secondary-fixed":"#cce5ff","on-surface-variant":"#bbcac6","inverse-primary":"#006b5f","on-primary":"#003731","on-tertiary-fixed":"#25005a","secondary-fixed-dim":"#93ccff","tertiary-container":"#b591ff","primary-container":"#14b8a6","surface":"#0b1326","surface-container-high":"#222a3d","on-primary-container":"#00423b","on-secondary-fixed":"#001d31","surface-dim":"#0b1326","outline-variant":"#3c4947","secondary":"#93ccff","on-secondary":"#003351","on-primary-fixed":"#00201c","tertiary":"#d2bbff","inverse-on-surface":"#283044","on-tertiary-container":"#4b00a7","inverse-surface":"#dae2fd","outline":"#859490","on-secondary-fixed-variant":"#004b73","error":"#ffb4ab","background":"#0b1326"},borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},spacing:{"gutter-mobile":"0.75rem","margin-mobile":"1rem","margin":"2rem","space-sm":"0.5rem","space-xl":"2.5rem","space-md":"1rem","gutter":"1.5rem","space-lg":"1.5rem","space-xs":"0.25rem"},fontFamily:{"body-md":["Inter"],"headline-xl-mobile":["Plus Jakarta Sans"],"body-sm":["Inter"],"display-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"label-sm":["JetBrains Mono"],"display-lg-mobile":["Plus Jakarta Sans"],"label-md":["JetBrains Mono"],"headline-xl":["Plus Jakarta Sans"],"body-lg":["Inter"],"headline-sm":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"label-lg":["JetBrains Mono"]},fontSize:{"body-md":["1rem",{"lineHeight":"1.5rem","letterSpacing":"-0.005em","fontWeight":"400"}],"headline-xl-mobile":["1.75rem",{"lineHeight":"2.25rem","letterSpacing":"-0.02em","fontWeight":"700"}],"body-sm":["0.875rem",{"lineHeight":"1.25rem","letterSpacing":"0em","fontWeight":"400"}],"display-lg":["3.5rem",{"lineHeight":"4rem","letterSpacing":"-0.03em","fontWeight":"800"}],"headline-md":["1.5rem",{"lineHeight":"2rem","letterSpacing":"-0.015em","fontWeight":"600"}],"label-sm":["0.625rem",{"lineHeight":"0.875rem","letterSpacing":"0.08em","fontWeight":"500"}],"display-lg-mobile":["2.25rem",{"lineHeight":"2.75rem","letterSpacing":"-0.02em","fontWeight":"800"}],"label-md":["0.75rem",{"lineHeight":"1rem","letterSpacing":"0.06em","fontWeight":"500"}],"headline-xl":["2.5rem",{"lineHeight":"3rem","letterSpacing":"-0.025em","fontWeight":"700"}],"body-lg":["1.125rem",{"lineHeight":"1.75rem","letterSpacing":"-0.01em","fontWeight":"400"}],"headline-sm":["1.25rem",{"lineHeight":"1.75rem","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg":["2rem",{"lineHeight":"2.5rem","letterSpacing":"-0.02em","fontWeight":"700"}],"label-lg":["0.875rem",{"lineHeight":"1.25rem","letterSpacing":"0.05em","fontWeight":"600"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface min-h-screen relative selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 w-full z-50 bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="h-20 w-full max-w-[1800px] mx-auto px-margin flex items-center justify-between"><div class="flex items-center gap-space-md"><img alt="SIGAP Shield Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UiPAjcxzhNoSFsGiB8bVBSdtsfNeYsyUpG0TyBJYDg4zky3rnYMkcnwgSlVn_Whuc1gWl_D6GDazW2kj0NNmDlHaS8cB80ptMHXTOJ1xIte6pIIvcz94358XOI1fwEeaP6ePvSvvHolpziKs_K2qA15hmOVRdRqgvi6ObbD_3WjV_9X3p6fJ7S2f4B02J56MCqaZfia4l7qlu37CjG4Yp45I6PxloCq_UOWiCUqDX3wHouoxTsdD9bdYk"/><div class="flex flex-col"><span class="font-headline-md text-headline-md tracking-wider text-primary leading-none">SIGAP</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-0.5">Monitoring Situs Instansi</span></div></div><nav class="hidden xl:flex items-center gap-space-lg" data-active-classes="text-primary font-semibold"><a aria-current="page" class="transition-colors text-primary font-semibold" data-path="beranda" href="#">Beranda</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="pilar-pengawasan" href="#">Pilar Pengawasan</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="status-layanan-publik" href="#">Status Layanan Publik</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="mitigasi-insiden-ai" href="#">Mitigasi Insiden AI</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="kontak-csirt" href="#">Kontak CSIRT</a></nav><div class="flex items-center gap-space-md"><a class="hidden sm:inline-flex items-center gap-space-xs px-space-md py-space-sm rounded-lg bg-gradient-to-r from-primary-container to-surface-tint text-on-primary font-headline-sm text-label-md font-semibold tracking-wide shadow-[0_0_16px_rgba(20,184,166,0.35)] hover:shadow-[0_0_24px_rgba(20,184,166,0.55)] transition-all" data-path="login" href="#"><span class="material-symbols-outlined text-[18px]">login</span><span>Masuk ke Portal</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-transparent min-h-screen"><div class="flex flex-col w-full">
+<!-- Top Ambient Glow Aura -->
+<div class="relative w-full overflow-hidden">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] bg-gradient-to-b from-primary/15 via-secondary/10 to-transparent blur-[140px] pointer-events-none -z-10"></div>
+<div class="absolute -top-32 right-10 w-96 h-96 bg-primary-container/10 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+<div class="absolute top-48 -left-20 w-80 h-80 bg-tertiary-container/10 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+<!-- SECTION 1: HERO VIEWPORT -->
+<section class="w-full max-w-[1800px] mx-auto px-margin pt-6 pb-20 lg:pt-10 lg:pb-28">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<!-- Left Hero Content (7 Cols) -->
+<div class="lg:col-span-7 flex flex-col items-start space-y-6">
+<!-- Live Telemetry Pill Badge -->
+<div class="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-surface-container-high/80 backdrop-blur-xl shadow-sm">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+</span>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-widest font-semibold">
+              SISTEM PEMANTAUAN REALTIME AKTIF
+            </span>
+<span class="text-on-surface-variant text-label-sm font-label-sm hidden sm:inline">• 24/7 Pengawasan Siber Pemda</span>
+</div>
+<!-- Hero Headline -->
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface font-extrabold tracking-tight leading-tight">
+            Pengawasan Ketersediaan &amp; <span class="bg-gradient-to-r from-primary via-primary-fixed to-secondary bg-clip-text text-transparent">Ketahanan Siber</span> Situs Instansi Pemerintah
+          </h1>
+<!-- Hero Subheadline -->
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
+            Solusi otomatisasi pemantauan uptime 24/7, pencegahan defacement, pendeteksi dini konten ilegal (judi online &amp; obat terlarang), serta respon insiden berbasis AI terintegrasi untuk kedaulatan portal publik.
+          </p>
+<!-- Dual CTA Buttons -->
+<div class="flex flex-wrap items-center gap-4 pt-2 w-full sm:w-auto">
+<a class="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary-container via-surface-tint to-primary text-on-primary font-headline-sm text-label-lg font-bold shadow-[0_0_24px_rgba(20,184,166,0.4)] hover:shadow-[0_0_36px_rgba(20,184,166,0.65)] hover:scale-[1.02] active:scale-[0.98] transition-all" href="#portal">
+<span class="material-symbols-outlined text-[20px]">login</span>
+<span>Akses Portal SIGAP</span>
+</a>
+<a class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-surface-container-high/70 hover:bg-surface-container-highest text-secondary font-headline-sm text-label-lg font-semibold backdrop-blur-xl shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all" href="#transparansi-status">
+<span class="material-symbols-outlined text-[20px] text-primary">radar</span>
+<span>Pantau Status Terkini</span>
+</a>
+</div>
+<!-- Quick Micro-Badges -->
+<div class="pt-4 flex flex-wrap items-center gap-6 font-label-md text-label-md text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+<span>Standar BSSN SPBE Grade A</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]">lock</span>
+<span>TLS 1.3 Strict Inspection</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-surface-tint text-[18px]">bolt</span>
+<span>Deteksi Kilat &lt;3 Detik</span>
+</div>
+</div>
+</div>
+<!-- Right Hero Interactive Showcase / HUD Matrix (5 Cols) -->
+<div class="lg:col-span-5 relative w-full flex flex-col items-center">
+<!-- Tactical HUD Base Box -->
+<div class="w-full relative rounded-2xl bg-surface-container-low/85 backdrop-blur-2xl p-6 shadow-2xl overflow-hidden">
+<!-- Top HUD Classification Bar -->
+<div class="flex items-center justify-between pb-4 mb-5 border-b border-surface-container-highest">
+<div class="flex items-center gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></div>
+<span class="font-label-sm text-label-sm text-on-surface tracking-wider font-semibold">SIGAP SOC CONSOLE // NODE-ID: JK-01</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary bg-surface-container px-2 py-0.5 rounded">DEFCON 5 • NOMINAL</span>
+</div>
+<!-- Central Radar Pulse Engine & Live Telemetry Topology -->
+<div class="relative w-full h-72 flex items-center justify-center rounded-xl bg-surface-container-lowest/80 overflow-hidden">
+<!-- Polar Radar Background Rings -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="w-64 h-64 rounded-full border border-primary/20"></div>
+<div class="w-48 h-48 rounded-full border border-primary/25"></div>
+<div class="w-32 h-32 rounded-full border border-primary/30"></div>
+<div class="w-16 h-16 rounded-full border border-primary/40 bg-primary/5"></div>
+<!-- Crosshairs -->
+<div class="absolute w-full h-[1px] bg-primary/20"></div>
+<div class="absolute h-full w-[1px] bg-primary/20"></div>
+</div>
+<!-- Sweeping Radar Beam (Conic Gradient) -->
+<div class="absolute w-64 h-64 rounded-full pointer-events-none animate-[spin_6s_linear_infinite]" style="background: conic-gradient(from 0deg, rgba(79, 219, 200, 0.35) 0deg, rgba(79, 219, 200, 0) 70deg);">
+</div>
+<!-- Center Shield Emissive Centerpiece -->
+<div class="relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-container via-surface-container-high to-surface-container flex items-center justify-center shadow-[0_0_28px_rgba(20,184,166,0.6)]">
+<span class="material-symbols-outlined text-on-primary text-[32px]" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<!-- Intercept Target Blips on Radar -->
+<div class="absolute top-12 left-16 flex items-center gap-1.5 z-10">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-label-sm text-label-sm text-secondary bg-surface-container-high/90 px-1.5 py-0.5 rounded">diskominfo.go.id (22ms)</span>
+</div>
+<div class="absolute bottom-12 right-12 flex items-center gap-1.5 z-10">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span class="font-label-sm text-label-sm text-primary bg-surface-container-high/90 px-1.5 py-0.5 rounded">bappeda.go.id (31ms)</span>
+</div>
+<div class="absolute top-16 right-16 flex items-center gap-1.5 z-10">
+<span class="w-2 h-2 rounded-full bg-surface-tint"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high/90 px-1.5 py-0.5 rounded">dinkes.go.id (19ms)</span>
+</div>
+<!-- Bottom telemetry ticker inside radar -->
+<div class="absolute bottom-2 left-4 right-4 flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>BEAM: 360° SWEEP</span>
+<span class="text-primary font-semibold">0 INFECTION DETECTED</span>
+</div>
+</div>
+<!-- Floating Metric Overlay Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+<!-- Card A: SLA -->
+<div class="p-3 rounded-xl bg-surface-container/90 backdrop-blur-md shadow-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Ketersediaan</span>
+<span class="material-symbols-outlined text-primary text-[16px]">speed</span>
+</div>
+<div class="mt-2">
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">99.85%</div>
+<div class="font-label-sm text-label-sm text-primary flex items-center gap-1 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    28ms normal
+                  </div>
+</div>
+</div>
+<!-- Card B: SSL Health -->
+<div class="p-3 rounded-xl bg-surface-container/90 backdrop-blur-md shadow-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sertifikat SSL</span>
+<span class="material-symbols-outlined text-secondary text-[16px]">lock_clock</span>
+</div>
+<div class="mt-2">
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">100% Valid</div>
+<div class="font-label-sm text-label-sm text-secondary flex items-center gap-1 mt-0.5">
+                    Grade A+ BSSN
+                  </div>
+</div>
+</div>
+<!-- Card C: AI Threat Engine -->
+<div class="p-3 rounded-xl bg-surface-container/90 backdrop-blur-md shadow-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">AI Engine</span>
+<span class="material-symbols-outlined text-surface-tint text-[16px]">memory</span>
+</div>
+<div class="mt-2">
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">Aktif Siaga</div>
+<div class="font-label-sm text-label-sm text-surface-tint flex items-center gap-1 mt-0.5">
+                    0 Insiden Kritis
+                  </div>
+</div>
+</div>
+</div>
+<!-- Terminal Stream Raw Log Bar -->
+<div class="mt-4 p-3 rounded-lg bg-surface-container-lowest font-label-sm text-label-sm text-on-surface-variant flex items-center justify-between overflow-hidden">
+<div class="flex items-center gap-2 truncate">
+<span class="text-primary font-bold">[SYS_STREAM]</span>
+<span class="truncate">Automated deep crawl scan for opd-portal.go.id completed (Clean).</span>
+</div>
+<span class="text-secondary shrink-0 font-semibold">TICK: 0.12s</span>
+</div>
+</div>
+<!-- Decorative Sub-glow backdrop -->
+<div class="absolute -bottom-6 w-3/4 h-12 bg-primary/20 blur-2xl -z-10 rounded-full"></div>
+</div>
+</div>
+</section>
+</div>
+<!-- SECTION 2: LIVE TRUST & PERFORMANCE METRICS BAR -->
+<section class="w-full max-w-[1800px] mx-auto px-margin py-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Metric Card 1 -->
+<div class="p-6 rounded-2xl bg-surface-container/70 backdrop-blur-xl shadow-lg relative overflow-hidden group hover:bg-surface-container-high transition-all">
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[28px]">domain_verification</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary uppercase font-semibold tracking-wider">LIVE TELEMETRY</span>
+</div>
+<div class="mt-6">
+<div class="font-display-lg text-display-lg-mobile md:text-[2.75rem] font-extrabold text-on-surface tracking-tight leading-none">
+            48<span class="text-primary">+</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold mt-2">Situs Resmi Terpantau</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5">
+            Seluruh portal OPD, dinas vertikal, badan, &amp; kecamatan aktif diawasi secara terpusat.
+          </p>
+</div>
+</div>
+<!-- Metric Card 2 -->
+<div class="p-6 rounded-2xl bg-surface-container/70 backdrop-blur-xl shadow-lg relative overflow-hidden group hover:bg-surface-container-high transition-all">
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-secondary to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[28px]">network_check</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary uppercase font-semibold tracking-wider">RELIABILITAS</span>
+</div>
+<div class="mt-6">
+<div class="font-display-lg text-display-lg-mobile md:text-[2.75rem] font-extrabold text-on-surface tracking-tight leading-none">
+            99.85<span class="text-secondary">%</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold mt-2">SLA Ketersediaan Layanan</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5">
+            Rata-rata uptime reliabilitas ketersediaan sistem informasi publik tingkat pemerintah daerah.
+          </p>
+</div>
+</div>
+<!-- Metric Card 3 -->
+<div class="p-6 rounded-2xl bg-surface-container/70 backdrop-blur-xl shadow-lg relative overflow-hidden group hover:bg-surface-container-high transition-all">
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-surface-tint to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-xl bg-surface-tint/10 flex items-center justify-center text-surface-tint">
+<span class="material-symbols-outlined text-[28px]">alarm_on</span>
+</div>
+<span class="font-label-sm text-label-sm text-surface-tint uppercase font-semibold tracking-wider">LATENSI ALARM</span>
+</div>
+<div class="mt-6">
+<div class="font-display-lg text-display-lg-mobile md:text-[2.75rem] font-extrabold text-on-surface tracking-tight leading-none">
+            &lt; 3<span class="text-surface-tint">s</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold mt-2">Deteksi Anomali Cepat</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5">
+            Interval respon alarm darurat terverifikasi seketika terjadi lonjakan galat atau modifikasi file.
+          </p>
+</div>
+</div>
+<!-- Metric Card 4 -->
+<div class="p-6 rounded-2xl bg-surface-container/70 backdrop-blur-xl shadow-lg relative overflow-hidden group hover:bg-surface-container-high transition-all">
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-tertiary to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[28px]">psychology</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary uppercase font-semibold tracking-wider">AUTONOMOUS</span>
+</div>
+<div class="mt-6">
+<div class="font-display-lg text-display-lg-mobile md:text-[2.75rem] font-extrabold text-on-surface tracking-tight leading-none">
+            24/7<span class="text-tertiary font-normal text-headline-md"> AI</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold mt-2">Inspeksi Kecerdasan Siber</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5">
+            Pemindaian semantik tanpa henti mencegah penyusupan konten ilegal &amp; injeksi berbahaya.
+          </p>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: 4 PILAR KEUNGGULAN SIGAP -->
+<section class="w-full max-w-[1800px] mx-auto px-margin py-20" id="pilar-pengawasan">
+<!-- Section Header -->
+<div class="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-surface-container text-primary font-label-sm text-label-sm uppercase tracking-widest font-semibold mb-4">
+        ARSITEKTUR PERTAHANAN BERLAPIS
+      </div>
+<h2 class="font-headline-xl text-headline-xl-mobile md:text-headline-xl font-bold text-on-surface">
+        4 Pilar Pengawasan Siber Komprehensif
+      </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-4 leading-relaxed">
+        Dirancang khusus untuk menjaga integritas, reputasi, dan ketersediaan layanan publik pemerintah daerah dari ancaman peretasan modern.
+      </p>
+</div>
+<!-- 4 Bento Feature Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Pillar Card 1 -->
+<div class="p-8 rounded-2xl bg-surface-container/80 backdrop-blur-xl shadow-xl relative overflow-hidden group hover:bg-surface-container-high transition-all flex flex-col justify-between">
+<div class="absolute -right-12 -bottom-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 transition-transform"></div>
+<div>
+<div class="flex items-center justify-between mb-6">
+<div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-surface-container-highest flex items-center justify-center text-primary shadow-inner">
+<span class="material-symbols-outlined text-[32px]">wifi_tethering</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-semibold uppercase">
+              Auto Ping 30s
+            </span>
+</div>
+<h3 class="font-headline-lg text-headline-md md:text-headline-lg font-bold text-on-surface mb-3">
+            Pemantauan Ketersediaan (Uptime &amp; SSL)
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-6">
+            Pengecekan HTTP/HTTPS multi-node berkala, pengawasan latensi respons server, serta peringatan dini kedaluwarsa sertifikat SSL/TLS sebelum downtime merugikan masyarakat.
+          </p>
+</div>
+<!-- Inline Visual Feature Metric Pill -->
+<div class="p-4 rounded-xl bg-surface-container-lowest/80 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">verified</span>
+<div class="text-left">
+<div class="font-label-md text-label-md text-on-surface font-semibold">SSL Handshake Check</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Auto Renewal Reminder H-30</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold">ACTIVE PROTOCOL</span>
+</div>
+</div>
+<!-- Pillar Card 2 -->
+<div class="p-8 rounded-2xl bg-surface-container/80 backdrop-blur-xl shadow-xl relative overflow-hidden group hover:bg-surface-container-high transition-all flex flex-col justify-between">
+<div class="absolute -right-12 -bottom-12 w-48 h-48 bg-error/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 transition-transform"></div>
+<div>
+<div class="flex items-center justify-between mb-6">
+<div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-error/20 to-surface-container-highest flex items-center justify-center text-error shadow-inner">
+<span class="material-symbols-outlined text-[32px]">shield_lock</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-error/15 text-error font-label-sm text-label-sm font-semibold uppercase">
+              Deep Crawler
+            </span>
+</div>
+<h3 class="font-headline-lg text-headline-md md:text-headline-lg font-bold text-on-surface mb-3">
+            Scanner Konten Ilegal &amp; Defacement
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-6">
+            Algoritma pendeteksi sisipan webshell backdoor, script defacement visual, serta injeksi kata kunci terlarang (promosi judi online slot/gacor, situs obat terlarang, konten pornografi).
+          </p>
+</div>
+<!-- Inline Visual Feature Metric Pill -->
+<div class="p-4 rounded-xl bg-surface-container-lowest/80 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error">policy</span>
+<div class="text-left">
+<div class="font-label-md text-label-md text-on-surface font-semibold">Kamus Kata Kunci BSSN &amp; Kominfo</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">15,000+ Regex Pattern Sinkron</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-error font-bold">ZERO TOLERANCE</span>
+</div>
+</div>
+<!-- Pillar Card 3 -->
+<div class="p-8 rounded-2xl bg-surface-container/80 backdrop-blur-xl shadow-xl relative overflow-hidden group hover:bg-surface-container-high transition-all flex flex-col justify-between">
+<div class="absolute -right-12 -bottom-12 w-48 h-48 bg-secondary/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 transition-transform"></div>
+<div>
+<div class="flex items-center justify-between mb-6">
+<div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-secondary/20 to-surface-container-highest flex items-center justify-center text-secondary shadow-inner">
+<span class="material-symbols-outlined text-[32px]">smart_toy</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-semibold uppercase">
+              AI Engine
+            </span>
+</div>
+<h3 class="font-headline-lg text-headline-md md:text-headline-lg font-bold text-on-surface mb-3">
+            Asisten Remediasi Insiden Berbasis AI
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-6">
+            Analisis akar masalah otomatis (root-cause analysis), penilaian tingkat keparahan insiden berbasis CVSS, serta rekomendasi langkah teknis instan untuk tim CSIRT dinas.
+          </p>
+</div>
+<!-- Inline Visual Feature Metric Pill -->
+<div class="p-4 rounded-xl bg-surface-container-lowest/80 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">terminal</span>
+<div class="text-left">
+<div class="font-label-md text-label-md text-on-surface font-semibold">Saran Script Mitigasi WAF / Nginx</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Panduan Eksekusi Seketika</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">READY TO DEPLOY</span>
+</div>
+</div>
+<!-- Pillar Card 4 -->
+<div class="p-8 rounded-2xl bg-surface-container/80 backdrop-blur-xl shadow-xl relative overflow-hidden group hover:bg-surface-container-high transition-all flex flex-col justify-between">
+<div class="absolute -right-12 -bottom-12 w-48 h-48 bg-tertiary/10 rounded-full blur-3xl pointer-events-none group-hover:scale-125 transition-transform"></div>
+<div>
+<div class="flex items-center justify-between mb-6">
+<div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-tertiary/20 to-surface-container-highest flex items-center justify-center text-tertiary shadow-inner">
+<span class="material-symbols-outlined text-[32px]">campaign</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-tertiary/15 text-tertiary font-label-sm text-label-sm font-semibold uppercase">
+              Multi-Channel
+            </span>
+</div>
+<h3 class="font-headline-lg text-headline-md md:text-headline-lg font-bold text-on-surface mb-3">
+            Pusat Notifikasi &amp; Alarm Terpadu
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-6">
+            Pengiriman alarm darurat otomatis melalui multi-kanal: dashboard sentral Diskominfo, Webhook Telegram Siaga 24 jam, SMS Gateway, dan surel resmi pimpinan OPD terkait.
+          </p>
+</div>
+<!-- Inline Visual Feature Metric Pill -->
+<div class="p-4 rounded-xl bg-surface-container-lowest/80 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary">send</span>
+<div class="text-left">
+<div class="font-label-md text-label-md text-on-surface font-semibold">Telegram Bot Dispatcher</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Integrasi CSIRT Response Team</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">REAL-TIME PUSH</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: PUBLIC TRANSPARENCY STATUS SHOWCASE -->
+<section class="w-full max-w-[1800px] mx-auto px-margin py-16" id="transparansi-status">
+<div class="rounded-3xl bg-surface-container/70 backdrop-blur-2xl p-8 lg:p-12 shadow-2xl relative overflow-hidden">
+<!-- Header row inside status showcase -->
+<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 border-b border-surface-container-highest">
+<div>
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-surface-container-high text-primary font-label-sm text-label-sm uppercase font-semibold mb-3">
+            TRANSPARANSI KETERSEDIAAN PUBLIK
+          </div>
+<h2 class="font-headline-xl text-headline-xl-mobile md:text-headline-xl font-bold text-on-surface">
+            Status Operasional Layanan Digital Daerah
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 max-w-xl">
+            Masyarakat dan aparatur pemerintah dapat memantau kesehatan situs publik secara terbuka tanpa mengekspos celah kerentanan teknis.
+          </p>
+</div>
+<!-- Big Operational Status Glow Pill -->
+<div class="inline-flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-primary/10 backdrop-blur-xl shadow-[0_0_24px_rgba(20,184,166,0.2)]">
+<span class="w-3.5 h-3.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">
+            Seluruh Sistem Beroperasi Normal
+          </span>
+</div>
+</div>
+<!-- 7-Day Sparkline Timeline Visualization -->
+<div class="py-8">
+<div class="flex items-center justify-between mb-3">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase">Uptime Tren 7 Hari Terakhir</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">99.91% Rata-rata Mingguan</span>
+</div>
+<!-- Bar Grid Blocks (Simulated 60 Days Uptime bar array) -->
+<div class="grid grid-cols-12 sm:grid-cols-24 md:grid-cols-48 gap-1.5 h-10 w-full items-end p-2 rounded-xl bg-surface-container-lowest/80">
+<!-- Repeatable Uptime ticks (SVG or styled divs) -->
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 1: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 2: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 3: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 4: 99.8%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 5: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 6: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 7: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 8: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 9: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 10: 99.9%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 11: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 12: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 13: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 14: 100%"></div>
+<div class="h-7 bg-secondary/80 rounded-sm hover:bg-secondary transition-colors" title="Day 15: Pemeliharaan Terjadwal (99.2%)"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 16: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 17: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 18: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 19: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 20: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 21: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 22: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 23: 100%"></div>
+<div class="h-8 bg-primary/80 rounded-sm hover:bg-primary transition-colors" title="Day 24: 100%"></div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm mt-2">
+<span>7 Hari Lalu</span>
+<span class="text-primary font-semibold">100% Bebas Defacement</span>
+<span>Hari Ini</span>
+</div>
+</div>
+<!-- Table / List of Public Government Services -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+<!-- Service Item 1 -->
+<div class="p-4 rounded-xl bg-surface-container-high/60 backdrop-blur-md flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<div class="font-headline-sm text-label-lg font-bold text-on-surface">Portal Utama Pemda</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">pemda.go.id</div>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-primary mt-1"></span>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container-highest flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Uptime 99.98%</span>
+<span class="text-primary font-semibold">Aktif Normal</span>
+</div>
+</div>
+<!-- Service Item 2 -->
+<div class="p-4 rounded-xl bg-surface-container-high/60 backdrop-blur-md flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<div class="font-headline-sm text-label-lg font-bold text-on-surface">E-Katalog Daerah (LPSE)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">lpse.pemda.go.id</div>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-primary mt-1"></span>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container-highest flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Uptime 99.89%</span>
+<span class="text-primary font-semibold">Aktif Normal</span>
+</div>
+</div>
+<!-- Service Item 3 -->
+<div class="p-4 rounded-xl bg-surface-container-high/60 backdrop-blur-md flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<div class="font-headline-sm text-label-lg font-bold text-on-surface">Layanan Kependudukan (Disdukcapil)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">dukcapil.pemda.go.id</div>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-primary mt-1"></span>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container-highest flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Uptime 100.0%</span>
+<span class="text-primary font-semibold">Aktif Normal</span>
+</div>
+</div>
+<!-- Service Item 4 -->
+<div class="p-4 rounded-xl bg-surface-container-high/60 backdrop-blur-md flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<div class="font-headline-sm text-label-lg font-bold text-on-surface">Portal Keterbukaan PPID</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">ppid.pemda.go.id</div>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-primary mt-1"></span>
+</div>
+<div class="mt-4 pt-3 border-t border-surface-container-highest flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Uptime 99.78%</span>
+<span class="text-primary font-semibold">Aktif Normal</span>
+</div>
+</div>
+</div>
+<!-- Footnote Compliance -->
+<div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-surface-container-highest">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">policy</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">
+            Dipantau sesuai Pedoman Tata Kelola Keamanan Siber BSSN No. 8/2020 &amp; Indeks SPBE Nasional.
+          </span>
+</div>
+<a class="font-label-md text-label-md text-primary hover:underline flex items-center gap-1 shrink-0" href="#bssn-compliance">
+<span>Lihat Dokumen Akreditasi</span>
+<span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</a>
+</div>
+</div>
+</section>
+<!-- SECTION 5: INTERACTIVE AI INCIDENT SIMULATION & MITIGATION FLOW -->
+<section class="w-full max-w-[1800px] mx-auto px-margin py-16" id="mitigasi-insiden-ai">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<!-- Left Explanation (5 Cols) -->
+<div class="lg:col-span-5 flex flex-col space-y-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-secondary/10 text-secondary font-label-sm text-label-sm uppercase font-semibold w-fit">
+          ORCHESTRATED REMEDIATION
+        </div>
+<h2 class="font-headline-xl text-headline-xl-mobile md:text-headline-xl font-bold text-on-surface">
+          Bagaimana AI SIGAP Menghentikan Peretasan dalam Hitungan Detik
+        </h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Ketika terjadi serangan defacement atau injeksi tautan promosi ilegal pada sub-domain OPD, mesin deteksi otonom SIGAP mengeksekusi mitigasi otomatis tanpa perlu menunggu intervensi manual berjam-jam.
+        </p>
+<div class="space-y-4 pt-2">
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary font-label-md font-bold shrink-0 mt-0.5">1</div>
+<div>
+<div class="font-headline-sm text-label-lg font-bold text-on-surface">Inspeksi Payload &amp; DOM Tree</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Membandingkan snapshot situs dengan hash basis data integritas berkala.</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary font-label-md font-bold shrink-0 mt-0.5">2</div>
+<div>
+<div class="font-headline-sm text-label-lg font-bold text-on-surface">Isolasi &amp; Rollback Cepat</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Mematikan skrip berbahaya secara virtual lewat Cloud WAF dan meregenerasi file asli.</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary font-label-md font-bold shrink-0 mt-0.5">3</div>
+<div>
+<div class="font-headline-sm text-label-lg font-bold text-on-surface">Eskalasi Tiket CSIRT Instan</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Membuat laporan forensik lengkap beserta titik celah keamanan yang dieksploitasi.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Interactive Simulation Terminal Box (7 Cols) -->
+<div class="lg:col-span-7">
+<div class="rounded-2xl bg-surface-container-low/90 backdrop-blur-2xl p-6 shadow-2xl overflow-hidden">
+<!-- Terminal Header -->
+<div class="flex items-center justify-between pb-4 border-b border-surface-container-highest">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-error/60"></span>
+<span class="w-3 h-3 rounded-full bg-warning/60"></span>
+<span class="w-3 h-3 rounded-full bg-primary/60"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-2">SIMULASI ANCAMAN SIBER // LIVE ENGINE REPLAY</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary uppercase font-semibold">STATUS: MITIGATED</span>
+</div>
+<!-- Simulation Flow Step Sequence -->
+<div class="space-y-4 py-6 font-label-md text-label-md">
+<!-- Step 1: Anomali Terdeteksi -->
+<div class="p-4 rounded-xl bg-surface-container/70 flex items-start gap-4 border-l-4 border-error">
+<span class="material-symbols-outlined text-error text-[24px] mt-0.5">warning</span>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-bold text-on-surface">ANOMALI TERDETEKSI: Injeksi URL Liar</span>
+<span class="font-label-sm text-label-sm text-error">T = +0.00s</span>
+</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm mt-1">
+                  Target: <span class="text-on-surface">bappeda.pemda.go.id/publikasi</span> • Terdeteksi keyword terlarang: <span class="text-error bg-error/10 px-1 rounded font-mono">slot-gacor-88</span>
+</div>
+</div>
+</div>
+<!-- Step 2: AI Engine Analysis & Containment -->
+<div class="p-4 rounded-xl bg-surface-container/70 flex items-start gap-4 border-l-4 border-secondary">
+<span class="material-symbols-outlined text-secondary text-[24px] mt-0.5">psychology</span>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-bold text-on-surface">ANALISIS OTONOM: AI Root-Cause Engine</span>
+<span class="font-label-sm text-label-sm text-secondary">T = +1.18s</span>
+</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm mt-1">
+                  Celah teridentifikasi: <span class="text-on-surface font-mono">Unsanitized POST /wp-comments-post.php</span>. Modul WAF menyaring IP penyerang (ASN 45823) dan memulihkan teks asli dari cache aman.
+                </div>
+</div>
+</div>
+<!-- Step 3: Resolution & CSIRT Notification -->
+<div class="p-4 rounded-xl bg-surface-container/70 flex items-start gap-4 border-l-4 border-primary">
+<span class="material-symbols-outlined text-primary text-[24px] mt-0.5">check_circle</span>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-bold text-on-surface">RESOLUSI TUNTAS: Tiket #INC-2026-088 Diterbitkan</span>
+<span class="font-label-sm text-label-sm text-primary">T = +2.45s</span>
+</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm mt-1">
+                  Notifikasi otomatis terkirim ke Telegram Tim Siber Diskominfo. Laman pulih 100% tanpa waktu henti operasional publik.
+                </div>
+</div>
+</div>
+</div>
+<!-- Bottom Summary Status Badge -->
+<div class="p-3 rounded-lg bg-surface-container-lowest flex items-center justify-between font-label-sm text-label-sm">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Total Durasi Mitigasi: 2.45 Detik (Bebas Downtime)</span>
+</div>
+<button class="px-3 py-1 rounded bg-surface-container-high text-on-surface hover:text-primary transition-colors">
+              Uji Skenario Lain
+            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 6: CALL TO ACTION BANNER (CYBER MESH GRADIENT) -->
+<section class="w-full max-w-[1800px] mx-auto px-margin py-20" id="kontak-csirt">
+<div class="relative rounded-3xl p-10 lg:p-16 overflow-hidden shadow-2xl bg-gradient-to-br from-surface-container-high via-surface-container to-surface-container-lowest">
+<!-- Cyber Mesh Glowing Elements in Background -->
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-[90px] pointer-events-none"></div>
+<div class="absolute -bottom-24 -left-24 w-96 h-96 bg-secondary/20 rounded-full blur-[90px] pointer-events-none"></div>
+<div class="relative z-10 max-w-4xl mx-auto flex flex-col items-center text-center">
+<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 shadow-inner">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl-mobile md:text-headline-xl font-extrabold text-on-surface tracking-tight leading-tight">
+          Wujudkan Ekosistem Digital Pemerintah Daerah yang Tangguh, Aman, dan Bebas Ancaman Siber
+        </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mt-5 leading-relaxed">
+          Hubungi tim pengelola Diskominfo untuk integrasi pendaftaran domain situs OPD, sinkronisasi sertifikat SSL/TLS instansi, atau dapatkan bantuan teknis tanggap darurat siber.
+        </p>
+<!-- CTA Action Buttons -->
+<div class="flex flex-wrap items-center justify-center gap-4 mt-8 w-full sm:w-auto">
+<a class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-primary-container via-surface-tint to-primary text-on-primary font-headline-sm text-label-lg font-bold shadow-[0_0_24px_rgba(20,184,166,0.4)] hover:shadow-[0_0_36px_rgba(20,184,166,0.65)] hover:scale-[1.02] active:scale-[0.98] transition-all" href="#portal">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span>Masuk ke Dashboard Sistem</span>
+</a>
+<a class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-surface-container-highest/80 hover:bg-surface-container-highest text-secondary font-headline-sm text-label-lg font-semibold backdrop-blur-xl shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all" href="tel:159">
+<span class="material-symbols-outlined text-[20px] text-primary">phone_in_talk</span>
+<span>Hubungi Hotline CSIRT (159)</span>
+</a>
+</div>
+<!-- Micro Information Guarantee -->
+<div class="mt-8 flex flex-wrap items-center justify-center gap-6 text-on-surface-variant font-label-sm text-label-sm">
+<span>• Layanan Khusus Instansi Pemerintah Resmi (.go.id)</span>
+<span>• Siaga 24 Jam 7 Hari Penuh</span>
+<span>• Respons Tim Reaksi Cepat BSSN / Gov-CSIRT</span>
+</div>
+</div>
+</div>
+</section>
+</div></main><footer class="w-full bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-4px_24px_rgba(0,0,0,0.4)] mt-space-xl pt-space-xl pb-space-lg"><div class="w-full max-w-[1800px] mx-auto px-margin grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-space-xl"><div><div class="flex items-center gap-space-sm mb-space-sm"><img alt="SIGAP Shield Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UiPAjcxzhNoSFsGiB8bVBSdtsfNeYsyUpG0TyBJYDg4zky3rnYMkcnwgSlVn_Whuc1gWl_D6GDazW2kj0NNmDlHaS8cB80ptMHXTOJ1xIte6pIIvcz94358XOI1fwEeaP6ePvSvvHolpziKs_K2qA15hmOVRdRqgvi6ObbD_3WjV_9X3p6fJ7S2f4B02J56MCqaZfia4l7qlu37CjG4Yp45I6PxloCq_UOWiCUqDX3wHouoxTsdD9bdYk"/><span class="font-headline-md text-headline-md text-primary tracking-wider">SIGAP</span></div><p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed mb-space-md">Sistem Informasi Pengawasan &amp; Tanggap Keamanan Siber Terpadu. Menjaga kedaulatan digital dan integritas infrastruktur web instansi pemerintah republik Indonesia secara real-time.</p><div class="flex items-center gap-space-xs"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>DEFENSE READY</span></div></div><div><h4 class="font-headline-sm text-headline-sm text-on-surface mb-space-md">Kontak Darurat CSIRT</h4><div class="space-y-space-sm font-body-sm text-body-sm text-on-surface-variant"><div class="flex items-start gap-space-xs"><span class="material-symbols-outlined text-primary text-[20px] mt-0.5">support_agent</span><div><div class="text-on-surface font-semibold">Hotline 24/7 Tanggap Darurat</div><div class="font-label-md text-label-md text-secondary">159 / (021) 788-400-99</div></div></div><div class="flex items-start gap-space-xs"><span class="material-symbols-outlined text-primary text-[20px] mt-0.5">mail</span><div><div class="text-on-surface font-semibold">Email Insiden</div><div class="font-label-md text-label-md">incident-response@csirt.go.id</div></div></div><div class="flex items-start gap-space-xs"><span class="material-symbols-outlined text-primary text-[20px] mt-0.5">shield</span><div><div class="text-on-surface font-semibold">Unit Pengawas</div><div class="text-on-surface-variant">Diskominfo Cyber Command Centre</div></div></div></div></div><div><h4 class="font-headline-sm text-headline-sm text-on-surface mb-space-md">Tautan Resmi &amp; Tata Kelola</h4><ul class="space-y-space-sm font-body-sm text-body-sm"><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[16px]">chevron_right</span><a class="text-on-surface-variant hover:text-on-surface transition-colors" data-path="sop-insiden-siber" href="#">SOP Penanganan Insiden Siber</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[16px]">chevron_right</span><a class="text-on-surface-variant hover:text-on-surface transition-colors" data-path="bssn-compliance" href="#">Kepatuhan Standar BSSN</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[16px]">chevron_right</span><a class="text-on-surface-variant hover:text-on-surface transition-colors" data-path="panduan-pengguna" href="#">Panduan Integrasi &amp; Pengguna</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[16px]">chevron_right</span><a class="text-on-surface-variant hover:text-on-surface transition-colors" data-path="pelaporan-defacement" href="#">Pelaporan Cepat Web Defacement</a></li></ul></div><div><h4 class="font-headline-sm text-headline-sm text-on-surface mb-space-md">Sertifikasi &amp; Kemitraan</h4><p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md leading-relaxed">Terakreditasi sesuai regulasi Perpres No. 95/2018 (SPBE) dan Peraturan BSSN No. 8/2020 tentang Sistem Manajemen Keamanan Informasi.</p><div class="flex items-center gap-space-sm"><div class="px-3 py-1.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm uppercase">Gov-CSIRT ID</div><div class="px-3 py-1.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm uppercase">SPBE Grade A</div></div></div></div><div class="w-full max-w-[1800px] mx-auto px-margin pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-sm"><p class="font-body-sm text-body-sm text-on-surface-variant text-center md:text-left">© 2026 SIGAP — Dinas Komunikasi dan Informatika. Hak Cipta Dilindungi Undang-Undang.</p><div class="flex items-center gap-space-md font-label-sm text-label-sm text-on-surface-variant"><span class="hover:text-primary transition-colors cursor-pointer">Kebijakan Privasi</span><span class="text-outline-variant">•</span><span class="hover:text-primary transition-colors cursor-pointer">Ketentuan Layanan</span><span class="text-outline-variant">•</span><span class="hover:text-primary transition-colors cursor-pointer">Klasifikasi Rahasia</span></div></div></footer></body></html>

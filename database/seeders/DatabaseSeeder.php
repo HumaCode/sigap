@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             MenuSeeder::class,
             SiteSeeder::class,
+            IncidentSeeder::class,
+            NotificationSeeder::class,
+            KeywordSeeder::class,
         ]);
     }
 }

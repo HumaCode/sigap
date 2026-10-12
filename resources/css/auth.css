@@ -770,3 +770,168 @@
     flex-direction: column;
   }
 }
+
+/* ===== Interactive Login Alert & Field Error Styling ===== */
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+@keyframes errorSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sigap-auth-body .input-shake {
+  animation: shakeError 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.sigap-auth-body .login-alert-interactive {
+  background: rgba(254, 242, 242, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-left: 4px solid var(--coral, #ef4444);
+  border-radius: 14px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  animation: errorSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1), shakeError 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.sigap-auth-body .login-alert-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.06);
+}
+
+.sigap-auth-body .login-alert-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sigap-auth-body .login-alert-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #991b1b;
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sigap-auth-body .login-alert-desc {
+  font-size: 0.82rem;
+  color: #7f1d1d;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sigap-auth-body .login-alert-close {
+  background: transparent;
+  border: none;
+  color: #991b1b;
+  opacity: 0.6;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  margin-left: 0.25rem;
+  margin-top: -2px;
+}
+
+.sigap-auth-body .login-alert-close:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Success status alert variant */
+.sigap-auth-body .login-alert-success {
+  background: rgba(236, 253, 245, 0.94);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-left: 4px solid var(--emerald, #10b981);
+  box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.12);
+}
+
+.sigap-auth-body .login-alert-success .login-alert-icon-wrap {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.06);
+}
+
+.sigap-auth-body .login-alert-success .login-alert-title {
+  color: #065f46;
+}
+
+.sigap-auth-body .login-alert-success .login-alert-desc {
+  color: #047857;
+}
+
+.sigap-auth-body .login-alert-success .login-alert-close {
+  color: #065f46;
+}
+
+/* Interactive Field Error Badge below input */
+.sigap-auth-body .field-error-badge {
+  background: rgba(254, 242, 242, 0.9);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  margin-top: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.81rem;
+  color: #dc2626;
+  font-weight: 500;
+  animation: errorSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.06);
+}
+
+.sigap-auth-body .field-error-badge .field-error-text {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.sigap-auth-body .field-error-badge .field-error-action {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #991b1b;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sigap-auth-body .field-error-badge .field-error-action:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #7f1d1d;
+}
+

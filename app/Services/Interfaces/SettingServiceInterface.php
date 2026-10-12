@@ -18,4 +18,9 @@ interface SettingServiceInterface
      * Test connection to 9router API endpoint and retrieve available models.
      */
     public function testNineRouter(string $endpoint, string $apiKey): array;
+
+    /**
+     * Test connection to Humacode SSO server.
+     */
+    public function testSsoConnection(string $baseUrl): array;
 }

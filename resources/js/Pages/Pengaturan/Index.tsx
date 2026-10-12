@@ -13,6 +13,7 @@ import SeoTab from './Partials/SeoTab';
 import SettingsHeader from './Partials/SettingsHeader';
 import type { SettingsTabKey } from './Partials/SettingsTabsNav';
 import SettingsTabsNav from './Partials/SettingsTabsNav';
+import SsoTab, { type SsoSettingData } from './Partials/SsoTab';
 
 interface SettingsData {
     ninerouter: {
@@ -22,6 +23,7 @@ interface SettingsData {
         available_models: any[];
         has_api_key?: boolean;
     };
+    sso: SsoSettingData;
     seo: {
         meta_title: string;
         meta_description: string;
@@ -104,7 +106,7 @@ export default function Index({
             const params = new URLSearchParams(window.location.search);
             const tabParam = params.get('tab') as SettingsTabKey;
 
-            if (['ninerouter', 'seo', 'activity_log', 'general'].includes(tabParam)) {
+            if (['ninerouter', 'sso', 'seo', 'activity_log', 'general'].includes(tabParam)) {
                 return tabParam;
             }
         }
@@ -201,6 +203,14 @@ return;
                     <NineRouterTab
                         data={settings.ninerouter}
                         onSave={(data) => handleSaveGroup('ninerouter', data)}
+                        isSaving={isSaving}
+                    />
+                )}
+
+                {activeTab === 'sso' && (
+                    <SsoTab
+                        data={settings.sso}
+                        onSave={(data) => handleSaveGroup('sso', data)}
                         isSaving={isSaving}
                     />
                 )}

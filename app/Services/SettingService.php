@@ -43,6 +43,28 @@ class SettingService implements SettingServiceInterface
         $telegramBotToken = Setting::getValue('telegram_bot_token') ?: env('TELEGRAM_BOT_TOKEN', '');
         $telegramChatId = Setting::getValue('telegram_chat_id') ?: env('TELEGRAM_CHAT_ID', '');
 
+        // 5. SSO Settings
+        $ssoEnabled = (bool) Setting::getValue('sso_enabled', true);
+        $ssoAppName = Setting::getValue('sso_app_name') ?: 'SIGAP Web';
+        $ssoBaseUrl = Setting::getValue('sso_base_url') ?: env('SSO_BASE_URL', 'http://localhost:8001');
+        $ssoClientId = Setting::getValue('sso_client_id') ?: env('SSO_CLIENT_ID', '');
+        $ssoClientSecret = Setting::getValue('sso_client_secret') ?: env('SSO_CLIENT_SECRET', '');
+        $defaultCallback = (request() && request()->hasHeader('host'))
+            ? url('/auth/callback')
+            : (config('app.url') ? rtrim(config('app.url'), '/') . '/auth/callback' : 'http://localhost:8000/auth/callback');
+        $defaultLogout = (request() && request()->hasHeader('host'))
+            ? url('/auth/logout')
+            : (config('app.url') ? rtrim(config('app.url'), '/') . '/auth/logout' : 'http://localhost:8000/auth/logout');
+        $ssoRedirectUri = Setting::getValue('sso_redirect_uri') ?: $defaultCallback;
+        $ssoLogoutUri = Setting::getValue('sso_logout_uri') ?: $defaultLogout;
+        $ssoScopes = Setting::getValue('sso_scopes');
+        if (empty($ssoScopes)) {
+            $ssoScopes = ['profile', 'roles'];
+        } elseif (is_string($ssoScopes)) {
+            $ssoScopes = json_decode($ssoScopes, true) ?: explode(',', $ssoScopes);
+        }
+        $ssoFirstParty = (bool) Setting::getValue('sso_first_party', true);
+
         return [
             'ninerouter' => [
                 'endpoint' => $nineRouterEndpoint,
@@ -50,6 +72,18 @@ class SettingService implements SettingServiceInterface
                 'model' => $nineRouterModel,
                 'available_models' => $nineRouterAvailableModels,
                 'has_api_key' => !empty($nineRouterApiKey),
+            ],
+            'sso' => [
+                'enabled' => $ssoEnabled,
+                'app_name' => $ssoAppName,
+                'base_url' => $ssoBaseUrl,
+                'client_id' => $ssoClientId,
+                'client_secret' => $ssoClientSecret,
+                'has_client_secret' => !empty($ssoClientSecret),
+                'redirect_uri' => $ssoRedirectUri,
+                'logout_uri' => $ssoLogoutUri,
+                'scopes' => array_values((array) $ssoScopes),
+                'first_party' => $ssoFirstParty,
             ],
             'seo' => [
                 'meta_title' => $seoMetaTitle,
@@ -92,6 +126,28 @@ class SettingService implements SettingServiceInterface
                 }
                 if (isset($data['available_models']) && is_array($data['available_models'])) {
                     Setting::setValue('ninerouter_available_models', $data['available_models'], 'ninerouter', false);
+                }
+                break;
+
+            case 'sso':
+                Setting::setValue('sso_enabled', !empty($data['sso_enabled']), 'sso', false);
+                Setting::setValue('sso_app_name', $data['sso_app_name'] ?? 'SIGAP Web', 'sso', false);
+                Setting::setValue('sso_base_url', rtrim(trim($data['sso_base_url'] ?? 'http://localhost:8001'), '/'), 'sso', false);
+                Setting::setValue('sso_redirect_uri', trim($data['sso_redirect_uri'] ?? ''), 'sso', false);
+                Setting::setValue('sso_logout_uri', trim($data['sso_logout_uri'] ?? ''), 'sso', false);
+                
+                $scopes = $data['sso_scopes'] ?? ['profile', 'roles'];
+                if (is_string($scopes)) {
+                    $scopes = explode(',', $scopes);
+                }
+                Setting::setValue('sso_scopes', array_values((array) $scopes), 'sso', false);
+                Setting::setValue('sso_first_party', !empty($data['sso_first_party']), 'sso', false);
+
+                if (isset($data['sso_client_id'])) {
+                    Setting::setValue('sso_client_id', trim($data['sso_client_id']), 'sso', false);
+                }
+                if (!empty($data['sso_client_secret'])) {
+                    Setting::setValue('sso_client_secret', trim($data['sso_client_secret']), 'sso', true);
                 }
                 break;
 
@@ -204,4 +260,37 @@ class SettingService implements SettingServiceInterface
             ];
         }
     }
+
+    public function testSsoConnection(string $baseUrl): array
+    {
+        $normalizedUrl = rtrim(trim($baseUrl), '/');
+
+        try {
+            $response = Http::withoutVerifying()
+                ->timeout(8)
+                ->get($normalizedUrl);
+
+            // Any standard HTTP response indicates the SSO host is reachable and active
+            if ($response->successful() || in_array($response->status(), [200, 301, 302, 400, 401, 403, 404, 405])) {
+                return [
+                    'success' => true,
+                    'message' => "Koneksi ke Server SSO HumaCode berhasil! Server merespons aktif pada {$normalizedUrl} (HTTP {$response->status()}).",
+                    'status' => $response->status(),
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => "Server SSO merespons dengan status HTTP {$response->status()}.",
+                'status' => $response->status(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('SSO connection test failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Gagal menghubungi server SSO HumaCode: ' . $e->getMessage(),
+            ];
+        }
+    }
 }
+

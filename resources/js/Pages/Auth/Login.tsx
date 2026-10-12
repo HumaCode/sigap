@@ -1,15 +1,17 @@
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler, useState, KeyboardEvent } from 'react';
+import { FormEventHandler, useState, KeyboardEvent, useRef } from 'react';
 import PopupLoader from '@/Components/PopupLoader';
 
 export default function Login({
     status,
     canResetPassword,
+    ssoEnabled = true,
 }: {
     status?: string;
     canResetPassword: boolean;
+    ssoEnabled?: boolean;
 }) {
     const { props: pageProps } = usePage<PageProps>();
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -23,6 +25,19 @@ export default function Login({
     const [loaderOpen, setLoaderOpen] = useState(false);
     const [loaderStatus, setLoaderStatus] = useState<'loading' | 'success'>('loading');
     const [loaderMessage, setLoaderMessage] = useState('Memverifikasi kredensial...');
+    const [shakeTrigger, setShakeTrigger] = useState(false);
+    const [dismissedFlash, setDismissedFlash] = useState(false);
+    const [dismissedStatus, setDismissedStatus] = useState(false);
+
+    const loginInputRef = useRef<HTMLInputElement>(null);
+    const passwordInputRef = useRef<HTMLInputElement>(null);
+
+    const handleSsoLogin = () => {
+        setLoaderStatus('loading');
+        setLoaderMessage('Mengalihkan ke Server SSO HumaCode...');
+        setLoaderOpen(true);
+        window.location.href = route('sso.redirect');
+    };
 
     const handleKeyChange = (e: KeyboardEvent<HTMLInputElement>) => {
         setIsCapsLockOn(e.getModifierState('CapsLock'));
@@ -31,21 +46,35 @@ export default function Login({
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
+        let timerId: any = null;
+
         post(route('login'), {
             onBefore: () => {
                 setLoaderStatus('loading');
-                setLoaderMessage('Memverifikasi kredensial...');
+                setLoaderMessage('Memverifikasi kredensial akun...');
                 setLoaderOpen(true);
+
+                timerId = setTimeout(() => {
+                    setLoaderMessage('Memvalidasi token & enkripsi sesi...');
+                }, 800);
             },
             onSuccess: (page) => {
+                if (timerId) clearTimeout(timerId);
                 setLoaderStatus('success');
                 const userName = (page.props as any).auth?.user?.name || 'Pengguna';
                 setLoaderMessage(`Selamat datang, ${userName}! Mengalihkan ke dashboard...`);
             },
             onError: () => {
+                if (timerId) clearTimeout(timerId);
                 setLoaderOpen(false);
+                setDismissedFlash(false);
+                setShakeTrigger(true);
+                setTimeout(() => setShakeTrigger(false), 500);
             },
-            onFinish: () => reset('password'),
+            onFinish: () => {
+                if (timerId) clearTimeout(timerId);
+                reset('password');
+            },
         });
     };
 
@@ -61,17 +90,51 @@ export default function Login({
             </div>
             <p className="subtitle">Masuk ke akun Anda untuk mengakses dashboard monitoring.</p>
 
-            {status && (
-                <div className="alert alert-success py-2 px-3 mb-3 d-flex align-items-center gap-2 rounded-3" role="alert">
-                    <i className="bi bi-info-circle-fill"></i>
-                    <span>{status}</span>
+            {/* Interactive Status Alert */}
+            {status && !dismissedStatus && (
+                <div className="login-alert-interactive login-alert-success" role="alert">
+                    <div className="login-alert-icon-wrap">
+                        <i className="bi bi-check-circle-fill"></i>
+                    </div>
+                    <div className="login-alert-body">
+                        <div className="login-alert-title">
+                            <span>Informasi Sesi</span>
+                        </div>
+                        <p className="login-alert-desc">{status}</p>
+                    </div>
+                    <button
+                        type="button"
+                        className="login-alert-close"
+                        onClick={() => setDismissedStatus(true)}
+                        title="Tutup pesan"
+                        aria-label="Tutup"
+                    >
+                        <i className="bi bi-x-lg"></i>
+                    </button>
                 </div>
             )}
 
-            {pageProps?.flash?.error && (
-                <div className="alert alert-danger py-2 px-3 mb-3 d-flex align-items-center gap-2 rounded-3" role="alert">
-                    <i className="bi bi-exclamation-triangle-fill"></i>
-                    <span>{pageProps.flash.error}</span>
+            {/* Interactive Flash Error Alert */}
+            {pageProps?.flash?.error && !dismissedFlash && (
+                <div className="login-alert-interactive" role="alert">
+                    <div className="login-alert-icon-wrap">
+                        <i className="bi bi-shield-exclamation"></i>
+                    </div>
+                    <div className="login-alert-body">
+                        <div className="login-alert-title">
+                            <span>Peringatan Akses</span>
+                        </div>
+                        <p className="login-alert-desc">{pageProps.flash.error}</p>
+                    </div>
+                    <button
+                        type="button"
+                        className="login-alert-close"
+                        onClick={() => setDismissedFlash(true)}
+                        title="Tutup pesan"
+                        aria-label="Tutup"
+                    >
+                        <i className="bi bi-x-lg"></i>
+                    </button>
                 </div>
             )}
 
@@ -82,13 +145,14 @@ export default function Login({
                         <span>Email atau Username</span>
                         <span className="text-muted" style={{ fontSize: '0.76rem', fontWeight: 400 }}>ID Terdaftar</span>
                     </label>
-                    <div className="input-modern">
+                    <div className={`input-modern ${shakeTrigger && errors.login ? 'input-shake' : ''}`}>
                         <i className={`bi bi-person-badge icon-left ${errors.login ? 'text-danger' : ''}`}></i>
                         <input
+                            ref={loginInputRef}
                             type="text"
                             className={`form-control ${errors.login ? 'is-invalid' : ''}`}
                             id="login"
-                            placeholder="user@humacode.com atau username"
+                            placeholder="Masukkan username / email"
                             autoComplete="username"
                             required
                             value={data.login}
@@ -96,8 +160,22 @@ export default function Login({
                         />
                     </div>
                     {errors.login && (
-                        <div className="text-danger mt-2 ms-1" style={{ fontSize: '0.84rem', fontWeight: 500 }}>
-                            <i className="bi bi-exclamation-circle-fill me-1"></i> {errors.login}
+                        <div className="field-error-badge">
+                            <div className="field-error-text">
+                                <i className="bi bi-exclamation-octagon-fill"></i>
+                                <span>{errors.login}</span>
+                            </div>
+                            <button
+                                type="button"
+                                className="field-error-action"
+                                onClick={() => {
+                                    setData('login', '');
+                                    loginInputRef.current?.focus();
+                                }}
+                                title="Kosongkan dan ketik ulang"
+                            >
+                                <i className="bi bi-arrow-counterclockwise me-1"></i>Reset
+                            </button>
                         </div>
                     )}
                 </div>
@@ -107,13 +185,14 @@ export default function Login({
                     <label htmlFor="password" className="form-label">
                         <span>Kata Sandi</span>
                     </label>
-                    <div className="input-modern position-relative">
+                    <div className={`input-modern position-relative ${shakeTrigger && errors.password ? 'input-shake' : ''}`}>
                         <i className={`bi bi-shield-lock icon-left ${errors.password ? 'text-danger' : ''}`}></i>
                         <input
+                            ref={passwordInputRef}
                             type={showPassword ? 'text' : 'password'}
                             className={`form-control ${errors.password ? 'is-invalid' : ''}`}
                             id="password"
-                            placeholder="Masukkan kata sandi akun"
+                            placeholder="Masukkan password"
                             autoComplete="current-password"
                             required
                             value={data.password}
@@ -141,8 +220,22 @@ export default function Login({
                     )}
 
                     {errors.password && (
-                        <div className="text-danger mt-2 ms-1" style={{ fontSize: '0.84rem', fontWeight: 500 }}>
-                            <i className="bi bi-exclamation-circle-fill me-1"></i> {errors.password}
+                        <div className="field-error-badge">
+                            <div className="field-error-text">
+                                <i className="bi bi-exclamation-octagon-fill"></i>
+                                <span>{errors.password}</span>
+                            </div>
+                            <button
+                                type="button"
+                                className="field-error-action"
+                                onClick={() => {
+                                    setData('password', '');
+                                    passwordInputRef.current?.focus();
+                                }}
+                                title="Kosongkan kata sandi"
+                            >
+                                <i className="bi bi-arrow-counterclockwise me-1"></i>Reset
+                            </button>
                         </div>
                     )}
                 </div>
@@ -183,17 +276,21 @@ export default function Login({
                     )}
                 </button>
 
-                <div className="divider-text">atau akses via</div>
+                {ssoEnabled && (
+                    <>
+                        <div className="divider-text">atau akses via</div>
 
-                {/* SSO Button */}
-                <button
-                    type="button"
-                    className="btn btn-sso w-100"
-                    onClick={() => alert('Integrasi SSO HumaCode siap dikonfigurasikan dengan OAuth2 / Single Sign-On.')}
-                >
-                    <i className="bi bi-fingerprint text-teal" style={{ color: 'var(--teal-1)', fontSize: '1.2rem' }}></i>
-                    <span style={{ fontWeight: 600 }}>Masuk dengan SSO HumaCode</span>
-                </button>
+                        {/* SSO Button */}
+                        <button
+                            type="button"
+                            className="btn btn-sso w-100"
+                            onClick={handleSsoLogin}
+                        >
+                            <i className="bi bi-fingerprint text-teal" style={{ color: 'var(--teal-1)', fontSize: '1.2rem' }}></i>
+                            <span style={{ fontWeight: 600 }}>Masuk dengan SSO HumaCode</span>
+                        </button>
+                    </>
+                )}
             </form>
 
             {/* Footer Trust Note */}
@@ -206,6 +303,8 @@ export default function Login({
                 isOpen={loaderOpen}
                 status={loaderStatus}
                 message={loaderMessage}
+                title={loaderStatus === 'success' ? 'Autentikasi Berhasil' : 'Memverifikasi Akses...'}
+                badgeText={loaderStatus === 'success' ? 'AKSES DITERIMA' : 'GATEWAY KEAMANAN'}
             />
         </GuestLayout>
     );

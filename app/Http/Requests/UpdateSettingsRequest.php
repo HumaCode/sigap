@@ -22,8 +22,18 @@ class UpdateSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'group' => 'required|string|in:ninerouter,seo,activity_log,general',
+            'group' => 'required|string|in:ninerouter,sso,seo,activity_log,general',
             'settings' => 'required|array',
+            // SSO rules
+            'settings.sso_enabled' => 'nullable|boolean',
+            'settings.sso_app_name' => 'nullable|string|max:100',
+            'settings.sso_base_url' => 'nullable|string|max:255',
+            'settings.sso_client_id' => 'nullable|string|max:255',
+            'settings.sso_client_secret' => 'nullable|string|max:500',
+            'settings.sso_redirect_uri' => 'nullable|string|max:255',
+            'settings.sso_logout_uri' => 'nullable|string|max:255',
+            'settings.sso_scopes' => 'nullable|array',
+            'settings.sso_first_party' => 'nullable|boolean',
             // 9Router rules
             'settings.endpoint' => 'nullable|string|url|max:255',
             'settings.api_key' => 'nullable|string|max:500',

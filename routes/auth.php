@@ -33,7 +33,16 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    // HumaCode SSO Routes
+    Route::get('auth/sso/redirect', [\App\Http\Controllers\Auth\SsoAuthController::class, 'redirect'])
+        ->name('sso.redirect');
+    Route::get('auth/callback', [\App\Http\Controllers\Auth\SsoAuthController::class, 'callback'])
+        ->name('sso.callback');
 });
+
+Route::get('auth/logout', [\App\Http\Controllers\Auth\SsoAuthController::class, 'logout'])
+    ->name('sso.logout');
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)

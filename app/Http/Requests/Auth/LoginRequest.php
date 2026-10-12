@@ -67,7 +67,7 @@ class LoginRequest extends FormRequest
         RateLimiter::hit($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'login' => trans('auth.failed'),
+            'login' => 'Email/username atau kata sandi yang Anda masukkan tidak cocok.',
         ]);
     }
 

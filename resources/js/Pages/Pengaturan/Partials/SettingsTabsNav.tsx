@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type SettingsTabKey = 'ninerouter' | 'seo' | 'activity_log' | 'general';
+export type SettingsTabKey = 'ninerouter' | 'sso' | 'seo' | 'activity_log' | 'general';
 
 interface SettingsTabsNavProps {
     activeTab: SettingsTabKey;
@@ -10,6 +10,7 @@ interface SettingsTabsNavProps {
 export default function SettingsTabsNav({ activeTab, onTabChange }: SettingsTabsNavProps) {
     const tabs: Array<{ key: SettingsTabKey; label: string; icon: string }> = [
         { key: 'ninerouter', label: '9Router AI Engine', icon: 'bi-cpu-fill' },
+        { key: 'sso', label: 'SSO HumaCode', icon: 'bi-shield-lock-fill' },
         { key: 'seo', label: 'Optimasi SEO', icon: 'bi-search' },
         { key: 'activity_log', label: 'Log Aktivitas & Audit', icon: 'bi-journal-text' },
         { key: 'general', label: 'Preferensi Umum', icon: 'bi-sliders' },

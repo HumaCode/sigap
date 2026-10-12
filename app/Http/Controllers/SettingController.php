@@ -104,6 +104,7 @@ class SettingController extends Controller
 
         $groupLabels = [
             'ninerouter' => 'Konfigurasi 9Router AI Engine',
+            'sso' => 'Konfigurasi SSO HumaCode',
             'seo' => 'Pengaturan Optimasi SEO',
             'activity_log' => 'Pengaturan Log & Audit Aktivitas',
             'general' => 'Preferensi Umum Sistem',
@@ -131,6 +132,26 @@ class SettingController extends Controller
         $result = $this->settingService->testNineRouter(
             $request->input('endpoint'),
             $request->input('api_key')
+        );
+
+        return response()->json($result);
+    }
+
+    /**
+     * Test connection to HumaCode SSO server.
+     */
+    public function testSso(Request $request): JsonResponse
+    {
+        if (!$request->user() || !$request->user()->hasAnyRole(['dev', 'admin'])) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $request->validate([
+            'base_url' => 'required|string|url|max:255',
+        ]);
+
+        $result = $this->settingService->testSsoConnection(
+            $request->input('base_url')
         );
 
         return response()->json($result);

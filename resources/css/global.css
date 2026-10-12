@@ -248,56 +248,183 @@ body.authenticated-body {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+.custom-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 42, 63, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 1rem;
+}
 .custom-modal-overlay.show {
-  opacity: 1; pointer-events: auto;
+  opacity: 1;
+  pointer-events: auto;
 }
 .custom-modal-content {
+  position: relative;
   background: #ffffff;
-  border: 1px solid var(--card-border);
-  padding: 2rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 2.25rem 2rem 1.85rem;
   border-radius: 24px;
-  box-shadow: 0 20px 45px -24px rgba(15,42,63,0.3);
+  box-shadow: 0 25px 60px -20px rgba(15, 42, 63, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
   text-align: center;
-  max-width: 340px;
-  width: 90%;
-  transform: translateY(20px) scale(0.95);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  max-width: 410px;
+  width: 100%;
+  transform: translateY(18px) scale(0.96);
+  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.25);
 }
 .custom-modal-overlay.show .custom-modal-content {
   transform: translateY(0) scale(1);
 }
-.modal-icon-anim {
-  width: 70px; height: 70px;
-  background: rgba(255, 122, 110, 0.15);
-  color: var(--coral);
+.modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 2rem;
-  margin: 0 auto 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.modal-close-btn:hover {
+  background: #e2e8f0;
+  color: var(--ink);
+  transform: rotate(90deg);
+}
+.modal-icon-anim {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.1rem;
+  margin: 0 auto 1.1rem;
   position: relative;
+  transition: all 0.3s ease;
+}
+.modal-icon-anim.local-mode {
+  background: rgba(255, 122, 110, 0.14);
+  color: var(--coral);
+  box-shadow: 0 0 0 8px rgba(255, 122, 110, 0.06);
+}
+.modal-icon-anim.sso-mode {
+  background: rgba(14, 165, 163, 0.14);
+  color: var(--teal-1, #0ea5a3);
+  box-shadow: 0 0 0 8px rgba(14, 165, 163, 0.08);
 }
 .modal-icon-anim i {
-  animation: floatLogout 2s ease-in-out infinite;
+  animation: floatLogout 2.2s ease-in-out infinite;
 }
 @keyframes floatLogout {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(5px); }
+  0%, 100% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(4px) scale(1.04); }
 }
-.modal-title-bold { font-size: 1.25rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
-.modal-desc { font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 1.5rem; }
+.modal-title-bold {
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+  font-family: 'Poppins', sans-serif;
+}
+.modal-desc {
+  font-size: 0.86rem;
+  color: #64748b;
+  margin-bottom: 1.2rem;
+  line-height: 1.5;
+}
+.modal-user-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+  margin-bottom: 1.25rem;
+}
+.modal-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-1, #0ea5a3), var(--teal-2, #0d7b7e));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.88rem;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(14, 165, 163, 0.25);
+}
 .btn-cancel-custom {
-  background: transparent; border: 1px solid var(--line);
-  padding: 0.6rem 1.2rem; border-radius: 12px; font-weight: 600; font-size: 0.85rem;
-  color: var(--ink-soft); transition: all 0.2s;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 0.7rem 1.4rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #475569;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
-.btn-cancel-custom:hover { background: rgba(15,42,63,0.05); color: var(--ink); }
+.btn-cancel-custom:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+  border-color: #94a3b8;
+}
 .btn-confirm-custom {
-  background: linear-gradient(135deg, var(--coral), #ff9d6e);
-  border: none; padding: 0.6rem 1.2rem; border-radius: 12px; font-weight: 600; font-size: 0.85rem;
-  color: #fff; transition: all 0.2s; min-width: 130px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #ffffff !important;
+  transition: all 0.2s ease;
+  min-width: 155px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
 }
-.btn-confirm-custom:hover { box-shadow: 0 4px 12px rgba(255, 122, 110, 0.3); transform: translateY(-2px); }
+.btn-confirm-custom.local-btn {
+  background: linear-gradient(135deg, var(--coral), #ff9d6e);
+  box-shadow: 0 4px 14px rgba(255, 122, 110, 0.3);
+}
+.btn-confirm-custom.local-btn:hover {
+  box-shadow: 0 6px 18px rgba(255, 122, 110, 0.45);
+  transform: translateY(-2px);
+}
+.btn-confirm-custom.sso-btn {
+  background: linear-gradient(135deg, #0ea5a3, #0d7b7e);
+  box-shadow: 0 4px 14px rgba(14, 165, 163, 0.35);
+}
+.btn-confirm-custom.sso-btn:hover {
+  box-shadow: 0 6px 18px rgba(14, 165, 163, 0.48);
+  transform: translateY(-2px);
+}
+.btn-confirm-custom:disabled,
+.btn-cancel-custom:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
 
 /* ===== Custom CSS Tooltips (Sleek Glassmorphism & High Contrast) ===== */
 [data-tooltip] {

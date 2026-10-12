@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 interface SidebarProps {
@@ -9,9 +9,21 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
-    const { menus } = usePage<any>().props;
+    const { menus, sso_enabled } = usePage<any>().props;
+    const isSsoActive = Boolean(sso_enabled);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    // Keyboard ESC to close modal
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && showLogoutModal && !isLoggingOut) {
+                setShowLogoutModal(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showLogoutModal, isLoggingOut]);
 
     const handleLogout = () => {
         setIsLoggingOut(true);
@@ -97,30 +109,106 @@ export default function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
             </aside>
 
             {typeof document !== 'undefined' && createPortal(
-                <div className={`custom-modal-overlay ${showLogoutModal ? 'show' : ''}`}>
-                    <div className="custom-modal-content">
-                        <div className="modal-icon-anim">
-                            <i className="bi bi-door-open"></i>
+                <div 
+                    className={`custom-modal-overlay ${showLogoutModal ? 'show' : ''}`}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget && !isLoggingOut) {
+                            setShowLogoutModal(false);
+                        }
+                    }}
+                >
+                    <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
+                        {/* Close Button */}
+                        <button 
+                            type="button" 
+                            className="modal-close-btn" 
+                            onClick={() => setShowLogoutModal(false)}
+                            disabled={isLoggingOut}
+                            title="Tutup Modal"
+                        >
+                            <i className="bi bi-x-lg"></i>
+                        </button>
+
+                        {/* Interactive Animated Icon */}
+                        <div className={`modal-icon-anim ${isSsoActive ? 'sso-mode' : 'local-mode'}`}>
+                            <i className={`bi ${isSsoActive ? 'bi-shield-lock-fill' : 'bi-door-open'}`}></i>
                         </div>
-                        <h4 className="modal-title-bold">Keluar Sesi</h4>
-                        <p className="modal-desc">Apakah Anda yakin ingin mengakhiri sesi dan keluar dari sistem?</p>
+
+                        {/* Status Badge Pill */}
+                        <div className="mb-2">
+                            {isSsoActive ? (
+                                <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-1" style={{ fontSize: '0.74rem', fontWeight: 600 }}>
+                                    <i className="bi bi-shield-check me-1"></i>SSO HumaCode Aktif
+                                </span>
+                            ) : (
+                                <span className="badge rounded-pill bg-secondary-subtle text-muted border px-3 py-1" style={{ fontSize: '0.74rem', fontWeight: 600 }}>
+                                    <i className="bi bi-laptop me-1"></i>Sesi Lokal SIGAP
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Title */}
+                        <h4 className="modal-title-bold">
+                            {isSsoActive ? 'Keluar Sesi & SSO' : 'Keluar Sesi'}
+                        </h4>
+
+                        {/* Description */}
+                        <p className="modal-desc mb-3">
+                            {isSsoActive ? (
+                                <>
+                                    Mengakhiri sesi akan mengeluarkan Anda dari <strong>SIGAP Web</strong> serta membersihkan seluruh sesi <strong>SSO HumaCode</strong>.
+                                </>
+                            ) : (
+                                <>
+                                    Apakah Anda yakin ingin mengakhiri sesi kerja dan keluar dari sistem <strong>SIGAP Web</strong>?
+                                </>
+                            )}
+                        </p>
+
+                        {/* Active User Preview Card */}
+                        <div className="modal-user-card">
+                            <div className="modal-user-avatar">
+                                {user.name ? user.name.substring(0, 2).toUpperCase() : 'U'}
+                            </div>
+                            <div style={{ overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                                <div className="text-truncate fw-semibold" style={{ fontSize: '0.86rem', color: 'var(--ink, #0f2a3f)' }}>
+                                    {user.name}
+                                </div>
+                                <div className="text-truncate text-muted" style={{ fontSize: '0.74rem' }}>
+                                    {user.email}
+                                </div>
+                            </div>
+                            <span className="badge bg-white text-muted border px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                                {user.is_active ? 'Akun Aktif' : 'User'}
+                            </span>
+                        </div>
+
+                        {/* Action Buttons */}
                         <div className="d-flex justify-content-center gap-2">
                             <button 
-                                className="btn-cancel-custom" 
+                                type="button"
+                                className="btn-cancel-custom flex-grow-1" 
                                 onClick={() => setShowLogoutModal(false)}
                                 disabled={isLoggingOut}
                             >
                                 Batal
                             </button>
                             <button 
-                                className="btn-confirm-custom"
+                                type="button"
+                                className={`btn-confirm-custom flex-grow-1 ${isSsoActive ? 'sso-btn' : 'local-btn'}`}
                                 onClick={handleLogout}
                                 disabled={isLoggingOut}
                             >
                                 {isLoggingOut ? (
-                                    <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Proses...</>
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                        {isSsoActive ? 'Keluar SSO...' : 'Memproses...'}
+                                    </>
                                 ) : (
-                                    <><i className="bi bi-box-arrow-right"></i> Ya, Keluar</>
+                                    <>
+                                        <i className={`bi ${isSsoActive ? 'bi-shield-x' : 'bi-box-arrow-right'}`}></i>
+                                        {isSsoActive ? 'Ya, Logout SSO' : 'Ya, Keluar'}
+                                    </>
                                 )}
                             </button>
                         </div>

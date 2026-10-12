@@ -7,8 +7,8 @@
         @php
             try {
                 $seoTitle = \App\Models\Setting::getValue('seo_meta_title') ?: config('app.name', 'SIGAP Web');
-                $seoDesc = \App\Models\Setting::getValue('seo_meta_description') ?: 'Platform monitoring keamanan, defacement detection, uptime ketersediaan, dan postur keamanan aset digital pemerintah secara real-time.';
-                $seoKeywords = \App\Models\Setting::getValue('seo_meta_keywords') ?: 'monitoring website, deface detection, cyber security, government web, sigap, uptime monitoring';
+                $seoDesc = \App\Models\Setting::getValue('seo_meta_description') ?: 'Platform monitoring keamanan, defacement detection, uptime ketersediaan, dan postur keamanan aset digital dan website secara real-time.';
+                $seoKeywords = \App\Models\Setting::getValue('seo_meta_keywords') ?: 'monitoring website, deface detection, cyber security, uptime monitoring, web defense, sigap';
                 $seoAuthor = \App\Models\Setting::getValue('seo_author') ?: '';
                 $robotsIndex = (bool) \App\Models\Setting::getValue('seo_robots_index', true);
                 $seoRobots = $robotsIndex ? 'index, follow' : 'noindex, nofollow';
@@ -18,8 +18,8 @@
                 }
             } catch (\Throwable $e) {
                 $seoTitle = config('app.name', 'SIGAP Web');
-                $seoDesc = 'Platform monitoring keamanan, defacement detection, uptime ketersediaan, dan postur keamanan aset digital pemerintah secara real-time.';
-                $seoKeywords = 'monitoring website, deface detection, cyber security, government web, sigap, uptime monitoring';
+                $seoDesc = 'Platform monitoring keamanan, defacement detection, uptime ketersediaan, dan postur keamanan aset digital dan website secara real-time.';
+                $seoKeywords = 'monitoring website, deface detection, cyber security, uptime monitoring, web defense, sigap';
                 $seoAuthor = '';
                 $seoRobots = 'index, follow';
                 $googleVerification = '';
@@ -27,6 +27,13 @@
         @endphp
 
         <title inertia>{{ $seoTitle }}</title>
+
+        <!-- Favicon / Brand Icon -->
+        <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+        <link rel="apple-touch-icon" href="{{ asset('favicon.png') }}">
 
         <!-- Meta SEO & Crawlers -->
         <meta name="description" content="{{ $seoDesc }}">

@@ -48,4 +48,34 @@ class Site extends Model
     {
         return $this->hasOne(SiteSecurity::class);
     }
+
+    /**
+     * Calculate 30-day uptime percentage dynamically based on check logs.
+     */
+    public function getUptimePercentageAttribute(): float
+    {
+        if (isset($this->attributes['uptime_total_checks_30d'])) {
+            $total = (int) $this->attributes['uptime_total_checks_30d'];
+            $successful = (int) ($this->attributes['uptime_successful_checks_30d'] ?? 0);
+        } else {
+            $logs = $this->detectionLogs()
+                ->where('category', 'uptime')
+                ->where('created_at', '>=', now()->subDays(30));
+
+            $total = (clone $logs)->count();
+            $successful = (clone $logs)->where('status', 'resolved')->count();
+        }
+
+        if ($total > 0) {
+            return round(($successful / $total) * 100, 1);
+        }
+
+        // Fallback default jika belum ada riwayat log dalam 30 hari
+        return match ($this->status) {
+            'up' => 99.9,
+            'warn' => 98.2,
+            'down' => 0.0,
+            default => 99.9,
+        };
+    }
 }

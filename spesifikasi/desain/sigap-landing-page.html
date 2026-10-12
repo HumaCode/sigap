@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>SIGAP — Sistem Informasi Pengawasan & Tanggap Keamanan Siber Situs Instansi</title>
+<meta name="description" content="SIGAP memantau uptime, mendeteksi defacement dan konten ilegal, serta membantu respon insiden siber situs instansi pemerintah dengan bantuan AI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0f1d;
+  --bg-2:#0f172a;
+  --teal:#0ea5a3;
+  --teal-2:#14b8a6;
+  --blue:#0284c7;
+  --purple:#7c3aed;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --green:#22c55e;
+  --text:#e6edf7;
+  --muted:#93a1b8;
+  --glass:rgba(255,255,255,.05);
+  --glass-b:rgba(255,255,255,.10);
+  --glow:rgba(20,184,166,.35);
+  --font-h:'Poppins','Inter',system-ui,sans-serif;
+  --font-b:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --maxw:1200px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(88px + env(safe-area-inset-top,0px));color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-b);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img,svg{max-width:100%}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--teal-2);outline-offset:3px;border-radius:8px}
+.wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* ---------- Background ---------- */
+.bg-layer{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(900px 500px at 78% -8%,rgba(2,132,199,.22),transparent 60%),
+  radial-gradient(700px 480px at 8% 12%,rgba(14,165,163,.18),transparent 60%),
+  radial-gradient(800px 600px at 50% 110%,rgba(124,58,237,.14),transparent 60%),
+  linear-gradient(180deg,#0a0f1d 0%,#0b1222 100%)}
+.bg-grid{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.55;
+  background-image:linear-gradient(rgba(148,163,184,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.07) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 20%,#000 20%,transparent 75%);
+  mask-image:radial-gradient(ellipse at 50% 20%,#000 20%,transparent 75%)}
+
+/* ---------- Glass ---------- */
+.glass{background:var(--glass);border:1px solid var(--glass-b);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-radius:20px;box-shadow:0 0 0 1px rgba(20,184,166,.04),0 18px 50px -20px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font:600 15px/1 var(--font-h);padding:15px 24px;border-radius:14px;border:1px solid transparent;cursor:pointer;transition:transform .2s,box-shadow .2s,background .2s,border-color .2s;white-space:nowrap}
+.btn svg{width:18px;height:18px;flex:none}
+.btn-primary{color:#031312;background:linear-gradient(135deg,var(--teal-2),var(--teal) 55%,#38bdf8);box-shadow:0 10px 30px -8px var(--glow),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 38px -8px rgba(20,184,166,.55),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn-ghost{color:var(--text);background:rgba(255,255,255,.03);border-color:rgba(148,163,184,.28)}
+.btn-ghost:hover{border-color:var(--teal-2);background:rgba(20,184,166,.08);transform:translateY(-2px)}
+.btn-sm{padding:11px 18px;font-size:14px;border-radius:12px}
+
+/* ---------- Navbar ---------- */
+header.nav{position:sticky;top:0;z-index:50;padding:14px 0 0;padding-top:calc(14px + env(safe-area-inset-top,0px));margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 12px 10px 16px;border-radius:18px;background:rgba(10,15,29,.62);border:1px solid var(--glass-b);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{width:42px;height:42px;flex:none;filter:drop-shadow(0 0 12px rgba(20,184,166,.5))}
+.brand-text{display:flex;flex-direction:column;line-height:1.15}
+.brand-name{font:700 19px var(--font-h);letter-spacing:.06em}
+.brand-sub{font-size:11.5px;color:var(--muted)}
+nav.links{display:flex;gap:4px}
+nav.links a{padding:9px 14px;font-size:14px;font-weight:500;color:var(--muted);border-radius:10px;transition:color .2s,background .2s}
+nav.links a:hover,nav.links a.active{color:#fff;background:rgba(255,255,255,.06)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.burger{display:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--glass-b);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;align-items:center;justify-content:center}
+.burger svg{width:22px;height:22px}
+.mobile-menu{display:none;margin-top:10px;padding:10px;border-radius:18px;background:rgba(10,15,29,.92);border:1px solid var(--glass-b);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.mobile-menu a{display:block;padding:14px 16px;border-radius:12px;font-weight:500;color:var(--text)}
+.mobile-menu a:hover{background:rgba(255,255,255,.06)}
+.mobile-menu .btn{width:100%;margin-top:6px}
+.mobile-menu.open{display:block}
+
+/* ---------- Hero ---------- */
+.hero{padding:72px 0 56px}
+.hero-grid{display:grid;grid-template-columns:1.02fr 1fr;gap:56px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:8px 16px 8px 12px;border-radius:999px;font-size:13.5px;font-weight:500;color:#c8f5ee;background:rgba(20,184,166,.10);border:1px solid rgba(20,184,166,.35);box-shadow:0 0 24px -6px var(--glow)}
+.dot{position:relative;width:10px;height:10px;border-radius:50%;background:var(--green);flex:none}
+.dot::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--green);opacity:.6;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite}
+@keyframes ping{0%{transform:scale(.6);opacity:.8}80%,100%{transform:scale(1.6);opacity:0}}
+h1{font:700 clamp(34px,5.2vw,60px)/1.08 var(--font-h);letter-spacing:-.025em;margin:22px 0 20px;text-wrap:balance}
+.lead{font-size:clamp(16px,1.5vw,18.5px);color:var(--muted);max-width:56ch;margin:0 0 32px}
+.cta-row{display:flex;flex-wrap:wrap;gap:14px}
+.hero-note{display:flex;flex-wrap:wrap;gap:22px;margin-top:30px;font-size:13.5px;color:var(--muted)}
+.hero-note span{display:inline-flex;align-items:center;gap:8px}
+.hero-note svg{width:16px;height:16px;color:var(--teal-2)}
+
+/* hero visual */
+.stage{position:relative;perspective:1600px;min-height:520px;display:flex;align-items:center;justify-content:center}
+.iso{position:relative;width:100%;max-width:560px;transform-style:preserve-3d;transform:rotateX(14deg) rotateY(-18deg) rotateZ(2deg);transition:transform .5s ease}
+.stage:hover .iso{transform:rotateX(9deg) rotateY(-11deg) rotateZ(1deg)}
+.dash{padding:18px;border-radius:22px;background:linear-gradient(160deg,rgba(18,28,50,.9),rgba(10,16,32,.9));border:1px solid rgba(20,184,166,.28);box-shadow:0 40px 80px -30px rgba(0,0,0,.8),0 0 60px -20px var(--glow)}
+.dash-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.dash-top .lights{display:flex;gap:6px}
+.dash-top .lights i{width:9px;height:9px;border-radius:50%;background:#2b3750;display:block}
+.dash-top b{font:600 12px var(--font-h);color:var(--muted);letter-spacing:.04em}
+.dash-top .live{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:#9ff3e4}
+.dash-top .live .dot{width:7px;height:7px}
+.dash-top .live .dot::after{inset:-4px}
+.dash-body{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+.panel{border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);padding:14px}
+.panel h4{margin:0 0 8px;font:600 12px var(--font-b);color:var(--muted)}
+.radar-box{grid-row:span 2;display:flex;flex-direction:column}
+.radar{position:relative;width:100%;aspect-ratio:1;max-width:260px;margin:auto}
+.radar svg{width:100%;height:100%;display:block}
+.sweep{transform-origin:100px 100px;animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.blip{animation:blip 5s linear infinite;opacity:0}
+.blip.b2{animation-delay:1.4s}.blip.b3{animation-delay:2.9s}.blip.b4{animation-delay:3.8s}
+@keyframes blip{0%{opacity:0;transform:scale(.4)}8%{opacity:1;transform:scale(1)}40%{opacity:.7}70%,100%{opacity:0}}
+.gauge{position:relative;width:120px;margin:0 auto}
+.gauge svg{width:100%;display:block;transform:rotate(-90deg)}
+.gauge .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 21px var(--font-h)}
+.gauge .val small{font:500 10.5px var(--font-b);color:var(--muted)}
+.ssl{display:flex;align-items:center;gap:10px}
+.ssl .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(34,197,94,.14);color:var(--green);flex:none}
+.ssl .ic svg{width:18px;height:18px}
+.ssl b{display:block;font:600 13px var(--font-h)}
+.ssl span{font-size:11.5px;color:var(--muted)}
+.alerts{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;min-height:104px}
+.alert{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:12px;font-size:12.5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
+.alert i{width:8px;height:8px;border-radius:50%;flex:none}
+.alert .t{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+.alert.crit i{background:var(--red);box-shadow:0 0 10px var(--red)}
+.alert.warn i{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.alert.ok i{background:var(--green);box-shadow:0 0 10px var(--green)}
+.alert.crit{border-color:rgba(239,68,68,.32)}
+.alert.enter{animation:slidein .5s ease}
+@keyframes slidein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+.float{position:absolute;padding:12px 15px;border-radius:16px;display:flex;align-items:center;gap:11px;font-size:12.5px;animation:bob 6s ease-in-out infinite}
+.float b{display:block;font:600 13px var(--font-h)}
+.float span{color:var(--muted);font-size:11.5px}
+.float .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
+.float .ic svg{width:18px;height:18px}
+.f1{top:-22px;right:-18px;transform:translateZ(70px)}
+.f2{bottom:78px;left:-34px;transform:translateZ(90px);animation-delay:-2s}
+.f3{bottom:-26px;right:30px;transform:translateZ(60px);animation-delay:-4s}
+.f1 .ic{background:rgba(2,132,199,.2);color:#38bdf8}
+.f2 .ic{background:rgba(34,197,94,.16);color:var(--green)}
+.f3 .ic{background:rgba(124,58,237,.22);color:#a78bfa}
+@keyframes bob{0%,100%{margin-top:0}50%{margin-top:-9px}}
+
+/* ---------- Metrics ---------- */
+.metrics{padding:24px 0 40px}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.metric{padding:26px 24px}
+.metric .num{font:700 clamp(32px,3.6vw,44px)/1 var(--font-h);letter-spacing:-.02em;background:linear-gradient(135deg,#fff,#7dd3d0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.metric h3{margin:12px 0 6px;font:600 16px var(--font-h)}
+.metric p{margin:0;font-size:14px;color:var(--muted)}
+
+/* ---------- Sections ---------- */
+section{position:relative}
+.sec{padding:84px 0}
+.sec-head{max-width:720px;margin-bottom:44px}
+.sec-head h2{font:700 clamp(28px,3.6vw,42px)/1.15 var(--font-h);letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance}
+.sec-head p{margin:0;color:var(--muted);font-size:17px}
+
+/* pillars */
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card{padding:28px 24px;transition:transform .3s,border-color .3s,box-shadow .3s;display:flex;flex-direction:column}
+.card:hover{transform:translateY(-8px);border-color:rgba(20,184,166,.5);box-shadow:0 0 0 1px rgba(20,184,166,.12),0 28px 50px -22px rgba(20,184,166,.35)}
+.card .ic{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;margin-bottom:22px;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 38%,transparent);box-shadow:0 0 28px -8px var(--c)}
+.card .ic svg{width:26px;height:26px}
+.card h3{font:600 18.5px/1.3 var(--font-h);margin:0 0 10px}
+.card p{margin:0 0 18px;color:var(--muted);font-size:14.5px}
+.card ul{list-style:none;margin:auto 0 0;padding:16px 0 0;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:8px;font-size:13px;color:#b9c5d8}
+.card li{display:flex;gap:9px;align-items:flex-start}
+.card li svg{width:15px;height:15px;color:var(--c);flex:none;margin-top:3px}
+
+/* status */
+.status-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:20px}
+.status-main{padding:32px}
+.status-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.big-check{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;color:var(--green);background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);box-shadow:0 0 40px -8px rgba(34,197,94,.6);flex:none}
+.big-check svg{width:34px;height:34px}
+.status-head h3{font:700 clamp(21px,2.4vw,27px)/1.2 var(--font-h);margin:0 0 4px}
+.status-head p{margin:0;color:var(--muted);font-size:14px}
+.spark-wrap{margin-top:28px}
+.spark-meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:13px;color:var(--muted)}
+.spark-meta b{font:700 22px var(--font-h);color:var(--text)}
+.spark{width:100%;height:120px;display:block}
+.days{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:4px}
+.svc{margin-top:24px;display:grid;gap:10px}
+.svc div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);font-size:14px}
+.svc em{font-style:normal;display:inline-flex;align-items:center;gap:8px;color:#8ff0c0;font-size:13px}
+.svc em::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.status-side{display:grid;gap:20px}
+.side-card{padding:26px}
+.side-card h3{font:600 17px var(--font-h);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.side-card h3 svg{width:20px;height:20px;color:var(--teal-2)}
+.side-card p{margin:0;color:var(--muted);font-size:14.5px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{padding:6px 12px;border-radius:999px;font-size:12.5px;border:1px solid rgba(20,184,166,.35);background:rgba(20,184,166,.08);color:#bdf2ea}
+.privacy{display:flex;gap:12px;margin-top:16px;padding:12px 14px;border-radius:12px;background:rgba(2,132,199,.08);border:1px solid rgba(2,132,199,.28);font-size:13px;color:#b8d9ee}
+.privacy svg{width:18px;height:18px;flex:none;color:#38bdf8;margin-top:2px}
+
+/* CTA */
+.cta{padding:30px 0 90px}
+.cta-card{position:relative;overflow:hidden;border-radius:32px;padding:clamp(40px,6vw,76px) clamp(24px,5vw,64px);text-align:center;border:1px solid rgba(20,184,166,.35);
+  background:
+   radial-gradient(520px 300px at 12% 0%,rgba(14,165,163,.55),transparent 70%),
+   radial-gradient(520px 340px at 92% 20%,rgba(2,132,199,.5),transparent 70%),
+   radial-gradient(520px 360px at 55% 120%,rgba(124,58,237,.5),transparent 70%),
+   linear-gradient(160deg,#0b1428,#0a0f1d);
+  box-shadow:0 40px 90px -40px rgba(20,184,166,.5)}
+.cta-card::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:40px 40px;-webkit-mask-image:radial-gradient(ellipse at center,#000,transparent 75%);mask-image:radial-gradient(ellipse at center,#000,transparent 75%)}
+.cta-card>*{position:relative}
+.cta-card h2{font:700 clamp(26px,4vw,44px)/1.15 var(--font-h);letter-spacing:-.02em;margin:0 auto 16px;max-width:20ch;text-wrap:balance}
+.cta-card p{margin:0 auto 32px;max-width:56ch;color:#b4c3d9;font-size:17px}
+
+/* Footer */
+footer{border-top:1px solid var(--glass-b);background:rgba(7,11,22,.7);padding:64px 0 28px;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1.1fr;gap:48px}
+.foot-brand .org{display:flex;align-items:center;gap:14px;margin:20px 0 6px}
+.org-seal{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#0b3a5f,#0284c7);border:1px solid rgba(255,255,255,.2);font:700 12px var(--font-h)}
+.foot-brand p{color:var(--muted);font-size:14px;margin:12px 0 0;max-width:42ch}
+footer h4{font:600 15px var(--font-h);margin:0 0 16px}
+footer ul{list-style:none;margin:0;padding:0;display:grid;gap:11px;font-size:14px;color:var(--muted)}
+footer ul a:hover{color:var(--teal-2)}
+.hotline{display:grid;gap:12px}
+.hotline div{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:14px}
+.hotline svg{width:18px;height:18px;color:var(--teal-2);flex:none}
+.hotline small{display:block;color:var(--muted);font-size:11.5px}
+.foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;margin-top:48px;padding-top:24px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--muted)}
+.foot-bottom nav{display:flex;gap:22px;flex-wrap:wrap}
+.foot-bottom a:hover{color:var(--teal-2)}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1080px){
+  .pillars{grid-template-columns:repeat(2,1fr)}
+  .metric-grid{grid-template-columns:repeat(2,1fr)}
+  nav.links a{padding:9px 10px}
+}
+@media (max-width:960px){
+  nav.links,.nav-right .btn{display:none}
+  .burger{display:inline-flex}
+  .hero{padding-top:44px}
+  .hero-grid{grid-template-columns:1fr;gap:56px}
+  .stage{min-height:0;padding:30px 10px}
+  .iso{transform:rotateX(6deg) rotateY(-8deg)}
+  .status-grid,.foot-grid{grid-template-columns:1fr}
+  .foot-grid{gap:36px}
+}
+@media (max-width:620px){
+  .wrap{padding:0 16px}
+  .pillars,.metric-grid{grid-template-columns:1fr}
+  .dash-body{grid-template-columns:1fr}
+  .radar-box{grid-row:auto}
+  .iso{transform:none}.stage:hover .iso{transform:none}
+  .float{transform:none!important;position:relative;inset:auto;margin-top:12px;animation:none}
+  .stage{flex-direction:column;align-items:stretch}
+  .f1,.f2,.f3{top:auto;right:auto;bottom:auto;left:auto}
+  .cta-row .btn{width:100%}
+  .sec{padding:64px 0}
+  .status-main{padding:22px}
+  .brand-sub{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<div class="bg-layer" aria-hidden="true"></div>
+<div class="bg-grid" aria-hidden="true"></div>
+
+<!-- Ikon SVG (sprite) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h3a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></symbol>
+    <symbol id="i-radar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l6-6"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="i-shield-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></symbol>
+    <symbol id="i-robot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><circle cx="9" cy="14" r="1.2" fill="currentColor"/><circle cx="15" cy="14" r="1.2" fill="currentColor"/><path d="M2 13v3M22 13v3"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-telegram" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4L3 11l6 2 2 6 3-4 5 4z"/><path d="M9 13l8-6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 48 48">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset=".55" stop-color="#0ea5a3"/><stop offset="1" stop-color="#0284c7"/></linearGradient>
+      </defs>
+      <path d="M24 3l17 6v13c0 11-7.5 19.5-17 23C14.5 41.500 7 33 7 22V9z" fill="rgba(14,165,163,.16)" stroke="url(#sg)" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M24 9l11 4v9c0 7.500-4.800 13.500-11 16.500C17.800 35.500 13 29.500 13 22v-9z" fill="url(#sg)" opacity=".22"/>
+      <rect x="17.500" y="21" width="13" height="10" rx="2.200" fill="none" stroke="#e8fffb" stroke-width="2"/>
+      <path d="M20.500 21v-3.200a3.500 3.500 0 0 1 7 0V21" fill="none" stroke="#e8fffb" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="24" cy="26" r="1.600" fill="#e8fffb"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= NAVBAR ================= -->
+<header class="nav" id="beranda-top">
+  <div class="wrap">
+    <div class="nav-inner">
+      <a class="brand" href="#beranda" aria-label="SIGAP — Monitoring Situs Instansi">
+        <svg class="brand-logo" aria-hidden="true"><use href="#i-shield"/></svg>
+        <span class="brand-text">
+          <span class="brand-name">SIGAP</span>
+          <span class="brand-sub">Monitoring Situs Instansi</span>
+        </span>
+      </a>
+      <nav class="links" aria-label="Navigasi utama">
+        <a href="#beranda" class="active">Beranda</a>
+        <a href="#pilar">Pilar Pengawasan</a>
+        <a href="#status">Status Publik</a>
+        <a href="#mitigasi">Mitigasi AI</a>
+        <a href="#kontak">Kontak CSIRT</a>
+      </nav>
+      <div class="nav-right">
+        <a class="btn btn-primary btn-sm" href="#masuk"><svg><use href="#i-login"/></svg>Masuk ke Portal</a>
+        <button class="burger" id="burger" aria-label="Buka menu" aria-expanded="false" aria-controls="mmenu"><svg id="burger-ic"><use href="#i-menu"/></svg></button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mmenu">
+      <a href="#beranda">Beranda</a>
+      <a href="#pilar">Pilar Pengawasan</a>
+      <a href="#status">Status Publik</a>
+      <a href="#mitigasi">Mitigasi AI</a>
+      <a href="#kontak">Kontak CSIRT</a>
+      <a class="btn btn-primary" href="#masuk"><svg><use href="#i-login"/></svg>Masuk ke Portal</a>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ================= HERO ================= -->
+<section class="hero" id="beranda">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="pill"><span class="dot" aria-hidden="true"></span>Sistem Pemantauan Siber Realtime 24/7 Aktif</span>
+      <h1>Pengawasan Ketersediaan & Ketahanan Siber Situs Instansi Pemerintah</h1>
+      <p class="lead">Solusi otomatisasi pemantauan uptime 24/7, mitigasi defacement, deteksi dini konten ilegal (judi online &amp; obat terlarang), dan respon insiden berbasis AI terintegrasi.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#masuk"><svg><use href="#i-login"/></svg>Akses Portal Admin</a>
+        <a class="btn btn-ghost" href="#status"><svg><use href="#i-radar"/></svg>Pantau Status Terkini</a>
+      </div>
+      <div class="hero-note">
+        <span><svg><use href="#i-lock"/></svg>Data sensitif tidak ditampilkan ke publik</span>
+        <span><svg><use href="#i-eye"/></svg>Dipantau tim CSIRT Diskominfo</span>
+      </div>
+    </div>
+
+    <div class="stage" aria-label="Pratinjau dashboard SIGAP">
+      <div class="iso">
+        <div class="dash">
+          <div class="dash-top">
+            <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+            <b>SIGAP · Security Operations</b>
+            <span class="live"><span class="dot" aria-hidden="true"></span>Live</span>
+          </div>
+          <div class="dash-body">
+            <div class="panel radar-box">
+              <h4>Pemindaian situs aktif</h4>
+              <div class="radar">
+                <svg viewBox="0 0 200 200" role="img" aria-label="Radar pemindai berputar">
+                  <defs>
+                    <radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#14b8a6" stop-opacity=".18"/><stop offset="1" stop-color="#14b8a6" stop-opacity="0"/></radialGradient>
+                    <linearGradient id="sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2dd4bf" stop-opacity="0"/><stop offset="1" stop-color="#2dd4bf" stop-opacity=".75"/></linearGradient>
+                  </defs>
+                  <circle cx="100" cy="100" r="96" fill="url(#rg)" stroke="rgba(45,212,191,.45)"/>
+                  <circle cx="100" cy="100" r="68" fill="none" stroke="rgba(45,212,191,.25)"/>
+                  <circle cx="100" cy="100" r="40" fill="none" stroke="rgba(45,212,191,.25)"/>
+                  <circle cx="100" cy="100" r="14" fill="none" stroke="rgba(45,212,191,.25)"/>
+                  <path d="M100 4v192M4 100h192" stroke="rgba(45,212,191,.18)"/>
+                  <path d="M32 32l136 136M168 32L32 168" stroke="rgba(45,212,191,.08)"/>
+                  <g class="sweep"><path d="M100 100L196 100A96 96 0 0 0 166 32Z" fill="url(#sw)"/><line x1="100" y1="100" x2="196" y2="100" stroke="#5eead4" stroke-width="1.5"/></g>
+                  <g fill="#5eead4"><circle class="blip" cx="150" cy="62" r="3.500"/><circle class="blip b2" cx="62" cy="140" r="3.500" fill="#f59e0b"/><circle class="blip b3" cx="140" cy="146" r="3.500"/><circle class="blip b4" cx="70" cy="58" r="3.500"/></g>
+                  <circle cx="100" cy="100" r="3.500" fill="#e8fffb"/>
+                </svg>
+              </div>
+            </div>
+            <div class="panel">
+              <h4>Uptime layanan</h4>
+              <div class="gauge">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="9"/>
+                  <circle id="gauge-arc" cx="60" cy="60" r="52" fill="none" stroke="url(#sg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+                </svg>
+                <div class="val"><span id="gauge-num">0.00%</span><small>SLA 30 hari</small></div>
+              </div>
+            </div>
+            <div class="panel">
+              <h4>Sertifikat</h4>
+              <div class="ssl">
+                <span class="ic"><svg><use href="#i-lock"/></svg></span>
+                <div><b>TLS Valid</b><span>100% terenkripsi</span></div>
+              </div>
+            </div>
+            <div class="alerts" id="alerts" aria-live="off"></div>
+          </div>
+        </div>
+
+        <div class="float glass f1"><span class="ic"><svg><use href="#i-activity"/></svg></span><div><b>99.85% SLA</b><span>Status jaringan normal</span></div></div>
+        <div class="float glass f2"><span class="ic"><svg><use href="#i-lock"/></svg></span><div><b>SSL/TLS Health</b><span>100% valid</span></div></div>
+        <div class="float glass f3"><span class="ic"><svg><use href="#i-robot"/></svg></span><div><b>AI Remediation</b><span>Engine siap</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= METRICS ================= -->
+<section class="metrics" aria-label="Metrik utama">
+  <div class="wrap metric-grid">
+    <div class="glass metric"><div class="num"><span data-count="48" data-dec="0">48</span>+</div><h3>Situs Resmi Terpantau</h3><p>Seluruh domain OPD &amp; kecamatan aktif dalam pengawasan.</p></div>
+    <div class="glass metric"><div class="num"><span data-count="99.85" data-dec="2">99.85</span>%</div><h3>SLA Ketersediaan</h3><p>Rasio uptime rata-rata layanan portal dinas.</p></div>
+    <div class="glass metric"><div class="num">&lt; <span data-count="3" data-dec="0">3</span> detik</div><h3>Respon Deteksi</h3><p>Interval alarm saat terjadi anomali pada situs.</p></div>
+    <div class="glass metric"><div class="num">24/7</div><h3>AI-Assisted Guard</h3><p>Pemindaian otomatis tanpa henti, sepanjang waktu.</p></div>
+  </div>
+</section>
+
+<!-- ================= PILAR ================= -->
+<section class="sec" id="pilar">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>4 pilar pengawasan SIGAP</h2>
+      <p>Dari mengetahui situs mana yang turun, sampai tahu apa yang harus diperbaiki, semua dalam satu pusat kendali.</p>
+    </div>
+    <div class="pillars">
+      <article class="glass card" style="--c:#14b8a6">
+        <div class="ic"><svg><use href="#i-activity"/></svg></div>
+        <h3>Pemantauan Uptime &amp; SSL</h3>
+        <p>Pengecekan HTTP berkelanjutan, ukur latensi respon, dan peringatan sebelum sertifikat SSL/TLS kedaluwarsa.</p>
+        <ul>
+          <li><svg><use href="#i-check"/></svg>Deteksi dini downtime situs</li>
+          <li><svg><use href="#i-check"/></svg>Pengukuran latensi respon HTTP</li>
+          <li><svg><use href="#i-check"/></svg>Alert masa berlaku sertifikat</li>
+        </ul>
+      </article>
+      <article class="glass card" style="--c:#38bdf8">
+        <div class="ic"><svg><use href="#i-shield-x"/></svg></div>
+        <h3>Deteksi Konten Ilegal &amp; Deface</h3>
+        <p>Pemindaian mendalam untuk kata kunci judi online, obat terlarang, dan perubahan tampilan halaman.</p>
+        <ul>
+          <li><svg><use href="#i-check"/></svg>Sisipan link judi online</li>
+          <li><svg><use href="#i-check"/></svg>Konten obat terlarang</li>
+          <li><svg><use href="#i-check"/></svg>Script deface &amp; webshell</li>
+        </ul>
+      </article>
+      <article class="glass card" id="mitigasi" style="--c:#a78bfa">
+        <div class="ic"><svg><use href="#i-robot"/></svg></div>
+        <h3>Asisten Remediasi Insiden AI</h3>
+        <p>Analisis akar masalah otomatis dan saran mitigasi teknis yang bisa langsung dijalankan tim teknis.</p>
+        <ul>
+          <li><svg><use href="#i-check"/></svg>Analisis root cause otomatis</li>
+          <li><svg><use href="#i-check"/></svg>Langkah mitigasi instan</li>
+          <li><svg><use href="#i-check"/></svg>Rujukan untuk tim CSIRT</li>
+        </ul>
+      </article>
+      <article class="glass card" style="--c:#f59e0b">
+        <div class="ic"><svg><use href="#i-bell"/></svg></div>
+        <h3>Pusat Notifikasi Terpadu</h3>
+        <p>Peringatan instan ke banyak kanal begitu insiden kritis terdeteksi, tanpa menunggu laporan manual.</p>
+        <ul>
+          <li><svg><use href="#i-check"/></svg>Dashboard web realtime</li>
+          <li><svg><use href="#i-check"/></svg>Bot Telegram</li>
+          <li><svg><use href="#i-check"/></svg>Email instansi</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STATUS PUBLIK ================= -->
+<section class="sec" id="status">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Transparansi status layanan digital</h2>
+      <p>Kondisi layanan pemerintah daerah hari ini, terbuka untuk semua warga.</p>
+    </div>
+    <div class="status-grid">
+      <div class="glass status-main">
+        <div class="status-head">
+          <div class="big-check"><svg><use href="#i-check"/></svg></div>
+          <div>
+            <h3>Seluruh Layanan Digital Normal &amp; Aman</h3>
+            <p>Diperbarui otomatis tiap menit oleh SIGAP</p>
+          </div>
+        </div>
+        <div class="spark-wrap">
+          <div class="spark-meta"><span>Uptime 7 hari terakhir</span><b>99.89%</b></div>
+          <svg class="spark" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="Grafik uptime 7 hari terakhir, stabil di atas 99.7 persen">
+            <defs>
+              <linearGradient id="spf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14b8a6" stop-opacity=".4"/><stop offset="1" stop-color="#14b8a6" stop-opacity="0"/></linearGradient>
+              <linearGradient id="spl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#14b8a6"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+            </defs>
+            <g stroke="rgba(255,255,255,.07)"><line x1="0" y1="30" x2="600" y2="30"/><line x1="0" y1="60" x2="600" y2="60"/><line x1="0" y1="90" x2="600" y2="90"/></g>
+            <path d="M0,34 C50,30 80,24 100,26 S160,52 200,46 S270,16 300,20 S370,58 400,54 S470,24 500,28 S570,22 600,18 L600,120 L0,120Z" fill="url(#spf)"/>
+            <path d="M0,34 C50,30 80,24 100,26 S160,52 200,46 S270,16 300,20 S370,58 400,54 S470,24 500,28 S570,22 600,18" fill="none" stroke="url(#spl)" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+            <circle cx="598" cy="18" r="4.500" fill="#e8fffb"/>
+          </svg>
+          <div class="days" aria-hidden="true"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
+        </div>
+        <div class="svc">
+          <div><span>Portal resmi pemerintah daerah</span><em>Operasional</em></div>
+          <div><span>Layanan informasi publik (PPID)</span><em>Operasional</em></div>
+          <div><span>Portal data &amp; layanan warga</span><em>Operasional</em></div>
+        </div>
+      </div>
+
+      <div class="status-side">
+        <div class="glass side-card">
+          <h3><svg><use href="#i-shield"/></svg>Standar kepatuhan keamanan informasi</h3>
+          <p>SIGAP dirancang mendukung penerapan keamanan informasi pada sistem pemerintahan berbasis elektronik.</p>
+          <div class="chips"><span class="chip">SPBE</span><span class="chip">Perpres 95/2018</span><span class="chip">ISO/IEC 27001</span><span class="chip">SOP Insiden CSIRT</span></div>
+        </div>
+        <div class="glass side-card">
+          <h3><svg><use href="#i-lock"/></svg>Yang tidak ditampilkan di halaman ini</h3>
+          <p>Halaman publik hanya memuat status ketersediaan. Detail celah keamanan, log insiden, dan konfigurasi tersedia khusus untuk operator yang sudah masuk.</p>
+          <div class="privacy"><svg><use href="#i-eye"/></svg><span>Ada situs pemerintah yang tampak bermasalah? Laporkan langsung ke tim CSIRT lewat kontak di bagian bawah.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="cta" id="masuk">
+  <div class="wrap">
+    <div class="cta-card">
+      <h2>Wujudkan Ekosistem Digital Pemerintah yang Tangguh dan Bebas Ancaman Siber</h2>
+      <p>Hubungi tim pengelola Diskominfo untuk mendaftarkan domain situs OPD atau melaporkan kendala operasional.</p>
+      <a class="btn btn-primary" href="#masuk"><svg><use href="#i-login"/></svg>Buka Dashboard Sistem</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer id="kontak">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#beranda"><svg class="brand-logo" aria-hidden="true"><use href="#i-shield"/></svg><span class="brand-text"><span class="brand-name">SIGAP</span><span class="brand-sub">Monitoring Situs Instansi</span></span></a>
+        <div class="org"><div class="org-seal" aria-hidden="true">KOMINFO</div><strong>Dinas Komunikasi dan Informatika</strong></div>
+        <p>Sistem Informasi Pengawasan &amp; Tanggap Keamanan Siber Situs Instansi, dikelola oleh Diskominfo bersama tim CSIRT.</p>
+      </div>
+      <div>
+        <h4>Tautan cepat</h4>
+        <ul>
+          <li><a href="#masuk">Panduan Pengguna</a></li>
+          <li><a href="#masuk">Dokumentasi SOP Insiden</a></li>
+          <li><a href="#status">Status Layanan Publik</a></li>
+          <li><a href="#pilar">Pilar Pengawasan</a></li>
+          <li><a href="#mitigasi">Mitigasi Insiden AI</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Kontak hotline CSIRT</h4>
+        <div class="hotline">
+          <div><svg><use href="#i-phone"/></svg><span><small>Hotline tim siber, 24 jam</small>(000) 000-0000</span></div>
+          <div><svg><use href="#i-mail"/></svg><span><small>Surel CSIRT</small>csirt@instansi.go.id</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 SIGAP — Dinas Komunikasi dan Informatika. Hak Cipta Dilindungi Undang-Undang.</span>
+      <nav aria-label="Tautan hukum"><a href="#masuk">Kebijakan Privasi</a><a href="#masuk">Kepatuhan &amp; Keamanan</a></nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Mobile menu */
+  var burger=document.getElementById('burger'), menu=document.getElementById('mmenu'), ic=document.getElementById('burger-ic');
+  function setMenu(open){
+    menu.classList.toggle('open',open);
+    burger.setAttribute('aria-expanded',open);
+    burger.setAttribute('aria-label',open?'Tutup menu':'Buka menu');
+    ic.innerHTML='<use href="#'+(open?'i-close':'i-menu')+'"/>';
+  }
+  burger.addEventListener('click',function(){setMenu(!menu.classList.contains('open'))});
+  menu.addEventListener('click',function(e){if(e.target.closest('a'))setMenu(false)});
+
+  /* Gauge uptime (99.85%) */
+  var arc=document.getElementById('gauge-arc'), num=document.getElementById('gauge-num');
+  var C=326.7, target=99.85;
+  function setGauge(v){arc.style.strokeDashoffset=C*(1-v/100);num.textContent=v.toFixed(2)+'%'}
+  function animate(from,to,dur,cb){
+    if(reduce){cb(to);return}
+    var t0=performance.now();
+    function step(t){var p=Math.min((t-t0)/dur,1),e=1-Math.pow(1-p,3);cb(from+(to-from)*e);if(p<1)requestAnimationFrame(step)}
+    requestAnimationFrame(step);
+  }
+  arc.style.transition='none';
+  animate(0,target,1600,setGauge);
+
+  /* Metric counters */
+  var counters=document.querySelectorAll('[data-count]');
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting)return;
+        var el=en.target,to=parseFloat(el.dataset.count),d=parseInt(el.dataset.dec,10);
+        animate(0,to,1400,function(v){el.textContent=v.toFixed(d)});
+        io.unobserve(el);
+      });
+    },{threshold:.6});
+    counters.forEach(function(c){io.observe(c)});
+  }
+
+  /* Alert cards (kejadian contoh untuk pratinjau) */
+  var feed=[
+    {c:'ok',  t:'Pemeriksaan 48 situs selesai, semua merespon',  w:'baru saja'},
+    {c:'warn',t:'Sertifikat SSL domain kecamatan: sisa 14 hari', w:'2 mnt lalu'},
+    {c:'crit',t:'Konten mencurigakan terdeteksi, perlu ditinjau', w:'5 mnt lalu'},
+    {c:'ok',  t:'Latensi rata-rata 212 ms, dalam batas normal',   w:'8 mnt lalu'},
+    {c:'warn',t:'Waktu respon situs OPD melambat sementara',      w:'11 mnt lalu'}
+  ];
+  var box=document.getElementById('alerts'), idx=0, shown=[];
+  function render(){
+    box.innerHTML='';
+    shown.forEach(function(a,i){
+      var d=document.createElement('div');
+      d.className='alert '+a.c+(i===0&&!reduce?' enter':'');
+      d.innerHTML='<i></i><span>'+a.t+'</span><span class="t">'+a.w+'</span>';
+      box.appendChild(d);
+    });
+  }
+  for(var k=0;k<3;k++){shown.push(feed[k]);idx=3}
+  render();
+  if(!reduce){
+    setInterval(function(){
+      var next=feed[idx%feed.length];idx++;
+      shown.unshift(next);shown=shown.slice(0,3);render();
+    },3800);
+  }
+
+  /* Active nav on scroll */
+  var secs=['beranda','pilar','status','mitigasi','kontak'];
+  var links=document.querySelectorAll('nav.links a');
+  if('IntersectionObserver' in window){
+    var so=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){
+          links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)});
+        }
+      });
+    },{rootMargin:'-45% 0px -50% 0px'});
+    secs.forEach(function(id){var el=document.getElementById(id);if(el)so.observe(el)});
+  }
+})();
+</script>
+</body>
+</html>

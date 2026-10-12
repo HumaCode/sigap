@@ -9,19 +9,19 @@ services:
     image: sigap-app:latest
     container_name: sigap-app
     ports:
-      - "8000:8000"
-      - "5173:5173" # Port Vite untuk HMR di mode dev
+      - "${APP_PORT:-8093}:8000"
+      - "${VITE_PORT:-5182}:5173" # Port Vite untuk HMR di mode dev
     environment:
       - APP_NAME=${APP_NAME:-SIGAP Web}
       - APP_ENV=${APP_ENV:-local}
       - APP_DEBUG=${APP_DEBUG:-true}
-      - APP_URL=${APP_URL:-http://localhost:8000}
+      - APP_URL=${APP_URL:-http://localhost:8093}
       - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-db_sigap}
-      - DB_USERNAME=${DB_USERNAME:-root}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - DB_DATABASE=${DB_DATABASE:-sijaga}
+      - DB_USERNAME=${DB_USERNAME:-sijaga}
+      - DB_PASSWORD=${DB_PASSWORD:-sijaga2026}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - CHOKIDAR_USEPOLLING=true # Mendukung Vite HMR di Docker
@@ -50,13 +50,13 @@ services:
       - APP_NAME=${APP_NAME:-SIGAP Web}
       - APP_ENV=${APP_ENV:-local}
       - APP_DEBUG=${APP_DEBUG:-true}
-      - APP_URL=${APP_URL:-http://localhost:8000}
+      - APP_URL=${APP_URL:-http://localhost:8093}
       - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-db_sigap}
-      - DB_USERNAME=${DB_USERNAME:-root}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - DB_DATABASE=${DB_DATABASE:-sijaga}
+      - DB_USERNAME=${DB_USERNAME:-sijaga}
+      - DB_PASSWORD=${DB_PASSWORD:-sijaga2026}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:
@@ -68,6 +68,8 @@ services:
     networks:
       - sigap-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
     # Menjalankan scheduler Laravel terus menerus (setiap menit)
     # Menjalankan monitor:check-uptime dan logs:prune (Daily Auto-Prune)
     command: ["php", "artisan", "schedule:work"]
@@ -85,13 +87,13 @@ services:
       - APP_NAME=${APP_NAME:-SIGAP Web}
       - APP_ENV=${APP_ENV:-local}
       - APP_DEBUG=${APP_DEBUG:-true}
-      - APP_URL=${APP_URL:-http://localhost:8000}
+      - APP_URL=${APP_URL:-http://localhost:8093}
       - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-db_sigap}
-      - DB_USERNAME=${DB_USERNAME:-root}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - DB_DATABASE=${DB_DATABASE:-sijaga}
+      - DB_USERNAME=${DB_USERNAME:-sijaga}
+      - DB_PASSWORD=${DB_PASSWORD:-sijaga2026}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:
@@ -103,6 +105,8 @@ services:
     networks:
       - sigap-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
     # Menjalankan antrean pekerjaan async seperti notifikasi, crawler, dll
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120"]
 
@@ -113,16 +117,18 @@ services:
     image: mysql:8.0
     container_name: sigap-db
     ports:
-      - "3306:3306"
+      - "${FORWARD_DB_PORT:-${DB_PORT:-3314}}:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_DATABASE: ${DB_DATABASE:-db_sigap}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-sijaga}
+      MYSQL_USER: ${DB_USERNAME:-sijaga}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-sijaga2026}
     volumes:
-      - sigap-mysql-data:/var/lib/mysql
+      - sijaga-mysql-data:/var/lib/mysql
     networks:
       - sigap-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-secret}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME:-sijaga}", "-p${DB_PASSWORD:-sijaga2026}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -135,9 +141,9 @@ services:
     image: redis:alpine
     container_name: sigap-redis
     ports:
-      - "6379:6379"
+      - "${FORWARD_REDIS_PORT:-${REDIS_PORT:-6379}}:6379"
     volumes:
-      - sigap-redis-data:/data
+      - sijaga-redis-data:/data
     networks:
       - sigap-network
     restart: unless-stopped
@@ -147,5 +153,5 @@ networks:
     driver: bridge
 
 volumes:
-  sigap-mysql-data:
-  sigap-redis-data:
+  sijaga-mysql-data:
+  sijaga-redis-data:

@@ -10,7 +10,17 @@ class UptimeReportRepository implements UptimeReportRepositoryInterface
 {
     public function getPaginatedSites(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
-        $query = Site::query();
+        $query = Site::query()->withCount([
+            'detectionLogs as uptime_total_checks_30d' => function ($q) {
+                $q->where('category', 'uptime')
+                  ->where('created_at', '>=', now()->subDays(30));
+            },
+            'detectionLogs as uptime_successful_checks_30d' => function ($q) {
+                $q->where('category', 'uptime')
+                  ->where('status', 'resolved')
+                  ->where('created_at', '>=', now()->subDays(30));
+            }
+        ]);
 
         if (!empty($filters['search'])) {
             $search = trim($filters['search']);
@@ -71,9 +81,17 @@ class UptimeReportRepository implements UptimeReportRepositoryInterface
         $warnSitesCount = $statusCounts['warn'] ?? 0;
         $upSitesCount = ($statusCounts['up'] ?? 0) + ($statusCounts['paused'] ?? 0);
 
-        // Calculate weighted average uptime
-        $totalUptimeSum = ($downSitesCount * 92.4) + ($warnSitesCount * 98.2) + ($upSitesCount * 99.9);
-        $avgUptime = round($totalUptimeSum / $totalSites, 1);
+        // Calculate real average uptime from 30d detection logs
+        $uptimeLogs = \App\Models\DetectionLog::where('category', 'uptime')
+            ->where('created_at', '>=', now()->subDays(30));
+        $totalChecks = (clone $uptimeLogs)->count();
+        if ($totalChecks > 0) {
+            $successfulChecks = (clone $uptimeLogs)->where('status', 'resolved')->count();
+            $avgUptime = round(($successfulChecks / $totalChecks) * 100, 1);
+        } else {
+            $totalUptimeSum = ($downSitesCount * 0.0) + ($warnSitesCount * 98.2) + ($upSitesCount * 99.9);
+            $avgUptime = round($totalUptimeSum / $totalSites, 1);
+        }
         
         // SLA target is >= 99.5%
         $sitesMetSla = $upSitesCount;

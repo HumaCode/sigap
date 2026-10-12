@@ -24,22 +24,24 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
 
     // Interactive scenario state for the AI Remediation simulation terminal
     const [simScenario, setSimScenario] = useState<'defacement' | 'downtime'>('defacement');
+    const [activeSection, setActiveSection] = useState<'beranda' | 'pilar' | 'status' | 'mitigasi' | 'kontak'>('beranda');
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const toggleScenario = () => {
         setSimScenario((prev) => (prev === 'defacement' ? 'downtime' : 'defacement'));
     };
 
     const defaultServices = [
-        { name: 'Portal Utama Pemda', url: 'pemda.go.id', uptime: '99.98%', status: 'Aktif Normal' },
-        { name: 'E-Katalog Daerah (LPSE)', url: 'lpse.pemda.go.id', uptime: '99.89%', status: 'Aktif Normal' },
-        { name: 'Layanan Kependudukan (Disdukcapil)', url: 'dukcapil.pemda.go.id', uptime: '100.0%', status: 'Aktif Normal' },
-        { name: 'Portal Keterbukaan PPID', url: 'ppid.pemda.go.id', uptime: '99.78%', status: 'Aktif Normal' },
+        { name: 'Portal Layanan Utama', url: 'portal.utama.id', uptime: '99.98%', status: 'Aktif Normal' },
+        { name: 'E-Commerce & Transaksi', url: 'shop.digital.id', uptime: '99.89%', status: 'Aktif Normal' },
+        { name: 'Sistem Autentikasi & Akun', url: 'auth.service.id', uptime: '100.0%', status: 'Aktif Normal' },
+        { name: 'Portal Informasi Publik', url: 'info.portal.id', uptime: '99.78%', status: 'Aktif Normal' },
     ];
 
     const displayServices = publicServices && publicServices.length > 0
         ? publicServices.map((s) => ({
               name: s.name,
-              url: s.url ? s.url.replace(/^https?:\/\//, '') : 'situs.go.id',
+              url: s.url ? s.url.replace(/^https?:\/\//, '') : 'situs-web.id',
               uptime: `${s.uptime ?? 99.9}%`,
               status: s.status === 'down' ? 'Perlu Atensi' : 'Aktif Normal',
           }))
@@ -48,19 +50,23 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
     return (
         <>
             <Head>
-                <title>SIGAP - Sistem Informasi Pengawasan & Tanggap Keamanan Siber Situs Instansi Pemerintah</title>
+                <title>SIGAP - Sistem Informasi Pengawasan & Tanggap Keamanan Siber Website & Layanan Digital</title>
+                <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+                <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+                <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+                <link rel="shortcut icon" href="/favicon.ico" />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
                 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
                 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
                 <style>{`
                     body {
-                        background-color: #0b1326;
-                        color: #dae2fd;
-                        background-image: linear-gradient(to right, rgba(14, 165, 163, 0.04) 1px, transparent 1px),
-                                          linear-gradient(to bottom, rgba(14, 165, 163, 0.04) 1px, transparent 1px);
-                        background-size: 32px 32px;
+                        background-color: #0a0f1d;
+                        color: #e6edf7;
+                        background-image: linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+                                          linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+                        background-size: 40px 40px;
                         font-family: 'Inter', sans-serif;
                     }
                     @keyframes radarSpin {
@@ -73,73 +79,235 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                     .radar-conic {
                         background: conic-gradient(from 0deg, rgba(79, 219, 200, 0.35) 0deg, rgba(79, 219, 200, 0) 70deg);
                     }
+                    
+                    /* EXACT SIGAP LANDING TOPBAR STYLES */
+                    header.sigap-nav {
+                        position: sticky;
+                        top: 0;
+                        z-index: 50;
+                        padding: 14px 20px 0;
+                        width: 100%;
+                    }
+                    .sigap-nav-inner {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 20px;
+                        padding: 10px 12px 10px 16px;
+                        border-radius: 18px;
+                        background: rgba(10, 15, 29, 0.62);
+                        border: 1px solid rgba(255, 255, 255, 0.10);
+                        -webkit-backdrop-filter: blur(18px);
+                        backdrop-filter: blur(18px);
+                        box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.04), 0 18px 50px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+                        width: 100%;
+                    }
+                    .sigap-brand {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        text-decoration: none;
+                    }
+                    .sigap-brand-logo {
+                        width: 42px;
+                        height: 42px;
+                        flex: none;
+                        filter: drop-shadow(0 0 12px rgba(20, 184, 166, 0.5));
+                    }
+                    .sigap-brand-text {
+                        display: flex;
+                        flex-direction: column;
+                        line-height: 1.15;
+                    }
+                    .sigap-brand-name {
+                        font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+                        font-weight: 700;
+                        font-size: 19px;
+                        letter-spacing: 0.06em;
+                        color: #ffffff;
+                    }
+                    .sigap-brand-sub {
+                        font-size: 11.5px;
+                        color: #93a1b8;
+                    }
+                    nav.sigap-links {
+                        display: flex;
+                        gap: 4px;
+                    }
+                    nav.sigap-links a {
+                        padding: 9px 14px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        color: #93a1b8;
+                        border-radius: 10px;
+                        transition: color 0.2s, background 0.2s;
+                        text-decoration: none;
+                    }
+                    nav.sigap-links a:hover, nav.sigap-links a.active {
+                        color: #ffffff;
+                        background: rgba(255, 255, 255, 0.06);
+                    }
+                    .sigap-nav-right {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .sigap-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+                        font-weight: 600;
+                        font-size: 14px;
+                        padding: 11px 18px;
+                        border-radius: 12px;
+                        border: 1px solid transparent;
+                        cursor: pointer;
+                        transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+                        white-space: nowrap;
+                        text-decoration: none;
+                    }
+                    .sigap-btn-primary {
+                        color: #031312;
+                        background: linear-gradient(135deg, #14b8a6, #0ea5a3 55%, #38bdf8);
+                        box-shadow: 0 10px 30px -8px rgba(20, 184, 166, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+                    }
+                    .sigap-btn-primary:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 16px 38px -8px rgba(20, 184, 166, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+                    }
+                    .sigap-burger {
+                        display: none;
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 12px;
+                        border: 1px solid rgba(255, 255, 255, 0.10);
+                        background: rgba(255, 255, 255, 0.04);
+                        color: #e6edf7;
+                        cursor: pointer;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .sigap-mobile-menu {
+                        margin-top: 10px;
+                        padding: 10px;
+                        border-radius: 18px;
+                        background: rgba(10, 15, 29, 0.92);
+                        border: 1px solid rgba(255, 255, 255, 0.10);
+                        -webkit-backdrop-filter: blur(18px);
+                        backdrop-filter: blur(18px);
+                    }
+                    @media (max-width: 960px) {
+                        nav.sigap-links, .sigap-nav-right .sigap-btn {
+                            display: none !important;
+                        }
+                        .sigap-burger {
+                            display: inline-flex !important;
+                        }
+                    }
                 `}</style>
             </Head>
 
             <div className="min-h-screen text-on-surface bg-background relative selection:bg-primary-container selection:text-on-primary-container">
-                {/* HEADER / NAVIGATION BAR */}
-                <header className="fixed top-0 left-0 right-0 w-full z-50 bg-[#060e20]/80 backdrop-blur-xl border-b border-[#222a3d]/60 shadow-[0_1px_12px_rgba(0,0,0,0.5)]">
-                    <div className="h-20 w-full max-w-[1800px] mx-auto px-6 sm:px-8 flex items-center justify-between">
-                        {/* Logo & Brand Identity */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-container to-surface-tint flex items-center justify-center text-on-primary shadow-[0_0_16px_rgba(20,184,166,0.4)]">
-                                <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                    shield_lock
-                                </span>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-extrabold text-xl tracking-wider text-primary leading-none font-['Plus_Jakarta_Sans']">
-                                    SIGAP
-                                </span>
-                                <span className="text-[10px] text-on-surface-variant font-['JetBrains_Mono'] uppercase tracking-widest mt-1">
-                                    Monitoring Situs Instansi
-                                </span>
-                            </div>
-                        </div>
+                {/* FLOATING GLASS CAPSULE NAVBAR (FULLWIDTH) */}
+                <header className="sigap-nav" id="beranda-top">
+                    <div className="sigap-nav-inner">
+                        {/* Brand Logo & Name */}
+                        <a className="sigap-brand" href="#beranda" onClick={() => setActiveSection('beranda')} aria-label="SIGAP — Monitoring Keamanan & Uptime Situs">
+                            <svg className="sigap-brand-logo" viewBox="0 0 48 48" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="sigap-sg" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stopColor="#2dd4bf"/>
+                                        <stop offset="0.55" stopColor="#0ea5a3"/>
+                                        <stop offset="1" stopColor="#0284c7"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M24 3l17 6v13c0 11-7.5 19.5-17 23C14.5 41.5 7 33 7 22V9z" fill="rgba(14,165,163,.16)" stroke="url(#sigap-sg)" strokeWidth="2.4" strokeLinejoin="round"/>
+                                <path d="M24 9l11 4v9c0 7.5-4.8 13.5-11 16.5C17.8 35.5 13 29.5 13 22v-9z" fill="url(#sigap-sg)" opacity=".22"/>
+                                <rect x="17.5" y="21" width="13" height="10" rx="2.2" fill="none" stroke="#e8fffb" strokeWidth="2"/>
+                                <path d="M20.5 21v-3.2a3.5 3.5 0 0 1 7 0V21" fill="none" stroke="#e8fffb" strokeWidth="2" strokeLinecap="round"/>
+                                <circle cx="24" cy="26" r="1.6" fill="#e8fffb"/>
+                            </svg>
+                            <span className="sigap-brand-text">
+                                <span className="sigap-brand-name">SIGAP</span>
+                                <span className="sigap-brand-sub">Monitoring Situs & Layanan</span>
+                            </span>
+                        </a>
 
-                        {/* Navigation Links */}
-                        <nav className="hidden xl:flex items-center gap-6 text-sm font-medium">
-                            <a href="#" className="text-primary font-semibold transition-colors">
-                                Beranda
-                            </a>
-                            <a href="#pilar-pengawasan" className="text-on-surface-variant hover:text-on-surface transition-colors">
-                                Pilar Pengawasan
-                            </a>
-                            <a href="#transparansi-status" className="text-on-surface-variant hover:text-on-surface transition-colors">
-                                Status Layanan Publik
-                            </a>
-                            <a href="#mitigasi-insiden-ai" className="text-on-surface-variant hover:text-on-surface transition-colors">
-                                Mitigasi Insiden AI
-                            </a>
-                            <a href="#kontak-csirt" className="text-on-surface-variant hover:text-on-surface transition-colors">
-                                Kontak CSIRT
-                            </a>
+                        {/* Navigation Links (Center) */}
+                        <nav className="sigap-links" aria-label="Navigasi utama">
+                            <a href="#beranda" onClick={() => setActiveSection('beranda')} className={activeSection === 'beranda' ? 'active' : ''}>Beranda</a>
+                            <a href="#pilar-pengawasan" onClick={() => setActiveSection('pilar')} className={activeSection === 'pilar' ? 'active' : ''}>Pilar Pengawasan</a>
+                            <a href="#transparansi-status" onClick={() => setActiveSection('status')} className={activeSection === 'status' ? 'active' : ''}>Status Publik</a>
+                            <a href="#mitigasi-insiden-ai" onClick={() => setActiveSection('mitigasi')} className={activeSection === 'mitigasi' ? 'active' : ''}>Mitigasi AI</a>
+                            <a href="#kontak-csirt" onClick={() => setActiveSection('kontak')} className={activeSection === 'kontak' ? 'active' : ''}>Kontak CSIRT</a>
                         </nav>
 
-                        {/* Action CTA */}
-                        <div className="flex items-center gap-3">
+                        {/* Actions (Right) */}
+                        <div className="sigap-nav-right">
                             {user ? (
-                                <Link
-                                    href={route('dashboard')}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-container to-surface-tint text-on-primary text-xs font-semibold tracking-wide shadow-[0_0_16px_rgba(20,184,166,0.35)] hover:shadow-[0_0_24px_rgba(20,184,166,0.55)] transition-all font-['Plus_Jakarta_Sans']"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">dashboard</span>
+                                <Link className="sigap-btn sigap-btn-primary" href={route('dashboard')}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="3" width="7" height="9" rx="1"/>
+                                        <rect x="14" y="3" width="7" height="5" rx="1"/>
+                                        <rect x="14" y="12" width="7" height="9" rx="1"/>
+                                        <rect x="3" y="16" width="7" height="5" rx="1"/>
+                                    </svg>
                                     <span>Buka Dashboard</span>
                                 </Link>
                             ) : (
-                                <Link
-                                    href={route('login')}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-container to-surface-tint text-on-primary text-xs font-semibold tracking-wide shadow-[0_0_16px_rgba(20,184,166,0.35)] hover:shadow-[0_0_24px_rgba(20,184,166,0.55)] transition-all font-['Plus_Jakarta_Sans']"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">login</span>
+                                <Link className="sigap-btn sigap-btn-primary" href={route('login')}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M15 3h3a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3"/>
+                                        <path d="M10 17l5-5-5-5"/>
+                                        <path d="M15 12H3"/>
+                                    </svg>
                                     <span>Masuk ke Portal</span>
                                 </Link>
                             )}
+
+                            {/* Mobile Hamburger Button */}
+                            <button className="sigap-burger" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Buka menu">
+                                {mobileMenuOpen ? (
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                ) : (
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="3" y1="12" x2="21" y2="12"/>
+                                        <line x1="3" y1="6" x2="21" y2="6"/>
+                                        <line x1="3" y1="18" x2="21" y2="18"/>
+                                    </svg>
+                                )}
+                            </button>
                         </div>
                     </div>
+
+                    {/* Mobile Menu Dropdown */}
+                    {mobileMenuOpen && (
+                        <div className="sigap-mobile-menu">
+                            <a href="#beranda" onClick={() => { setActiveSection('beranda'); setMobileMenuOpen(false); }} className="block px-4 py-3 rounded-xl text-white font-medium hover:bg-white/[0.06]">Beranda</a>
+                            <a href="#pilar-pengawasan" onClick={() => { setActiveSection('pilar'); setMobileMenuOpen(false); }} className="block px-4 py-3 rounded-xl text-white font-medium hover:bg-white/[0.06]">Pilar Pengawasan</a>
+                            <a href="#transparansi-status" onClick={() => { setActiveSection('status'); setMobileMenuOpen(false); }} className="block px-4 py-3 rounded-xl text-white font-medium hover:bg-white/[0.06]">Status Publik</a>
+                            <a href="#mitigasi-insiden-ai" onClick={() => { setActiveSection('mitigasi'); setMobileMenuOpen(false); }} className="block px-4 py-3 rounded-xl text-white font-medium hover:bg-white/[0.06]">Mitigasi AI</a>
+                            <a href="#kontak-csirt" onClick={() => { setActiveSection('kontak'); setMobileMenuOpen(false); }} className="block px-4 py-3 rounded-xl text-white font-medium hover:bg-white/[0.06]">Kontak CSIRT</a>
+                            <div className="pt-2">
+                                <Link className="sigap-btn sigap-btn-primary w-full" href={user ? route('dashboard') : route('login')}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M15 3h3a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3"/>
+                                        <path d="M10 17l5-5-5-5"/>
+                                        <path d="M15 12H3"/>
+                                    </svg>
+                                    <span>{user ? 'Buka Dashboard' : 'Masuk ke Portal'}</span>
+                                </Link>
+                            </div>
+                        </div>
+                    )}
                 </header>
 
-                <main className="w-full pt-20 bg-transparent min-h-screen">
+                <main className="w-full pt-4 bg-transparent min-h-screen">
                     <div className="flex flex-col w-full">
                         {/* Top Ambient Glow Aura */}
                         <div className="relative w-full overflow-hidden">
@@ -148,7 +316,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                             <div className="absolute top-48 -left-20 w-80 h-80 bg-tertiary-container/10 rounded-full blur-[100px] pointer-events-none -z-10"></div>
 
                             {/* SECTION 1: HERO VIEWPORT */}
-                            <section className="w-full max-w-[1800px] mx-auto px-6 sm:px-8 pt-8 pb-20 lg:pt-14 lg:pb-28">
+                            <section id="beranda" className="w-full max-w-[1800px] mx-auto px-6 sm:px-8 pt-8 pb-20 lg:pt-14 lg:pb-28">
                                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                                     {/* Left Hero Content (7 Cols) */}
                                     <div className="lg:col-span-7 flex flex-col items-start space-y-6">
@@ -162,7 +330,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                                 SISTEM PEMANTAUAN REALTIME AKTIF
                                             </span>
                                             <span className="text-on-surface-variant text-[11px] font-['JetBrains_Mono'] hidden sm:inline">
-                                                • 24/7 Pengawasan Siber Pemda
+                                                • 24/7 Pengawasan Siber Real-time
                                             </span>
                                         </div>
 
@@ -172,12 +340,12 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                             <span className="bg-gradient-to-r from-primary via-primary-fixed to-secondary bg-clip-text text-transparent">
                                                 Ketahanan Siber
                                             </span>{' '}
-                                            Situs Instansi Pemerintah
+                                            Situs Web & Layanan Digital
                                         </h1>
 
                                         {/* Hero Subheadline */}
                                         <p className="text-base sm:text-lg text-on-surface-variant max-w-2xl leading-relaxed">
-                                            Solusi otomatisasi pemantauan uptime 24/7, pencegahan defacement, pendeteksi dini konten ilegal (judi online & obat terlarang), serta respon insiden berbasis AI terintegrasi untuk kedaulatan portal publik.
+                                            Solusi otomatisasi pemantauan uptime 24/7, pencegahan defacement, pendeteksi dini konten ilegal (judi online & malware), serta respon insiden berbasis AI terintegrasi untuk kedaulatan portal publik.
                                         </p>
 
                                         {/* Dual CTA Buttons */}
@@ -384,7 +552,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                             SLA Ketersediaan Layanan
                                         </div>
                                         <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">
-                                            Rata-rata uptime reliabilitas ketersediaan sistem informasi publik tingkat pemerintah daerah.
+                                            Rata-rata uptime reliabilitas ketersediaan sistem informasi & layanan publik.
                                         </p>
                                     </div>
                                 </div>
@@ -445,7 +613,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                     4 Pilar Pengawasan Siber Komprehensif
                                 </h2>
                                 <p className="text-base text-on-surface-variant mt-4 leading-relaxed">
-                                    Dirancang khusus untuk menjaga integritas, reputasi, dan ketersediaan layanan publik pemerintah daerah dari ancaman peretasan modern.
+                                    Dirancang khusus untuk menjaga integritas, reputasi, dan ketersediaan layanan web dari ancaman peretasan modern.
                                 </p>
                             </div>
 
@@ -585,10 +753,10 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                             TRANSPARANSI KETERSEDIAAN PUBLIK
                                         </div>
                                         <h2 className="text-2xl sm:text-4xl font-bold text-on-surface font-['Plus_Jakarta_Sans']">
-                                            Status Operasional Layanan Digital Daerah
+                                            Status Operasional Layanan Digital Publik
                                         </h2>
                                         <p className="text-sm text-on-surface-variant mt-2 max-w-xl">
-                                            Masyarakat dan aparatur pemerintah dapat memantau kesehatan situs publik secara terbuka tanpa mengekspos celah kerentanan teknis.
+                                            Pengguna dan pengelola sistem dapat memantau kesehatan situs publik secara terbuka tanpa mengekspos celah kerentanan teknis.
                                         </p>
                                     </div>
 
@@ -766,7 +934,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                                                 <span className="text-[11px] text-error font-semibold">T = +0.00s</span>
                                                             </div>
                                                             <div className="text-on-surface-variant text-[11px] mt-1">
-                                                                Target: <span className="text-on-surface font-semibold">bappeda.pemda.go.id/publikasi</span> • Terdeteksi keyword terlarang:{' '}
+                                                                Target: <span className="text-on-surface font-semibold">portal-layanan.id/publikasi</span> • Terdeteksi keyword terlarang:{' '}
                                                                 <span className="text-error bg-error/10 px-1 rounded font-mono">slot-gacor-88</span>
                                                             </div>
                                                         </div>
@@ -795,7 +963,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                                                 <span className="text-[11px] text-primary font-semibold">T = +2.45s</span>
                                                             </div>
                                                             <div className="text-on-surface-variant text-[11px] mt-1">
-                                                                Notifikasi otomatis terkirim ke Telegram Tim Siber Diskominfo. Laman pulih 100% tanpa waktu henti operasional publik.
+                                                                Notifikasi otomatis terkirim ke Telegram Tim Security & CSIRT. Laman pulih 100% tanpa waktu henti operasional publik.
                                                             </div>
                                                         </div>
                                                     </div>
@@ -811,7 +979,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                                                 <span className="text-[11px] text-warning font-semibold">T = +0.00s</span>
                                                             </div>
                                                             <div className="text-on-surface-variant text-[11px] mt-1">
-                                                                Target: <span className="text-on-surface font-semibold">dukcapil.pemda.go.id</span> • Server tidak merespons dalam 60 detik.
+                                                                Target: <span className="text-on-surface font-semibold">auth.service.id</span> • Server tidak merespons dalam 60 detik.
                                                             </div>
                                                         </div>
                                                     </div>
@@ -877,10 +1045,10 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                         </span>
                                     </div>
                                     <h2 className="text-2xl sm:text-4xl font-extrabold text-on-surface tracking-tight leading-tight font-['Plus_Jakarta_Sans']">
-                                        Wujudkan Ekosistem Digital Pemerintah Daerah yang Tangguh, Aman, dan Bebas Ancaman Siber
+                                        Wujudkan Ekosistem Digital yang Tangguh, Aman, dan Bebas Ancaman Siber
                                     </h2>
                                     <p className="text-base text-on-surface-variant max-w-2xl mt-5 leading-relaxed">
-                                        Hubungi tim pengelola Diskominfo untuk integrasi pendaftaran domain situs OPD, sinkronisasi sertifikat SSL/TLS instansi, atau dapatkan bantuan teknis tanggap darurat siber.
+                                        Hubungi tim CSIRT untuk integrasi pendaftaran domain situs, sinkronisasi sertifikat SSL/TLS, atau dapatkan bantuan teknis tanggap darurat siber.
                                     </p>
 
                                     {/* CTA Action Buttons */}
@@ -905,9 +1073,9 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
 
                                     {/* Micro Information Guarantee */}
                                     <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-on-surface-variant text-xs font-['JetBrains_Mono']">
-                                        <span>• Layanan Khusus Instansi Pemerintah Resmi (.go.id)</span>
+                                        <span>• Layanan Pemantauan Domain & Sistem Web</span>
                                         <span>• Siaga 24 Jam 7 Hari Penuh</span>
-                                        <span>• Respons Tim Reaksi Cepat BSSN / Gov-CSIRT</span>
+                                        <span>• Respons Tim Reaksi Cepat CSIRT 24/7</span>
                                     </div>
                                 </div>
                             </div>
@@ -931,7 +1099,7 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                 </span>
                             </div>
                             <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                                Sistem Informasi Pengawasan & Tanggap Keamanan Siber Terpadu. Menjaga kedaulatan digital dan integritas infrastruktur web instansi pemerintah republik Indonesia secara real-time.
+                                Sistem Informasi Pengawasan & Tanggap Keamanan Siber Terpadu. Menjaga kedaulatan digital dan integritas infrastruktur web & sistem aplikasi secara real-time.
                             </p>
                             <div className="flex items-center gap-2">
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container-high border border-surface-container-highest text-on-surface-variant text-[11px] font-['JetBrains_Mono']">
@@ -958,14 +1126,14 @@ export default function Welcome({ auth, stats, publicServices }: WelcomeProps) {
                                     <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">mail</span>
                                     <div>
                                         <div className="text-on-surface font-semibold">Email Insiden</div>
-                                        <div className="font-['JetBrains_Mono']">incident-response@csirt.go.id</div>
+                                        <div className="font-['JetBrains_Mono']">incident-response@sigap.id</div>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">shield</span>
                                     <div>
                                         <div className="text-on-surface font-semibold">Unit Pengawas</div>
-                                        <div className="text-on-surface-variant">Diskominfo Cyber Command Centre</div>
+                                        <div className="text-on-surface-variant">Security Operations Center (SOC)</div>
                                     </div>
                                 </div>
                             </div>

@@ -101,11 +101,19 @@ class MenuSeeder extends Seeder
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
+                'name' => 'Backup & Pemulihan',
+                'url' => 'backups.index',
+                'category' => 'Sistem',
+                'icon' => 'bi bi-archive-fill',
+                'orders' => 10,
+                'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
+            ],
+            [
                 'name' => 'Pengaturan',
                 'url' => 'settings.index',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-gear',
-                'orders' => 10,
+                'orders' => 11,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
@@ -113,7 +121,7 @@ class MenuSeeder extends Seeder
                 'url' => 'profile.edit',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-person-circle',
-                'orders' => 11,
+                'orders' => 12,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update'],
             ],
         ];

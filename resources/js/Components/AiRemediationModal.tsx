@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from '@/Components/DynamicToast';
@@ -133,9 +133,41 @@ export default function AiRemediationModal({ show, onClose, incident, onResolved
     ];
 
     const [availableModels, setAvailableModels] = useState(defaultFallbackModels);
+    const [modelSearch, setModelSearch] = useState('');
+
+    const filteredModels = useMemo(() => {
+        if (!modelSearch.trim()) return availableModels;
+        const q = modelSearch.toLowerCase().trim();
+        return availableModels.filter(m => 
+            m.label.toLowerCase().includes(q) || 
+            m.id.toLowerCase().includes(q) || 
+            (m.desc && m.desc.toLowerCase().includes(q))
+        );
+    }, [availableModels, modelSearch]);
+
+    const activeQuickFilters = useMemo(() => {
+        const filters = [
+            { label: 'Semua', value: '' },
+            { label: 'Gemini', value: 'gemini' },
+            { label: 'Claude', value: 'claude' },
+            { label: 'Flash', value: 'flash' },
+            { label: 'Combo', value: 'combo' },
+            { label: 'DeepSeek', value: 'deepseek' },
+            { label: 'GPT', value: 'gpt' },
+        ];
+        return filters.filter(f => 
+            !f.value || availableModels.some(m => 
+                m.id.toLowerCase().includes(f.value) || 
+                m.label.toLowerCase().includes(f.value)
+            )
+        );
+    }, [availableModels]);
 
     useEffect(() => {
-        if (!show) return;
+        if (!show) {
+            setModelSearch('');
+            return;
+        }
         axios.get('/incidents/ai-models')
             .then(res => {
                 if (res.data?.success && Array.isArray(res.data.models) && res.data.models.length > 0) {
@@ -1222,54 +1254,199 @@ export default function AiRemediationModal({ show, onClose, incident, onResolved
                         </div>
 
                         {/* Model Selector Card */}
-                        <div className="glass-card p-3 mb-4" style={{ background: '#fff', borderRadius: '16px' }}>
-                            <label className="form-label fw-semibold mb-2" style={{ fontSize: '0.85rem', color: 'var(--ink)' }}>
-                                <i className="bi bi-cpu me-1 text-teal" style={{ color: 'var(--teal-1)' }}></i>
-                                Pilih Engine AI Model:
-                            </label>
-                            <div className="row g-2">
-                                {availableModels.map((m) => {
-                                    const isSelected = selectedModel === m.id;
-                                    return (
-                                        <div className="col-12 col-md-4" key={m.id}>
-                                            <div 
-                                                onClick={() => setSelectedModel(m.id)}
-                                                className="p-3 d-flex align-items-center justify-content-between h-100"
+                        <div className="glass-card p-3 mb-4" style={{ background: '#fff', borderRadius: '16px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                            {/* Header: Title, Count Badge, & Search Bar */}
+                            <div className="d-flex align-items-center justify-content-between flex-wrap gap-2.5 mb-2.5 pb-2 border-bottom border-light">
+                                <div className="d-flex align-items-center gap-2">
+                                    <div style={{
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '8px',
+                                        background: 'rgba(14, 165, 163, 0.12)',
+                                        color: 'var(--teal-1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.9rem'
+                                    }}>
+                                        <i className="bi bi-cpu-fill"></i>
+                                    </div>
+                                    <div>
+                                        <span className="fw-bold" style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>
+                                            Pilih Engine AI Model:
+                                        </span>
+                                        <span className="badge ms-2 rounded-pill" style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>
+                                            {modelSearch.trim() ? `${filteredModels.length} dari ${availableModels.length}` : `${availableModels.length}`} Model
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Live Search Input */}
+                                <div className="position-relative" style={{ minWidth: '220px', maxWidth: '320px', flex: '1 1 auto' }}>
+                                    <i 
+                                        className="bi bi-search position-absolute top-50 translate-middle-y text-muted" 
+                                        style={{ left: '12px', fontSize: '0.8rem', pointerEvents: 'none' }}
+                                    ></i>
+                                    <input 
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Cari model (gemini, claude, flash)..."
+                                        value={modelSearch}
+                                        onChange={(e) => setModelSearch(e.target.value)}
+                                        style={{
+                                            paddingLeft: '32px',
+                                            paddingRight: modelSearch ? '30px' : '12px',
+                                            borderRadius: '10px',
+                                            border: '1px solid #e2e8f0',
+                                            fontSize: '0.82rem',
+                                            background: '#f8fafc',
+                                            boxShadow: 'none',
+                                            height: '34px',
+                                        }}
+                                    />
+                                    {modelSearch && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setModelSearch('')}
+                                            className="btn btn-link position-absolute top-50 translate-middle-y p-0 text-muted"
+                                            style={{ right: '10px', textDecoration: 'none', fontSize: '0.85rem', lineHeight: 1 }}
+                                            title="Hapus pencarian"
+                                        >
+                                            <i className="bi bi-x-circle-fill"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Quick Filter Pills */}
+                            {activeQuickFilters.length > 1 && (
+                                <div className="d-flex align-items-center gap-1.5 flex-wrap mb-2.5" style={{ fontSize: '0.75rem' }}>
+                                    <span className="text-muted me-1" style={{ fontSize: '0.73rem' }}>
+                                        <i className="bi bi-funnel me-1"></i>Filter Cepat:
+                                    </span>
+                                    {activeQuickFilters.map(f => {
+                                        const isActive = (!f.value && !modelSearch) || (f.value && modelSearch.toLowerCase() === f.value);
+                                        return (
+                                            <button
+                                                key={f.label}
+                                                type="button"
+                                                onClick={() => setModelSearch(isActive && f.value ? '' : f.value)}
+                                                className="btn btn-sm py-0.5 px-2.5 rounded-pill transition-all"
                                                 style={{
-                                                    borderRadius: '12px',
-                                                    border: isSelected ? '2px solid var(--teal-1)' : '1px solid var(--line)',
-                                                    background: isSelected ? 'rgba(14,165,163,0.06)' : 'rgba(255,255,255,0.8)',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease'
+                                                    fontSize: '0.74rem',
+                                                    border: isActive ? '1px solid var(--teal-1)' : '1px solid #e2e8f0',
+                                                    background: isActive ? 'var(--teal-1)' : '#ffffff',
+                                                    color: isActive ? '#ffffff' : '#475569',
+                                                    fontWeight: isActive ? 600 : 400,
                                                 }}
                                             >
-                                                <div className="d-flex align-items-center gap-2.5">
-                                                    <div style={{
-                                                        width: '36px', height: '36px', borderRadius: '10px',
-                                                        background: isSelected ? 'linear-gradient(135deg, var(--teal-1), var(--teal-2))' : '#f1f5f9',
-                                                        color: isSelected ? '#fff' : '#64748b',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        fontWeight: 700, fontSize: '0.9rem',
-                                                        flexShrink: 0
-                                                    }}>
-                                                        <i className="bi bi-layers-fill"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div className="fw-bold" style={{ fontSize: '0.85rem', color: 'var(--ink-dark)' }}>{m.label}</div>
-                                                        <div style={{ fontSize: '0.73rem', color: 'var(--ink-faint)' }}>{m.desc}</div>
+                                                {f.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Notice if the currently selected model is outside the search query */}
+                            {modelSearch.trim() && !filteredModels.some(m => m.id === selectedModel) && (
+                                <div 
+                                    className="p-2 px-3 mb-2.5 d-flex align-items-center justify-content-between rounded-3"
+                                    style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '0.78rem', color: '#166534' }}
+                                >
+                                    <div className="d-flex align-items-center gap-2 text-truncate">
+                                        <i className="bi bi-check-circle-fill text-success"></i>
+                                        <span className="text-truncate">
+                                            Model terpilih saat ini: <strong>{availableModels.find(m => m.id === selectedModel)?.label || selectedModel}</strong>
+                                        </span>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setModelSearch('')}
+                                        className="btn btn-sm btn-link p-0 text-decoration-none fw-semibold flex-shrink-0 ms-2"
+                                        style={{ fontSize: '0.75rem', color: 'var(--teal-1)' }}
+                                    >
+                                        Tampilkan Semua
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Models Grid with Scrollable Container */}
+                            <div 
+                                style={{ 
+                                    maxHeight: '280px', 
+                                    overflowY: 'auto', 
+                                    paddingRight: '4px',
+                                    scrollbarWidth: 'thin'
+                                }}
+                            >
+                                {filteredModels.length > 0 ? (
+                                    <div className="row g-2">
+                                        {filteredModels.map((m) => {
+                                            const isSelected = selectedModel === m.id;
+                                            return (
+                                                <div className="col-12 col-md-4" key={m.id}>
+                                                    <div 
+                                                        onClick={() => setSelectedModel(m.id)}
+                                                        className="p-2.5 px-3 d-flex align-items-center justify-content-between h-100"
+                                                        style={{
+                                                            borderRadius: '12px',
+                                                            border: isSelected ? '2px solid var(--teal-1)' : '1px solid var(--line)',
+                                                            background: isSelected ? 'rgba(14,165,163,0.06)' : 'rgba(255,255,255,0.85)',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.18s ease'
+                                                        }}
+                                                    >
+                                                        <div className="d-flex align-items-center gap-2.5 overflow-hidden me-2">
+                                                            <div style={{
+                                                                width: '34px', height: '34px', borderRadius: '10px',
+                                                                background: isSelected ? 'linear-gradient(135deg, var(--teal-1), var(--teal-2))' : '#f1f5f9',
+                                                                color: isSelected ? '#fff' : '#64748b',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                fontWeight: 700, fontSize: '0.85rem',
+                                                                flexShrink: 0
+                                                            }}>
+                                                                <i className="bi bi-layers-fill"></i>
+                                                            </div>
+                                                            <div className="overflow-hidden">
+                                                                <div className="fw-bold text-truncate" style={{ fontSize: '0.82rem', color: 'var(--ink-dark)' }} title={m.label}>
+                                                                    {m.label}
+                                                                </div>
+                                                                <div className="text-truncate" style={{ fontSize: '0.71rem', color: 'var(--ink-faint)' }}>
+                                                                    {m.desc}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <input 
+                                                            type="radio" 
+                                                            name="ai_model" 
+                                                            checked={isSelected} 
+                                                            onChange={() => setSelectedModel(m.id)}
+                                                            style={{ accentColor: 'var(--teal-1)', width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
+                                                        />
                                                     </div>
                                                 </div>
-                                                <input 
-                                                    type="radio" 
-                                                    name="ai_model" 
-                                                    checked={isSelected} 
-                                                    onChange={() => setSelectedModel(m.id)}
-                                                    style={{ accentColor: 'var(--teal-1)', width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
-                                                />
-                                            </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4 px-3" style={{ background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                                        <i className="bi bi-search text-muted mb-2 d-block" style={{ fontSize: '1.6rem', opacity: 0.5 }}></i>
+                                        <div className="fw-semibold text-dark" style={{ fontSize: '0.85rem' }}>
+                                            Tidak ada model yang cocok dengan "{modelSearch}"
                                         </div>
-                                    );
-                                })}
+                                        <p className="text-muted mb-2" style={{ fontSize: '0.75rem' }}>
+                                            Coba gunakan kata kunci lain atau klik tombol reset di bawah.
+                                        </p>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setModelSearch('')}
+                                            className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                            style={{ fontSize: '0.75rem' }}
+                                        >
+                                            <i className="bi bi-arrow-counterclockwise me-1"></i> Reset Pencarian
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

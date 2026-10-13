@@ -284,6 +284,22 @@ export default function SiteTable({
                                             </button>
                                         </Tooltip>
 
+                                        {site.ssh_host && (
+                                            <Tooltip 
+                                                title="Investigasi Server" 
+                                                description="Pindai webshell, rollback, & log forensik"
+                                                variant="teal"
+                                            >
+                                                <a 
+                                                    href={route('server-investigations.index', { site_id: site.id })}
+                                                    className="action-btn"
+                                                    style={{ color: '#0ea5a3', borderColor: 'rgba(14, 165, 163, 0.35)', background: 'rgba(14, 165, 163, 0.08)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    <i className="bi bi-terminal-split"></i>
+                                                </a>
+                                            </Tooltip>
+                                        )}
+
                                         {can?.update && (
                                             <Tooltip 
                                                 title="Ubah Data" 
@@ -368,6 +384,22 @@ export default function SiteTable({
                                     <i className="bi bi-eye"></i>
                                 </button>
                             </Tooltip>
+
+                            {site.ssh_host && (
+                                <Tooltip 
+                                    title="Investigasi Server" 
+                                    description="Pindai webshell & log"
+                                    variant="teal"
+                                >
+                                    <a 
+                                        href={route('server-investigations.index', { site_id: site.id })}
+                                        className="action-btn"
+                                        style={{ color: '#0ea5a3', borderColor: 'rgba(14, 165, 163, 0.35)', background: 'rgba(14, 165, 163, 0.08)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        <i className="bi bi-terminal-split"></i>
+                                    </a>
+                                </Tooltip>
+                            )}
 
                             {can?.update && (
                                 <Tooltip 

@@ -234,6 +234,14 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/backups/{id}/download', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download');
     Route::post('/backups/{id}/restore', [\App\Http\Controllers\BackupController::class, 'restore'])->name('backups.restore');
     Route::delete('/backups/{id}', [\App\Http\Controllers\BackupController::class, 'destroy'])->name('backups.destroy');
+
+    Route::get('/server-investigations', [\App\Http\Controllers\ServerInvestigationController::class, 'index'])->name('server-investigations.index');
+    Route::get('/server-investigations/{site}/check-health', [\App\Http\Controllers\ServerInvestigationController::class, 'checkHealth'])->name('server-investigations.check-health');
+    Route::post('/server-investigations/{site}/scan-files', [\App\Http\Controllers\ServerInvestigationController::class, 'scanFiles'])->name('server-investigations.scan-files');
+    Route::post('/server-investigations/{site}/quarantine-file', [\App\Http\Controllers\ServerInvestigationController::class, 'quarantineFile'])->name('server-investigations.quarantine-file');
+    Route::post('/server-investigations/{site}/rollback-file', [\App\Http\Controllers\ServerInvestigationController::class, 'rollbackFile'])->name('server-investigations.rollback-file');
+    Route::post('/server-investigations/{site}/toggle-maintenance', [\App\Http\Controllers\ServerInvestigationController::class, 'toggleMaintenance'])->name('server-investigations.toggle-maintenance');
+    Route::post('/server-investigations/{site}/analyze-logs', [\App\Http\Controllers\ServerInvestigationController::class, 'analyzeLogs'])->name('server-investigations.analyze-logs');
     
     Route::patch('/users/{id}/toggle-status', [\App\Http\Controllers\UserController::class, 'toggleStatus'])->name('users.toggle-status');
     Route::resource('users', \App\Http\Controllers\UserController::class)->except(['create', 'edit', 'show']);

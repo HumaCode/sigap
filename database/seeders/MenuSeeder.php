@@ -82,6 +82,14 @@ class MenuSeeder extends Seeder
                 'orders' => 7,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
+            [
+                'name' => 'Investigasi Server',
+                'url' => 'server-investigations.index',
+                'category' => 'Deteksi',
+                'icon' => 'bi bi-terminal-split',
+                'orders' => 8,
+                'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
+            ],
 
             // Sistem
             [
@@ -89,7 +97,7 @@ class MenuSeeder extends Seeder
                 'url' => 'users.index',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-people',
-                'orders' => 8,
+                'orders' => 9,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
@@ -97,7 +105,7 @@ class MenuSeeder extends Seeder
                 'url' => 'notifications.index',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-bell',
-                'orders' => 9,
+                'orders' => 10,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
@@ -105,7 +113,7 @@ class MenuSeeder extends Seeder
                 'url' => 'backups.index',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-archive-fill',
-                'orders' => 10,
+                'orders' => 11,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
@@ -113,7 +121,7 @@ class MenuSeeder extends Seeder
                 'url' => 'settings.index',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-gear',
-                'orders' => 11,
+                'orders' => 12,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
@@ -121,7 +129,7 @@ class MenuSeeder extends Seeder
                 'url' => 'profile.edit',
                 'category' => 'Sistem',
                 'icon' => 'bi bi-person-circle',
-                'orders' => 12,
+                'orders' => 13,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update'],
             ],
         ];

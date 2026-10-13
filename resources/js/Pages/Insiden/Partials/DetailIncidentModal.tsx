@@ -172,7 +172,7 @@ export default function DetailIncidentModal({ show, onClose, incident, onOpenAi 
 
     const modalFooter = (
         <div className="w-100 d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div>
+            <div className="d-flex align-items-center gap-2">
                 {onOpenAi && (
                     <button
                         type="button"
@@ -185,6 +185,23 @@ export default function DetailIncidentModal({ show, onClose, incident, onOpenAi 
                         <i className="bi bi-magic"></i>
                         <span>Solusi Penanganan AI</span>
                     </button>
+                )}
+
+                {incident.site_id && (
+                    <a
+                        href={route('server-investigations.index', { site_id: incident.site_id })}
+                        className="modal-footer-btn"
+                        style={{
+                            background: '#f8fafc',
+                            color: 'var(--teal-1, #0ea5a3)',
+                            border: '1.5px solid #cbd5e1',
+                            textDecoration: 'none',
+                        }}
+                        title="Buka investigasi server (SSH) langsung untuk situs ini"
+                    >
+                        <i className="bi bi-terminal-split"></i>
+                        <span>Investigasi Server</span>
+                    </a>
                 )}
             </div>
 

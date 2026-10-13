@@ -84,6 +84,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(NotificationServiceInterface::class, NotificationService::class);
         $this->app->bind(SettingRepositoryInterface::class, SettingRepository::class);
         $this->app->bind(SettingServiceInterface::class, SettingService::class);
+        $this->app->bind(
+            \App\Services\Interfaces\ServerInvestigationServiceInterface::class,
+            \App\Services\ServerInvestigationService::class
+        );
     }
 
     /**

@@ -189,7 +189,7 @@ export default function UserModal({ show, onClose, user, roles }: UserModalProps
                                                 <input
                                                     type="email"
                                                     className={`form-input-custom ${errors.email ? 'is-invalid border-danger' : ''}`}
-                                                    placeholder="budi@pekalongankota.go.id"
+                                                    placeholder="admin@domain-anda.com"
                                                     value={data.email}
                                                     onChange={(e) => setData('email', e.target.value)}
                                                     required

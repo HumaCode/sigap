@@ -218,7 +218,7 @@ export default function KeywordModal({ show, onClose, keyword }: KeywordModalPro
                             type="text" 
                             className={`form-control ${errors.description ? 'is-invalid' : ''}`}
                             style={{ background: 'white', borderRadius: '12px', padding: '0.65rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', fontSize: '0.85rem' }}
-                            placeholder="Cth: Sering disisipkan pada artikel web PPID atau OPD"
+                            placeholder="Cth: Sering disisipkan pada artikel blog atau konten web"
                             value={data.description}
                             onChange={e => setData('description', e.target.value)}
                         />

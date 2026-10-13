@@ -99,6 +99,19 @@ class SiteController extends Controller
         $password = $request->input('ssh_password');
         $privateKey = $request->input('ssh_private_key');
         $appPath = rtrim($request->input('ssh_app_path') ?: '', '/');
+        $siteId = $request->input('site_id');
+
+        // If in edit mode and password/key is masked (********) or empty, retrieve existing saved credentials
+        if ($siteId) {
+            $existingSite = Site::find($siteId);
+            if ($existingSite) {
+                if ($authType === 'password' && ($password === '********' || empty($password))) {
+                    $password = $existingSite->ssh_password;
+                } elseif ($authType === 'key' && ($privateKey === '********' || empty($privateKey))) {
+                    $privateKey = $existingSite->ssh_private_key;
+                }
+            }
+        }
 
         if (empty($host) || empty($username)) {
             return response()->json([

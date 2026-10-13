@@ -81,6 +81,7 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean; o
         setIsTestingSsh(true);
         try {
             const response = await axios.post(route('sites.test-ssh'), {
+                site_id: site?.id,
                 ssh_host: data.ssh_host,
                 ssh_port: data.ssh_port,
                 ssh_username: data.ssh_username,
@@ -209,13 +210,13 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean; o
                             
                             <div className="mb-3.5">
                                 <label style={{ fontSize: '0.85rem', color: 'var(--ink-soft)', display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>
-                                    Nama OPD / Instansi <span className="text-danger">*</span>
+                                    Nama Situs / Layanan Web <span className="text-danger">*</span>
                                 </label>
                                 <input 
                                     type="text" 
                                     className="form-control" 
                                     style={{ background: 'white', borderRadius: '12px', padding: '0.7rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                                    placeholder="Dinas Komunikasi dan Informatika"
+                                    placeholder="Contoh: Portal Layanan Web Utama"
                                     value={data.name}
                                     onChange={e => setData('name', e.target.value)}
                                     required
@@ -233,7 +234,7 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean; o
                                         type="text" 
                                         className="form-control border-start-0" 
                                         style={{ background: 'white', borderRadius: '0 12px 12px 0', padding: '0.7rem 1rem', border: '1px solid #e2e8f0' }} 
-                                        placeholder="pekalongankota.go.id"
+                                        placeholder="portal.domain-anda.id"
                                         value={data.url}
                                         onChange={e => setData('url', e.target.value)}
                                         required
@@ -254,8 +255,9 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean; o
                                     onChange={e => setData('category', e.target.value)}
                                 >
                                     <option>Portal Utama</option>
-                                    <option>SPBE</option>
-                                    <option>PPID</option>
+                                    <option>Layanan Digital</option>
+                                    <option>E-Commerce</option>
+                                    <option>Sistem Informasi</option>
                                     <option>Lainnya</option>
                                 </select>
                             </div>
@@ -345,7 +347,7 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean; o
                                     type="text" 
                                     className="form-control" 
                                     style={{ background: 'white', borderRadius: '12px', padding: '0.7rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                                    placeholder="192.168.1.100 atau ssh.pekalongankota.go.id"
+                                    placeholder="192.168.1.100 atau ssh.domain-anda.com"
                                     value={data.ssh_host}
                                     onChange={e => setData('ssh_host', e.target.value)}
                                 />
@@ -425,7 +427,7 @@ export default function AddSiteModal({ show, onClose, site }: { show: boolean; o
                                     type="text" 
                                     className="form-control" 
                                     style={{ background: 'white', borderRadius: '12px', padding: '0.7rem 1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                                    placeholder="e.g. /var/www/html atau /var/www/ppid"
+                                    placeholder="e.g. /var/www/html atau /home/user/public_html"
                                     value={data.ssh_app_path}
                                     onChange={e => setData('ssh_app_path', e.target.value)}
                                 />

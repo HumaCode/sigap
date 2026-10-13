@@ -29,7 +29,7 @@ export default function DetailLogModal({
     const targetUrl = selectedLog.url_path
         ? (selectedLog.url_path.startsWith('http')
             ? selectedLog.url_path
-            : `https://${selectedLog.site?.url || 'pekalongankota.go.id'}${selectedLog.url_path.startsWith('/') ? '' : '/'}${selectedLog.url_path}`)
+            : `https://${selectedLog.site?.url || 'example.com'}${selectedLog.url_path.startsWith('/') ? '' : '/'}${selectedLog.url_path}`)
         : null;
 
     const modalFooter = (

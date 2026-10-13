@@ -229,6 +229,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/security', [\App\Http\Controllers\SiteSecurityController::class, 'index'])->name('security.index');
     Route::post('/security/scan', [\App\Http\Controllers\SiteSecurityController::class, 'scan'])->name('security.scan');
     
+    Route::get('/backups', [\App\Http\Controllers\BackupController::class, 'index'])->name('backups.index');
+    Route::post('/backups', [\App\Http\Controllers\BackupController::class, 'store'])->name('backups.store');
+    Route::get('/backups/{id}/download', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download');
+    Route::post('/backups/{id}/restore', [\App\Http\Controllers\BackupController::class, 'restore'])->name('backups.restore');
+    Route::delete('/backups/{id}', [\App\Http\Controllers\BackupController::class, 'destroy'])->name('backups.destroy');
+    
     Route::patch('/users/{id}/toggle-status', [\App\Http\Controllers\UserController::class, 'toggleStatus'])->name('users.toggle-status');
     Route::resource('users', \App\Http\Controllers\UserController::class)->except(['create', 'edit', 'show']);
 

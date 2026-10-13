@@ -573,4 +573,76 @@ body.authenticated-body {
   box-shadow: 0 2px 8px rgba(14, 165, 163, 0.35) !important;
 }
 
+/* ===== Global Action Button Component Styling ===== */
+.action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.action-btn:hover {
+  background: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
+}
+
+.action-btn.info {
+  background: rgba(14, 165, 163, 0.12);
+  color: #0ea5a3;
+}
+.action-btn.info:hover {
+  background: #0ea5a3;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 163, 0.28);
+}
+
+.action-btn.edit,
+.action-btn.blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+.action-btn.edit:hover,
+.action-btn.blue:hover {
+  background: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
+}
+
+.action-btn.warning,
+.action-btn.amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+.action-btn.warning:hover,
+.action-btn.amber:hover {
+  background: #f59e0b;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.28);
+}
+
+.action-btn.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+.action-btn.danger:hover {
+  background: #ef4444;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.28);
+}
+
+
 

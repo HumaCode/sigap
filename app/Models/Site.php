@@ -49,6 +49,11 @@ class Site extends Model
         return $this->hasOne(SiteSecurity::class);
     }
 
+    public function backups()
+    {
+        return $this->hasMany(SiteBackup::class);
+    }
+
     /**
      * Calculate 30-day uptime percentage dynamically based on check logs.
      */

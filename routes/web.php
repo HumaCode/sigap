@@ -18,26 +18,185 @@ Route::get('/', function () {
         $avgUptime = round($totalUptimeSum / $totalSites, 2);
     }
 
+    $activeIncidents = \App\Models\Incident::whereIn('status', ['open', 'investigating'])->count();
+    $criticalIncidents = \App\Models\Incident::where('severity', 'critical')
+        ->whereIn('status', ['open', 'investigating'])
+        ->count();
+
+    if ($criticalIncidents > 0) {
+        $defconLevel = 'DEFCON 2';
+        $defconStatus = 'CRITICAL ALERT';
+        $defconType = 'error';
+    } elseif ($activeIncidents > 0 || $downSites > 0) {
+        $defconLevel = 'DEFCON 3';
+        $defconStatus = 'ELEVATED';
+        $defconType = 'warning';
+    } elseif ($warnSites > 0) {
+        $defconLevel = 'DEFCON 4';
+        $defconStatus = 'GUARDED';
+        $defconType = 'secondary';
+    } else {
+        $defconLevel = 'DEFCON 5';
+        $defconStatus = 'NOMINAL';
+        $defconType = 'primary';
+    }
+
+    $sampleSites = \App\Models\Site::where('status', 'up')
+        ->inRandomOrder()
+        ->take(2)
+        ->pluck('url')
+        ->map(function ($url) {
+            return preg_replace('#^https?://#', '', rtrim($url, '/'));
+        })
+        ->values()
+        ->toArray();
+
+    $radarBlip1 = $sampleSites[0] ?? 'portal.layanan-digital.id';
+    $radarBlip2 = $sampleSites[1] ?? 'api.service-cloud.id';
+
+    $latestSite = \App\Models\Site::latest('updated_at')->first(['name', 'url']);
+    $latestDomain = $latestSite ? preg_replace('#^https?://#', '', rtrim($latestSite->url, '/')) : 'portal.layanan-digital.id';
+
+    $sslValidCount = \App\Models\Site::where('status', '!=', 'down')->count();
+    $sslPercentage = $totalSites > 0 ? round(($sslValidCount / $totalSites) * 100) : 100;
+
     $publicServices = \App\Models\Site::take(4)->get(['id', 'name', 'url', 'status'])->map(function ($site) {
         return [
             'id' => (string) $site->id,
             'name' => $site->name,
-            'url' => $site->url,
+            'url' => preg_replace('#^https?://#', '', rtrim($site->url, '/')),
             'status' => $site->status,
-            'uptime' => $site->status === 'up' ? 99.9 : ($site->status === 'warn' ? 98.5 : 92.0),
+            'status_label' => match ($site->status) {
+                'up' => 'Aktif Normal',
+                'warn' => 'Perlu Atensi',
+                'down' => 'Gangguan',
+                default => 'Pemeliharaan',
+            },
+            'uptime' => match ($site->status) {
+                'up' => '99.98%',
+                'warn' => '98.50%',
+                'down' => '89.20%',
+                default => '99.90%',
+            },
         ];
     });
+
+    if ($downSites > 0) {
+        $systemStatus = [
+            'type' => 'critical',
+            'text' => "$downSites Layanan Mengalami Gangguan",
+            'dot_color' => 'bg-error',
+            'badge_color' => 'bg-error/10 text-error border-error/30 shadow-[0_0_24px_rgba(239,68,68,0.2)]',
+        ];
+    } elseif ($warnSites > 0) {
+        $systemStatus = [
+            'type' => 'warning',
+            'text' => "$warnSites Layanan Perlu Perhatian",
+            'dot_color' => 'bg-warning',
+            'badge_color' => 'bg-warning/10 text-warning border-warning/30 shadow-[0_0_24px_rgba(245,158,11,0.2)]',
+        ];
+    } else {
+        $systemStatus = [
+            'type' => 'normal',
+            'text' => 'Seluruh Sistem Beroperasi Normal',
+            'dot_color' => 'bg-primary',
+            'badge_color' => 'bg-primary/10 text-primary border-primary/30 shadow-[0_0_24px_rgba(20,184,166,0.2)]',
+        ];
+    }
 
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'stats' => [
             'total_sites' => $totalSites > 0 ? $totalSites : 48,
             'avg_uptime' => $avgUptime,
-            'active_incidents' => \App\Models\Incident::whereIn('status', ['open', 'investigating'])->count(),
+            'active_incidents' => $activeIncidents,
+        ],
+        'socTelemetry' => [
+            'defcon_level' => $defconLevel,
+            'defcon_status' => $defconStatus,
+            'defcon_type' => $defconType,
+            'radar_blip_1' => $radarBlip1,
+            'radar_blip_2' => $radarBlip2,
+            'anomalies_count' => $downSites + $warnSites + $activeIncidents,
+            'critical_count' => $criticalIncidents,
+            'ssl_percentage' => $sslPercentage,
+            'latest_scanned_domain' => $latestDomain,
         ],
         'publicServices' => $publicServices,
+        'systemStatus' => $systemStatus,
     ]);
 })->name('home');
+
+Route::get('/api/realtime-status', function () {
+    $sites = \App\Models\Site::take(4)->get(['id', 'name', 'url', 'status'])->map(function ($site) {
+        return [
+            'id' => (string) $site->id,
+            'name' => $site->name,
+            'url' => preg_replace('#^https?://#', '', rtrim($site->url, '/')),
+            'status' => $site->status,
+            'status_label' => match ($site->status) {
+                'up' => 'Aktif Normal',
+                'warn' => 'Perlu Atensi',
+                'down' => 'Gangguan',
+                default => 'Pemeliharaan',
+            },
+            'uptime' => match ($site->status) {
+                'up' => '99.98%',
+                'warn' => '98.50%',
+                'down' => '89.20%',
+                default => '99.90%',
+            },
+        ];
+    });
+
+    $totalSites = \App\Models\Site::count();
+    $downSites = \App\Models\Site::where('status', 'down')->count();
+    $warnSites = \App\Models\Site::where('status', 'warn')->count();
+    $upSites = \App\Models\Site::where('status', 'up')->count();
+
+    $avgUptime = 99.85;
+    if ($totalSites > 0) {
+        $totalUptimeSum = ($downSites * 92.4) + ($warnSites * 98.2) + (($upSites + ($totalSites - $downSites - $warnSites - $upSites)) * 99.9);
+        $avgUptime = round($totalUptimeSum / $totalSites, 2);
+    }
+
+    if ($downSites > 0) {
+        $systemStatus = [
+            'type' => 'critical',
+            'text' => "$downSites Layanan Mengalami Gangguan",
+            'dot_color' => 'bg-error',
+            'badge_color' => 'bg-error/10 text-error border-error/30 shadow-[0_0_24px_rgba(239,68,68,0.2)]',
+        ];
+    } elseif ($warnSites > 0) {
+        $systemStatus = [
+            'type' => 'warning',
+            'text' => "$warnSites Layanan Perlu Perhatian",
+            'dot_color' => 'bg-warning',
+            'badge_color' => 'bg-warning/10 text-warning border-warning/30 shadow-[0_0_24px_rgba(245,158,11,0.2)]',
+        ];
+    } else {
+        $systemStatus = [
+            'type' => 'normal',
+            'text' => 'Seluruh Sistem Beroperasi Normal',
+            'dot_color' => 'bg-primary',
+            'badge_color' => 'bg-primary/10 text-primary border-primary/30 shadow-[0_0_24px_rgba(20,184,166,0.2)]',
+        ];
+    }
+
+    return response()->json([
+        'services' => $sites,
+        'system_status' => $systemStatus,
+        'summary' => [
+            'total_sites' => $totalSites,
+            'up_sites' => $upSites,
+            'warn_sites' => $warnSites,
+            'down_sites' => $downSites,
+            'avg_uptime' => $avgUptime,
+        ],
+        'updated_at' => now()->format('H:i:s') . ' WIB',
+        'timestamp' => now()->timestamp,
+    ]);
+})->name('status.realtime');
 
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\IncidentController;

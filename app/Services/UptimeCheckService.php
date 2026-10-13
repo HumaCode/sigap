@@ -109,12 +109,13 @@ class UptimeCheckService
                 ]);
 
                 // Send Alert Notification
+                $formattedTime = now()->translatedFormat('d F Y, H:i:s') . ' WIB';
                 NotificationService::sendAlert(
-                    "🔴 *ALERT: SITUS DOWN*\n" .
-                    "Situs: *{$site->name}* ({$site->url})\n" .
+                    "🔴 *ALERT: SITUS DOWN*\n\n" .
+                    "Situs: *{$site->name}* (`{$site->url}`)\n" .
                     "Status Respon: *{$statusCode} " . ($errorMessage ?? 'Down') . "*\n" .
-                    "Waktu Respon: {$responseTimeMs} ms\n" .
-                    "Waktu Deteksi: " . now()->format('Y-m-d H:i:s')
+                    "Waktu Respon: *{$responseTimeMs} ms*\n" .
+                    "Waktu Deteksi: *{$formattedTime}*"
                 );
             }
         } elseif ($status === 'up' && $oldStatus === 'down') {
@@ -124,11 +125,13 @@ class UptimeCheckService
                 ->where('type', 'uptime')
                 ->update(['status' => 'resolved']);
 
+            $formattedRecoveryTime = now()->translatedFormat('d F Y, H:i:s') . ' WIB';
             NotificationService::sendAlert(
-                "🟢 *RECOVERY: SITUS KEMBALI ONLINE*\n" .
-                "Situs: *{$site->name}* ({$site->url})\n" .
-                "Waktu Respon: {$responseTimeMs} ms\n" .
-                "Status: HTTP {$statusCode} Normal"
+                "🟢 *RECOVERY: SITUS KEMBALI ONLINE*\n\n" .
+                "Situs: *{$site->name}* (`{$site->url}`)\n" .
+                "Status: *HTTP {$statusCode} Normal*\n" .
+                "Waktu Respon: *{$responseTimeMs} ms*\n" .
+                "Waktu Pemulihan: *{$formattedRecoveryTime}*"
             );
         }
 

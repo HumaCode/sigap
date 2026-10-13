@@ -660,13 +660,15 @@ class SiteSecurityService implements SiteSecurityServiceInterface
 
         // Send notification for new keyword detection
         $categoryName = $category === 'judol' ? 'Judi Online' : ($category === 'obat' ? 'Obat Terlarang' : ($category === 'hidden' ? 'Teks Tersembunyi' : 'Halaman Baru'));
+        $formattedTime = now()->translatedFormat('d F Y, H:i:s') . ' WIB';
         \App\Services\NotificationService::sendAlert(
-            "🚨 *DETEKSI KONTEN MENCURIGAKAN*\n" .
-            "Situs: *{$site->name}* ({$site->url})\n" .
+            "🚨 *DETEKSI KONTEN MENCURIGAKAN*\n\n" .
+            "Situs: *{$site->name}* (`{$site->url}`)\n" .
             "Kategori: *{$categoryName}*\n" .
             "Kata Kunci Terdeteksi: `{$keyword}`\n" .
             "Potongan Teks: \"{$snippet}\"\n" .
-            "Tindakan: Segera periksa konten website dan hapus script/teks sisipan."
+            "Waktu Deteksi: *{$formattedTime}*\n\n" .
+            "⚠️ *Tindakan*: Segera periksa konten website dan bersihkan script/teks sisipan."
         );
 
         // Auto-create incident on /incidents feed

@@ -42,7 +42,7 @@ export default function GeneralTab({ data, onSave, isSaving }: GeneralTabProps) 
                             Preferensi Umum & Notifikasi
                         </h4>
                         <p className="settings-card-subtitle">
-                            Informasi identitas instansi, saluran darurat, dan integrasi bot notifikasi Telegram
+                            Informasi identitas platform, saluran darurat, dan integrasi bot notifikasi Telegram
                         </p>
                     </div>
                 </div>
@@ -63,13 +63,13 @@ export default function GeneralTab({ data, onSave, isSaving }: GeneralTabProps) 
 
                     {/* PIC Email */}
                     <div className="col-12 col-md-6">
-                        <label className="settings-label">Email Penanggung Jawab (CSIRT)</label>
+                        <label className="settings-label">Email Penanggung Jawab</label>
                         <input
                             type="email"
                             className="settings-input"
                             value={picEmail}
                             onChange={(e) => setPicEmail(e.target.value)}
-                            placeholder="csirt@instansi.go.id"
+                            placeholder="admin@domain.id"
                         />
                         <div className="settings-hint">Email penerima laporan insiden kritis dan rekap ketersediaan</div>
                     </div>

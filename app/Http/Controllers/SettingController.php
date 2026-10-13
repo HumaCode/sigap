@@ -158,6 +158,28 @@ class SettingController extends Controller
     }
 
     /**
+     * Test connection to Telegram Bot and dispatch test message.
+     */
+    public function testTelegram(Request $request): JsonResponse
+    {
+        if (!$request->user() || !$request->user()->hasAnyRole(['dev', 'admin'])) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $request->validate([
+            'telegram_bot_token' => 'nullable|string|max:255',
+            'telegram_chat_id'   => 'nullable|string|max:100',
+        ]);
+
+        $result = $this->settingService->testTelegramConnection(
+            $request->input('telegram_bot_token'),
+            $request->input('telegram_chat_id')
+        );
+
+        return response()->json($result);
+    }
+
+    /**
      * Clear all activity logs.
      */
     public function clearActivityLogs(Request $request): RedirectResponse

@@ -248,6 +248,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [\App\Http\Controllers\SettingController::class, 'update'])->name('settings.update');
+    Route::post('/settings/telegram/test', [\App\Http\Controllers\SettingController::class, 'testTelegram'])->name('settings.telegram.test');
     Route::post('/settings/ninerouter/test', [\App\Http\Controllers\SettingController::class, 'testNineRouter'])->name('settings.ninerouter.test');
     Route::post('/settings/sso/test', [\App\Http\Controllers\SettingController::class, 'testSso'])->name('settings.sso.test');
     Route::delete('/settings/activity-logs', [\App\Http\Controllers\SettingController::class, 'clearActivityLogs'])->name('settings.activity-logs.clear');

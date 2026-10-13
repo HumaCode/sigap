@@ -23,4 +23,9 @@ interface SettingServiceInterface
      * Test connection to Humacode SSO server.
      */
     public function testSsoConnection(string $baseUrl): array;
+
+    /**
+     * Test connection to Telegram Bot and dispatch test notification.
+     */
+    public function testTelegramConnection(?string $botToken = null, ?string $chatId = null): array;
 }

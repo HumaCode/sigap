@@ -292,5 +292,103 @@ class SettingService implements SettingServiceInterface
             ];
         }
     }
+
+    public function testTelegramConnection(?string $botToken = null, ?string $chatId = null): array
+    {
+        $token = trim((string) ($botToken ?: (Setting::getValue('telegram_bot_token') ?: env('TELEGRAM_BOT_TOKEN', ''))));
+        $chat = trim((string) ($chatId ?: (Setting::getValue('telegram_chat_id') ?: env('TELEGRAM_CHAT_ID', ''))));
+
+        if (empty($token)) {
+            return [
+                'success' => false,
+                'message' => 'Telegram Bot Token belum diisi atau belum tersimpan.',
+            ];
+        }
+
+        if (empty($chat)) {
+            return [
+                'success' => false,
+                'message' => 'Telegram Chat ID / Group ID belum diisi.',
+            ];
+        }
+
+        try {
+            // 1. Validasi bot token via endpoint getMe Telegram
+            $meResponse = Http::timeout(8)->get("https://api.telegram.org/bot{$token}/getMe");
+
+            if ($meResponse->status() === 401) {
+                return [
+                    'success' => false,
+                    'message' => 'Autentikasi Gagal (401): Telegram Bot Token tidak valid.',
+                ];
+            }
+
+            if (!$meResponse->successful()) {
+                $desc = $meResponse->json('description') ?: 'Status ' . $meResponse->status();
+                return [
+                    'success' => false,
+                    'message' => 'Gagal memverifikasi Bot Telegram: ' . $desc,
+                ];
+            }
+
+            $botInfo = $meResponse->json('result', []);
+            $botUsername = $botInfo['username'] ?? 'Bot';
+            $botFirstName = $botInfo['first_name'] ?? 'Bot';
+
+            // 2. Kirim pesan pengujian interaktif ke chat_id
+            $nowFormatted = now()->timezone('Asia/Jakarta')->format('d M Y, H:i:s') . ' WIB';
+            $appName = Setting::getValue('app_name', config('app.name', 'SIGAP Web'));
+
+            $messageText = "🛡️ *UJI KONEKSI TELEGRAM {$appName}*\n\n"
+                . "✅ *Status:* Terhubung & Aktif\n"
+                . "🤖 *Bot:* @{$botUsername} ({$botFirstName})\n"
+                . "🆔 *Chat ID:* `{$chat}`\n"
+                . "📅 *Waktu:* {$nowFormatted}\n\n"
+                . "_Pesan ini mengonfirmasi bahwa bot berhasil terhubung dan siap mengirimkan notifikasi insiden serta ketersediaan sistem._";
+
+            $sendResponse = Http::timeout(8)->post("https://api.telegram.org/bot{$token}/sendMessage", [
+                'chat_id' => $chat,
+                'text' => $messageText,
+                'parse_mode' => 'Markdown',
+            ]);
+
+            if ($sendResponse->successful()) {
+                return [
+                    'success' => true,
+                    'message' => "Koneksi Telegram berhasil! Pesan uji coba berhasil dikirim oleh @{$botUsername} ke Chat ID {$chat}.",
+                    'bot' => [
+                        'username' => $botUsername,
+                        'name' => $botFirstName,
+                    ],
+                ];
+            }
+
+            $desc = $sendResponse->json('description') ?: 'Gagal mengirim pesan ke chat ID tersebut.';
+
+            // Feedback spesifik untuk error umum Telegram Bot
+            if (str_contains(strtolower($desc), 'chat not found')) {
+                $desc .= ' (Pastikan bot sudah di-invite ke grup/channel atau akun penerima sudah pernah klik /start pada bot).';
+            } elseif (str_contains(strtolower($desc), 'bot was blocked')) {
+                $desc .= ' (Bot diblokir oleh user tujuan. Silakan buka chat bot dan klik Unblock/Restart).';
+            } elseif (str_contains(strtolower($desc), 'not a member')) {
+                $desc .= ' (Bot belum ditambahkan ke dalam grup/channel tujuan).';
+            }
+
+            return [
+                'success' => false,
+                'message' => "Bot valid (@{$botUsername}), namun gagal mengirim ke Chat ID {$chat}: {$desc}",
+                'bot' => [
+                    'username' => $botUsername,
+                    'name' => $botFirstName,
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::error('Telegram connection test error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Terjadi kesalahan koneksi saat menghubungi server Telegram API: ' . $e->getMessage(),
+            ];
+        }
+    }
 }
 

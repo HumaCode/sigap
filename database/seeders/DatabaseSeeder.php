@@ -14,6 +14,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Nonaktifkan pencatatan Activity Log selama proses seeding agar log tidak penuh
+        if (function_exists('activity')) {
+            activity()->disableLogging();
+        }
+
         $this->call([
             RoleSeeder::class,
             UserSeeder::class,
@@ -23,5 +28,13 @@ class DatabaseSeeder extends Seeder
             NotificationSeeder::class,
             KeywordSeeder::class,
         ]);
+
+        // Pastikan tabel activity_log bersih dari log proses seeder
+        \Illuminate\Support\Facades\DB::table('activity_log')->truncate();
+
+        // Aktifkan kembali Activity Log untuk operasional normal aplikasi
+        if (function_exists('activity')) {
+            activity()->enableLogging();
+        }
     }
 }

@@ -39,7 +39,16 @@ class SiteSecurityService implements SiteSecurityServiceInterface
             $missingSiteIds = Site::whereNotIn('id', $existingSiteIds)->pluck('id');
 
             foreach ($missingSiteIds as $siteId) {
-                $this->scanSite($siteId);
+                \App\Models\SiteSecurity::firstOrCreate(
+                    ['site_id' => $siteId],
+                    [
+                        'score' => 100,
+                        'grade' => 'A',
+                        'issues_count' => 0,
+                        'checks' => [],
+                        'last_scanned_at' => null,
+                    ]
+                );
             }
         }
     }

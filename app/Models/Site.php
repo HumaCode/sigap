@@ -54,6 +54,16 @@ class Site extends Model
         return $this->hasMany(SiteBackup::class);
     }
 
+    public function serverScans()
+    {
+        return $this->hasMany(ServerScan::class);
+    }
+
+    public function latestServerScan()
+    {
+        return $this->hasOne(ServerScan::class)->latestOfMany();
+    }
+
     /**
      * Calculate 30-day uptime percentage dynamically based on check logs.
      */

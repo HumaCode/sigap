@@ -8,6 +8,7 @@ interface PopupLoaderProps {
     title?: string;
     icon?: ReactNode;
     badgeText?: string;
+    maxWidth?: string | number;
 }
 
 export default function PopupLoader({
@@ -17,6 +18,7 @@ export default function PopupLoader({
     title,
     icon,
     badgeText,
+    maxWidth = '520px',
 }: PopupLoaderProps) {
     const [mounted, setMounted] = useState(false);
     const [cardTransform, setCardTransform] = useState('');
@@ -44,6 +46,8 @@ export default function PopupLoader({
 
     const isSuccess = status === 'success';
 
+    const computedMaxWidth = typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth;
+
     return createPortal(
         <div className="popup-loader-overlay">
             {/* Ambient glowing backdrop spots */}
@@ -52,7 +56,7 @@ export default function PopupLoader({
 
             <div
                 className={`popup-loader-card ${isSuccess ? 'is-success' : 'is-loading'}`}
-                style={{ transform: cardTransform }}
+                style={{ transform: cardTransform, maxWidth: computedMaxWidth }}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
             >
@@ -192,8 +196,8 @@ export default function PopupLoader({
 
                 .popup-ambient-glow {
                     position: absolute;
-                    width: 380px;
-                    height: 380px;
+                    width: 480px;
+                    height: 480px;
                     border-radius: 50%;
                     background: radial-gradient(circle, rgba(14, 165, 163, 0.25) 0%, rgba(14, 165, 163, 0) 70%);
                     pointer-events: none;
@@ -202,8 +206,8 @@ export default function PopupLoader({
                 }
 
                 .popup-ambient-glow.secondary {
-                    width: 300px;
-                    height: 300px;
+                    width: 380px;
+                    height: 380px;
                     background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, rgba(56, 189, 248, 0) 70%);
                     animation: ambientPulse 4s ease-in-out infinite alternate-reverse;
                 }
@@ -214,9 +218,9 @@ export default function PopupLoader({
                     backdrop-filter: blur(20px);
                     -webkit-backdrop-filter: blur(20px);
                     border-radius: 28px;
-                    padding: 2.25rem 2.25rem 1.75rem 2.25rem;
+                    padding: 2.5rem 2.75rem 2rem 2.75rem;
                     width: 100%;
-                    max-width: 380px;
+                    max-width: 540px;
                     text-align: center;
                     border: 1px solid rgba(14, 165, 163, 0.22);
                     box-shadow: 
@@ -296,11 +300,13 @@ export default function PopupLoader({
                 }
 
                 .popup-title {
-                    font-size: 1.18rem;
+                    font-size: 1.25rem;
                     font-weight: 700;
                     color: #0f2a3f;
                     font-family: 'Poppins', sans-serif;
-                    margin: 0 0 1.25rem 0;
+                    margin: 0 auto 1.25rem auto;
+                    max-width: 480px;
+                    line-height: 1.4;
                     letter-spacing: -0.01em;
                 }
 
@@ -486,12 +492,13 @@ export default function PopupLoader({
                 }
 
                 .popup-message {
-                    font-size: 0.96rem;
+                    font-size: 0.95rem;
                     font-weight: 500;
-                    color: #334155;
+                    color: #475569;
                     font-family: 'Poppins', sans-serif;
-                    line-height: 1.45;
-                    margin: 0;
+                    line-height: 1.55;
+                    margin: 0 auto;
+                    max-width: 460px;
                     transition: color 0.3s ease;
                 }
 

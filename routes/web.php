@@ -239,6 +239,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/server-investigations/{site}/check-health', [\App\Http\Controllers\ServerInvestigationController::class, 'checkHealth'])->name('server-investigations.check-health');
     Route::post('/server-investigations/{site}/scan-files', [\App\Http\Controllers\ServerInvestigationController::class, 'scanFiles'])->name('server-investigations.scan-files');
     Route::post('/server-investigations/{site}/quarantine-file', [\App\Http\Controllers\ServerInvestigationController::class, 'quarantineFile'])->name('server-investigations.quarantine-file');
+    Route::post('/server-investigations/{site}/delete-file', [\App\Http\Controllers\ServerInvestigationController::class, 'deleteFile'])->name('server-investigations.delete-file');
     Route::post('/server-investigations/{site}/rollback-file', [\App\Http\Controllers\ServerInvestigationController::class, 'rollbackFile'])->name('server-investigations.rollback-file');
     Route::post('/server-investigations/{site}/toggle-maintenance', [\App\Http\Controllers\ServerInvestigationController::class, 'toggleMaintenance'])->name('server-investigations.toggle-maintenance');
     Route::post('/server-investigations/{site}/analyze-logs', [\App\Http\Controllers\ServerInvestigationController::class, 'analyzeLogs'])->name('server-investigations.analyze-logs');

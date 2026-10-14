@@ -35,16 +35,46 @@ class ServerInvestigationController extends Controller
         }
 
         $serverHealth = null;
+        $latestScan = null;
         if ($selectedSite) {
-            // Cek status server awal
-            $serverHealth = $this->investigationService->checkServerConnection($selectedSite);
+            // Load full site model with decrypted credentials for backend SSH health check
+            $fullSite = Site::find($selectedSite->id);
+            if ($fullSite) {
+                $serverHealth = $this->investigationService->checkServerConnection($fullSite);
+                $latestScan = $this->investigationService->getLatestScan($fullSite);
+            }
         }
 
         return Inertia::render('InvestigasiServer/Index', [
             'sites' => $sites,
             'selectedSiteId' => $selectedSiteId,
-            'selectedSite' => $selectedSite,
+            'selectedSite' => $selectedSite ? [
+                'id' => $selectedSite->id,
+                'name' => $selectedSite->name,
+                'url' => $selectedSite->url,
+                'status' => $selectedSite->status,
+                'ssh_host' => $selectedSite->ssh_host,
+                'ssh_port' => $selectedSite->ssh_port,
+                'ssh_username' => $selectedSite->ssh_username,
+                'ssh_app_path' => $selectedSite->ssh_app_path,
+                'ssh_auth_type' => $selectedSite->ssh_auth_type,
+            ] : null,
             'initialServerHealth' => $serverHealth,
+            'latestScan' => $latestScan ? [
+                'id' => $latestScan->id,
+                'mode' => $latestScan->scan_mode,
+                'app_path' => $latestScan->app_path,
+                'scanned_at' => $latestScan->formatted_scanned_at,
+                'total_scanned' => $latestScan->total_scanned,
+                'total_findings' => $latestScan->total_findings,
+                'risk_summary' => $latestScan->risk_summary,
+                'threat_level' => $latestScan->threat_level,
+                'findings' => method_exists($this->investigationService, 'classifyFindings')
+                    ? $this->investigationService->classifyFindings($latestScan->findings ?? [])
+                    : ($latestScan->findings ?? []),
+                'scanned_by' => $latestScan->user?->name,
+                'created_at' => $latestScan->created_at,
+            ] : null,
         ]);
     }
 
@@ -74,10 +104,12 @@ class ServerInvestigationController extends Controller
     {
         $validated = $request->validate([
             'mode' => 'required|in:quick,deep,git',
+            'include_vendor' => 'sometimes|boolean',
         ]);
 
         try {
-            $result = $this->investigationService->scanFiles($site, $validated['mode']);
+            $includeVendor = (bool) ($validated['include_vendor'] ?? false);
+            $result = $this->investigationService->scanFiles($site, $validated['mode'], auth()->id(), $includeVendor);
             
             activity('server_investigation')
                 ->performedOn($site)
@@ -106,7 +138,7 @@ class ServerInvestigationController extends Controller
         ]);
 
         try {
-            $result = $this->investigationService->quarantineFile($site, $validated['file_path']);
+            $result = $this->investigationService->quarantineFile($site, $validated['file_path'], auth()->id());
 
             activity('server_investigation')
                 ->performedOn($site)
@@ -118,7 +150,33 @@ class ServerInvestigationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengisolasi berkas: ' . $e->getMessage(),
-            ], 500);
+            ], 400);
+        }
+    }
+
+    /**
+     * Hapus berkas berbahaya secara permanen dari server.
+     */
+    public function deleteFile(Request $request, Site $site): JsonResponse
+    {
+        $validated = $request->validate([
+            'file_path' => 'required|string',
+        ]);
+
+        try {
+            $result = $this->investigationService->deleteFile($site, $validated['file_path'], auth()->id());
+
+            activity('server_investigation')
+                ->performedOn($site)
+                ->withProperties(['file' => $validated['file_path']])
+                ->log("Berkas {$validated['file_path']} berhasil dihapus permanen pada situs {$site->name}");
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus berkas: ' . $e->getMessage(),
+            ], 400);
         }
     }
 

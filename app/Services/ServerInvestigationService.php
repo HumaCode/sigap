@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ServerScan;
 use App\Models\Site;
 use App\Services\Interfaces\ServerInvestigationServiceInterface;
 use Illuminate\Support\Collection;
@@ -12,6 +13,17 @@ use phpseclib3\Net\SSH2;
 
 class ServerInvestigationService implements ServerInvestigationServiceInterface
 {
+    /**
+     * Dapatkan hasil pemindaian server terakhir untuk situs tertentu dari database.
+     */
+    public function getLatestScan(Site $site): ?ServerScan
+    {
+        return ServerScan::where('site_id', $site->id)
+            ->with('user:id,name')
+            ->latest()
+            ->first();
+    }
+
     /**
      * Dapatkan semua situs yang telah mengkonfigurasi kredensial SSH.
      */
@@ -43,13 +55,16 @@ class ServerInvestigationService implements ServerInvestigationServiceInterface
 
         if ($authType === 'key') {
             $privateKey = $site->ssh_private_key;
-            if (!$privateKey) {
-                throw new \Exception("SSH Private Key kosong pada konfigurasi situs.");
+            if (empty($privateKey)) {
+                throw new \Exception("SSH Private Key belum diatur pada konfigurasi situs.");
             }
             $key = PublicKeyLoader::load($privateKey);
             $authenticated = $ssh->login($username, $key);
         } else {
             $password = $site->ssh_password;
+            if ($password === null || $password === '') {
+                throw new \Exception("Password SSH belum diatur pada konfigurasi situs.");
+            }
             $authenticated = $ssh->login($username, $password);
         }
 
@@ -113,9 +128,88 @@ class ServerInvestigationService implements ServerInvestigationServiceInterface
     }
 
     /**
+     * Klasifikasikan dan normalkan temuan berkas untuk memisahkan ancaman nyata dari false positive vendor dan framework cache.
+     */
+    public function classifyFindings(array $findings): array
+    {
+        $normalized = [];
+        foreach ($findings as $f) {
+            $path = $f['path'] ?? '';
+            $fileName = strtolower(basename($path));
+
+            $isLockfile = in_array($fileName, [
+                'package-lock.json', 'composer.lock', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb',
+                'package.json', 'composer.json', 'tsconfig.json', '.gitignore', '.gitattributes', 'readme.md'
+            ]) || !empty($f['is_lockfile']);
+
+            $isVendor = !empty($f['is_vendor']) || str_starts_with($path, 'vendor/') || str_contains($path, '/vendor/');
+            $isNode = !empty($f['is_node_module']) || str_starts_with($path, 'node_modules/') || str_contains($path, '/node_modules/');
+            $isBladeCache = str_contains($path, 'storage/framework/views/') || str_contains($path, 'storage/framework/cache/');
+            $isBootstrapCache = str_contains($path, 'bootstrap/cache/');
+            $isFrameworkCache = $isBladeCache || $isBootstrapCache;
+            $isRoot = !str_contains($path, '/');
+            $snippet = $f['snippet'] ?? '';
+
+            if ($isLockfile) {
+                $f['is_lockfile'] = true;
+                $f['is_framework_cache'] = false;
+                $f['is_vendor'] = false;
+                $f['can_quarantine'] = false;
+                $f['can_delete'] = false;
+                $f['severity'] = 'info';
+                $f['threat_type'] = 'Sinkronisasi Manifes Pustaka (Lockfile Aman)';
+                $f['detail'] = "Berkas teks JSON standar Node.js/Composer ({$path}) yang mencatat versi dependensi. Termodifikasi normal akibat instalasi paket di Docker/CI. Bukan skrip eksekusi dan bukan malware.";
+            } elseif ($isBladeCache) {
+                $f['is_framework_cache'] = true;
+                $f['is_vendor'] = false;
+                $f['can_quarantine'] = false;
+                $f['can_delete'] = false;
+                $f['severity'] = 'info';
+                $f['threat_type'] = 'Blade View Compiled Cache (Aman)';
+                $f['detail'] = 'Cache kompilasi template Blade Laravel agar web cepat diakses. Bukan direktori publik/upload.';
+            } elseif ($isBootstrapCache) {
+                $f['is_framework_cache'] = true;
+                $f['is_vendor'] = false;
+                $f['can_quarantine'] = false;
+                $f['can_delete'] = false;
+                $f['severity'] = 'info';
+                $f['threat_type'] = 'Laravel Manifest Cache (Aman)';
+                $f['detail'] = 'Cache manifest package/service Laravel (composer/optimize). Dibuat otomatis untuk optimasi performa.';
+            } elseif ($isVendor || $isNode) {
+                $f['is_vendor'] = true;
+                $f['is_framework_cache'] = false;
+                $f['can_quarantine'] = false;
+                $f['can_delete'] = false;
+                $f['severity'] = 'info';
+                $f['threat_type'] = 'Pustaka Resmi Composer (False Positive Disaring)';
+                $f['detail'] = 'Fungsi sistem resmi bawaan paket composer (misal Ramsey UUID, Faker, PHPStan). Bukan malware.';
+            } else {
+                $f['is_vendor'] = false;
+                $f['is_framework_cache'] = false;
+                $f['is_lockfile'] = false;
+                $f['can_quarantine'] = true;
+                $f['can_delete'] = true;
+
+                $isScript = preg_match('/\.(php|cjs|js|sh|py|pl|phtml|php[0-9]?)$/i', $path);
+
+                if ($isRoot && $isScript && (str_contains($snippet, 'shell_exec') || str_contains($snippet, 'execSync') || str_contains($snippet, 'system') || str_contains($path, 'git_checkout'))) {
+                    $f['severity'] = 'critical';
+                    $f['is_root_script'] = true;
+                    $f['threat_type'] = '🚨 Pintu Backdoor / RCE Tanpa Proteksi (Root Script)';
+                    $f['detail'] = 'Skrip standalone di root folder tanpa autentikasi/middleware yang mengeksekusi shell langsung. Sangat fatal jika diakses publik via URL.';
+                }
+            }
+
+            $normalized[] = $f;
+        }
+
+        return $normalized;
+    }
+
+    /**
      * Pindai berkas proyek di server target.
      */
-    public function scanFiles(Site $site, string $mode = 'quick'): array
+    public function scanFiles(Site $site, string $mode = 'quick', ?string $userId = null, bool $includeVendor = false): array
     {
         $ssh = $this->getSshConnection($site, 35);
         $appPath = $site->ssh_app_path ?: '/var/www/html';
@@ -132,11 +226,22 @@ class ServerInvestigationService implements ServerInvestigationServiceInterface
             foreach ($lines as $line) {
                 $statusFlag = substr(trim($line), 0, 2);
                 $filePath = trim(substr(trim($line), 2));
+                $fileName = strtolower(basename($filePath));
+
+                $isLockfile = in_array($fileName, [
+                    'package-lock.json', 'composer.lock', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb',
+                    'package.json', 'composer.json', 'tsconfig.json', '.gitignore', '.gitattributes', 'readme.md'
+                ]);
 
                 $severity = 'medium';
                 $threatType = 'Modifikasi Repositori Git';
+                $detail = "Status Git: {$statusFlag}";
 
-                if (str_starts_with($statusFlag, '??')) {
+                if ($isLockfile) {
+                    $severity = 'info';
+                    $threatType = 'Sinkronisasi Manifes Pustaka (Lockfile Aman)';
+                    $detail = "Berkas teks JSON ({$fileName}) termodifikasi otomatis saat container Docker menjalankan npm install / composer install. Bukan skrip eksekusi.";
+                } elseif (str_starts_with($statusFlag, '??')) {
                     $severity = 'high';
                     $threatType = 'File Asing Baru (Untracked)';
                 } elseif (str_starts_with($statusFlag, 'D')) {
@@ -146,64 +251,138 @@ class ServerInvestigationService implements ServerInvestigationServiceInterface
                     $threatType = 'File Termodifikasi';
                 }
 
+                $isVendor = str_starts_with($filePath, 'vendor/') || str_contains($filePath, '/vendor/');
+                if ($isVendor && !$includeVendor) {
+                    continue;
+                }
+
                 $findings[] = [
                     'path' => $filePath,
                     'full_path' => rtrim($appPath, '/') . '/' . ltrim($filePath, '/'),
-                    'severity' => $severity,
-                    'threat_type' => $threatType,
+                    'severity' => ($isVendor || $isLockfile) ? 'info' : $severity,
+                    'threat_type' => $isVendor ? 'Pustaka Resmi Composer (Modifikasi Git)' : $threatType,
                     'status_flag' => trim($statusFlag),
-                    'detail' => "Status Git: {$statusFlag}",
+                    'detail' => $detail,
                     'size' => '-',
                     'modified_at' => 'Baru saja',
+                    'is_vendor' => $isVendor,
+                    'is_lockfile' => $isLockfile,
+                    'can_quarantine' => !$isVendor && !$isLockfile,
+                    'can_delete' => !$isVendor && !$isLockfile,
                 ];
             }
 
             $totalScanned = count($findings);
 
         } elseif ($mode === 'deep') {
-            // Heuristic search for webshell and backdoor patterns
-            $dangerPattern = '(eval\(|base64_decode\(|gzinflate\(|str_rot13\(|shell_exec\(|passthru\(|system\(|assert\(|c99|r57|alfa|wso)';
+            // 1. Root loose scripts scanner (detect stray developer scripts and RCE backdoors in root directory)
+            $standardRootFiles = [
+                'artisan', 'server.php', 'docker-entrypoint.sh', 'Dockerfile', 'docker-compose.yml',
+                'vite.config.js', 'vite.config.ts', 'webpack.mix.js', 'tailwind.config.js', 'postcss.config.js'
+            ];
+            $rootScanCmd = "{$cdCmd} && find . -maxdepth 1 -type f \\( -name \"*.php\" -o -name \"*.cjs\" -o -name \"*.js\" -o -name \"*.sh\" \\) ! -name \"artisan\" ! -name \"server.php\" ! -name \"docker-entrypoint.sh\" 2>/dev/null";
+            $rootCandidates = array_filter(explode("\n", trim($ssh->exec($rootScanCmd))));
+
+            // Danger patterns for webshells, backdoors, and unauthenticated command executions
+            $dangerPattern = '(eval\(|base64_decode\(|gzinflate\(|str_rot13\(|shell_exec\(|passthru\(|system\(|execSync|child_process|proc_open\(|popen\()';
             
-            // Grep recursively for suspicious patterns in php files
-            $rawGrep = trim($ssh->exec("{$cdCmd} && grep -rnEl --include=\"*.php\" \"{$dangerPattern}\" . 2>/dev/null | head -n 40"));
-            $grepFiles = array_filter(explode("\n", $rawGrep));
+            // Grep recursively for suspicious patterns, STRICTLY excluding vendor, node_modules, .git, storage/framework, bootstrap/cache, .sigap_quarantine
+            $excludeDirs = "--exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=storage/framework --exclude-dir=bootstrap/cache --exclude-dir=.sigap_quarantine";
+            $grepCmd = "{$cdCmd} && grep -rnEl {$excludeDirs} --include=\"*.php\" --include=\"*.cjs\" --include=\"*.js\" \"{$dangerPattern}\" . 2>/dev/null | head -n 40";
+            $grepFiles = array_filter(explode("\n", trim($ssh->exec($grepCmd))));
 
-            // Also check for hidden php files in assets or upload folders
-            $uploadGrep = trim($ssh->exec("{$cdCmd} && find . -type f \\( -path \"*/upload*/*.php\" -o -path \"*/uploads*/*.php\" -o -path \"*/storage*/*.php\" -o -path \"*/assets*/*.php\" -o -path \"*/cache*/*.php\" \\) 2>/dev/null | head -n 25"));
-            $uploadFiles = array_filter(explode("\n", $uploadGrep));
+            // Check actual public and user upload directories for rogue php/executable scripts (STRICTLY ignoring internal storage/framework and bootstrap/cache)
+            $uploadGrep = trim($ssh->exec("{$cdCmd} && find ./public ./storage/app/public ./uploads -type f \\( -name \"*.php\" -o -name \"*.phtml\" -o -name \"*.php5\" \\) ! -name \"index.php\" ! -name \"frankenphp-worker.php\" 2>/dev/null | head -n 25"));
+            $uploadFiles = array_filter(explode("\n", trim($uploadGrep)));
 
-            $allCandidates = array_unique(array_merge($grepFiles, $uploadFiles));
+            $allCandidates = array_unique(array_merge($rootCandidates, $grepFiles, $uploadFiles));
 
             foreach ($allCandidates as $file) {
                 $cleanPath = ltrim($file, './');
                 if (empty($cleanPath)) continue;
 
-                // Check file info
+                $isVendor = str_starts_with($cleanPath, 'vendor/') || str_contains($cleanPath, '/vendor/');
+                $isNodeModule = str_starts_with($cleanPath, 'node_modules/') || str_contains($cleanPath, '/node_modules/');
+                $isBladeCache = str_contains($cleanPath, 'storage/framework/views/') || str_contains($cleanPath, 'storage/framework/cache/');
+                $isBootstrapCache = str_contains($cleanPath, 'bootstrap/cache/');
+                $isFrameworkCache = $isBladeCache || $isBootstrapCache;
+
+                // Skip internal framework caches and vendor if not requested
+                if ($isFrameworkCache || (($isVendor || $isNodeModule) && !$includeVendor)) {
+                    continue;
+                }
+
+                $isRoot = !str_contains($cleanPath, '/');
+                $isUpload = (str_starts_with($cleanPath, 'public/') && !in_array(basename($cleanPath), ['index.php', 'frankenphp-worker.php']))
+                    || str_starts_with($cleanPath, 'storage/app/public/')
+                    || str_starts_with($cleanPath, 'uploads/');
+
+                // Inspect file contents
                 $fileInfo = trim($ssh->exec("{$cdCmd} && ls -lh " . escapeshellarg($cleanPath) . " 2>/dev/null | awk '{print $5, $6, $7, $8}'"));
-                
-                // Get sample snippet of dangerous line
                 $snippet = trim($ssh->exec("{$cdCmd} && grep -nE \"{$dangerPattern}\" " . escapeshellarg($cleanPath) . " 2>/dev/null | head -n 3"));
 
-                $isUpload = str_contains($cleanPath, 'upload') || str_contains($cleanPath, 'storage') || str_contains($cleanPath, 'assets');
-                $severity = $isUpload ? 'critical' : (str_contains($snippet, 'eval') || str_contains($snippet, 'shell_exec') ? 'critical' : 'high');
-                $threatType = $isUpload ? 'PHP di Direktori Publik/Upload (Tinggi Bahaya)' : 'Pola Injeksi Kode / Backdoor Suspect';
+                // If file doesn't match danger pattern and is in root, check if it has system commands
+                if (empty($snippet) && $isRoot) {
+                    $hasShell = trim($ssh->exec("{$cdCmd} && grep -nE \"(exec|git|curl|wget)\" " . escapeshellarg($cleanPath) . " 2>/dev/null | head -n 2"));
+                    if (empty($hasShell)) {
+                        continue; // skip safe root files
+                    }
+                    $snippet = $hasShell;
+                }
+
+                // Classification
+                if ($isBladeCache) {
+                    $severity = 'info';
+                    $threatType = 'Blade View Compiled Cache (Aman)';
+                    $detail = 'Cache kompilasi template tampilan Blade Laravel. Bukan direktori publik/upload.';
+                } elseif ($isBootstrapCache) {
+                    $severity = 'info';
+                    $threatType = 'Laravel Manifest Cache (Aman)';
+                    $detail = 'Cache manifest package/service Laravel (composer/optimize). Dibuat otomatis untuk optimasi performa.';
+                } elseif ($isVendor) {
+                    $severity = 'info';
+                    $threatType = 'Pustaka Resmi Composer (False Positive)';
+                    $detail = 'Fungsi sistem resmi bawaan paket composer (misal Ramsey UUID, Faker, PHPStan). Bukan malware.';
+                } elseif ($isRoot && (str_contains($snippet, 'shell_exec') || str_contains($snippet, 'execSync') || str_contains($snippet, 'system'))) {
+                    $severity = 'critical';
+                    $threatType = '🚨 Pintu Backdoor / RCE Tanpa Proteksi (Root Script)';
+                    $detail = 'Skrip standalone di root folder tanpa autentikasi/middleware yang mengeksekusi shell langsung. Sangat fatal jika diakses publik via URL.';
+                } elseif ($isUpload) {
+                    $severity = 'critical';
+                    $threatType = 'PHP di Direktori Publik/Upload (Webshell Suspect)';
+                    $detail = 'Berkas skrip executable ditemukan di direktori upload/aset publik.';
+                } elseif (str_contains($snippet, 'eval') || str_contains($snippet, 'shell_exec') || str_contains($snippet, 'base64_decode')) {
+                    $severity = 'critical';
+                    $threatType = 'Pola Injeksi Kode / Obfuscated Backdoor';
+                    $detail = 'Ditemukan struktur kode mencurigakan yang berpotensi menyamarkan payload webshell.';
+                } else {
+                    $severity = 'high';
+                    $threatType = 'Skrip Eksekusi Lokal / Potensi Bahaya';
+                    $detail = 'Skrip pembantu yang mengeksekusi perintah sistem di luar alur aplikasi standar.';
+                }
 
                 $findings[] = [
                     'path' => $cleanPath,
                     'full_path' => rtrim($appPath, '/') . '/' . $cleanPath,
                     'severity' => $severity,
                     'threat_type' => $threatType,
-                    'snippet' => $snippet ?: 'Ditemukan struktur skrip PHP anomali pada folder non-eksekusi.',
+                    'detail' => $detail,
+                    'snippet' => $snippet ?: 'Ditemukan file skrip standalone yang berpotensi dieksekusi langsung.',
                     'size' => explode(' ', $fileInfo)[0] ?? '-',
                     'modified_at' => implode(' ', array_slice(explode(' ', $fileInfo), 1)) ?: 'Terdeteksi',
+                    'is_vendor' => $isVendor,
+                    'is_framework_cache' => $isFrameworkCache,
+                    'is_root_script' => $isRoot,
+                    'can_quarantine' => !$isVendor && !$isFrameworkCache,
+                    'can_delete' => !$isVendor && !$isFrameworkCache,
                 ];
             }
 
             $totalScanned = max(count($findings) * 8, 120);
 
         } else {
-            // Quick mode: check recently changed files within 48 hours
-            $rawFiles = trim($ssh->exec("{$cdCmd} && find . -type f \\( -name \"*.php\" -o -name \"*.html\" -o -name \".htaccess\" \\) -mtime -2 2>/dev/null | head -n 35"));
+            // Quick mode: check recently changed files within 48 hours, strictly excluding vendor, node_modules, storage/framework, bootstrap/cache
+            $rawFiles = trim($ssh->exec("{$cdCmd} && find . -maxdepth 4 -type f \\( -name \"*.php\" -o -name \"*.html\" -o -name \".htaccess\" \\) ! -path \"*/vendor/*\" ! -path \"*/node_modules/*\" ! -path \"*/storage/framework/*\" ! -path \"*/bootstrap/cache/*\" -mtime -2 2>/dev/null | head -n 35"));
             $lines = array_filter(explode("\n", $rawFiles));
 
             foreach ($lines as $file) {
@@ -218,46 +397,101 @@ class ServerInvestigationService implements ServerInvestigationServiceInterface
                     'full_path' => rtrim($appPath, '/') . '/' . $cleanPath,
                     'severity' => $isCoreFile ? 'high' : 'medium',
                     'threat_type' => $isCoreFile ? 'File Inti Berubah (Potensi Deface)' : 'File Skrip Baru Dimodifikasi (48 Jam Terakhir)',
+                    'detail' => "Dimodifikasi dalam rentang waktu deteksi aktif.",
                     'snippet' => "Dimodifikasi dalam rentang waktu deteksi aktif.",
                     'size' => explode(' ', $fileInfo)[0] ?? '-',
                     'modified_at' => implode(' ', array_slice(explode(' ', $fileInfo), 1)) ?: '48 jam terakhir',
+                    'is_vendor' => false,
+                    'can_quarantine' => true,
+                    'can_delete' => true,
                 ];
             }
 
             $totalScanned = max(count($findings) * 5, 45);
         }
 
-        $criticalCount = count(array_filter($findings, fn($f) => $f['severity'] === 'critical'));
-        $highCount = count(array_filter($findings, fn($f) => $f['severity'] === 'high'));
+        // Filter out vendor / false positives when determining real threat level
+        $realFindings = array_filter($findings, fn($f) => empty($f['is_vendor']));
+        $criticalCount = count(array_filter($realFindings, fn($f) => $f['severity'] === 'critical'));
+        $highCount = count(array_filter($realFindings, fn($f) => $f['severity'] === 'high'));
 
-        $riskSummary = 'Aman';
-        if ($criticalCount > 0) $riskSummary = 'Kritis (Tindakan Segera)';
-        elseif ($highCount > 0) $riskSummary = 'Tinggi (Perlu Ditinjau)';
-        elseif (count($findings) > 0) $riskSummary = 'Waspada (Ada Perubahan Berkas)';
+        $threatLevel = 'clean';
+        $riskSummary = 'Aman (Semua Berkas Bersih)';
+        if ($criticalCount > 0) {
+            $threatLevel = 'critical';
+            $riskSummary = "Kritis ({$criticalCount} Ancaman Nyata Ditemukan)";
+        } elseif ($highCount > 0) {
+            $threatLevel = 'high';
+            $riskSummary = "Tinggi ({$highCount} Berkas Perlu Ditinjau)";
+        } elseif (count($realFindings) > 0) {
+            $threatLevel = 'warning';
+            $riskSummary = 'Waspada (Ada Perubahan Berkas)';
+        }
+
+        // Persist scan result to database with site relation
+        $serverScan = ServerScan::create([
+            'site_id' => $site->id,
+            'scan_mode' => $mode,
+            'threat_level' => $threatLevel,
+            'risk_summary' => $riskSummary,
+            'total_scanned' => $totalScanned,
+            'total_findings' => count($findings),
+            'findings' => array_values($findings),
+            'app_path' => $appPath,
+            'scanned_by' => $userId,
+        ]);
 
         return [
+            'id' => $serverScan->id,
             'mode' => $mode,
             'app_path' => $appPath,
-            'scanned_at' => now()->translatedFormat('d M Y, H:i:s') . ' WIB',
+            'scanned_at' => $serverScan->formatted_scanned_at,
             'total_scanned' => $totalScanned,
             'total_findings' => count($findings),
             'risk_summary' => $riskSummary,
+            'threat_level' => $threatLevel,
             'findings' => array_values($findings),
+            'created_at' => $serverScan->created_at,
         ];
     }
 
     /**
      * Karantina berkas berbahaya.
      */
-    public function quarantineFile(Site $site, string $filePath): array
+    public function quarantineFile(Site $site, string $filePath, ?string $userId = null): array
     {
         $ssh = $this->getSshConnection($site, 15);
         $appPath = $site->ssh_app_path ?: '/var/www/html';
 
         // Sanitize path
         $cleanPath = str_replace(['..', "\0"], '', ltrim($filePath, '/'));
-        $sourceFile = rtrim($appPath, '/') . '/' . $cleanPath;
+        if (empty($cleanPath)) {
+            throw new \Exception("Nama berkas tidak valid.");
+        }
 
+        // STRICT PROTECTION: Block quarantine on vendor, node_modules, and core framework files
+        if (str_starts_with($cleanPath, 'vendor/') || str_contains($cleanPath, '/vendor/')) {
+            throw new \Exception("Tindakan dicegah demi keselamatan sistem: Berkas di dalam folder \"vendor/\" adalah pustaka resmi Composer. Mengarantinanya akan merusak framework Laravel (Error 500: Class not found).");
+        }
+
+        if (str_starts_with($cleanPath, 'node_modules/') || str_contains($cleanPath, '/node_modules/')) {
+            throw new \Exception("Tindakan dicegah: Berkas di dalam \"node_modules/\" adalah pustaka frontend dan tidak boleh dikarantina sembarangan.");
+        }
+
+        if (str_contains($cleanPath, 'storage/framework/') || str_contains($cleanPath, 'bootstrap/cache/')) {
+            throw new \Exception("Tindakan dicegah demi keselamatan sistem: Berkas di dalam \"{$cleanPath}\" adalah cache kompilasi internal framework Laravel. Tidak boleh dikarantina.");
+        }
+
+        $protectedCoreFiles = [
+            'artisan', 'server.php', 'index.php', 'composer.json', 'composer.lock',
+            'package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+            'tsconfig.json', '.gitignore', '.env'
+        ];
+        if (in_array(strtolower(basename($cleanPath)), $protectedCoreFiles)) {
+            throw new \Exception("Tindakan dicegah: Berkas inti, konfigurasi, atau lockfile dependensi \"{$cleanPath}\" dilindungi dan tidak boleh dikarantina.");
+        }
+
+        $sourceFile = rtrim($appPath, '/') . '/' . $cleanPath;
         $targetDir = rtrim($appPath, '/') . '/.sigap_quarantine';
         $fileName = basename($cleanPath);
         $quarantinedName = now()->format('Ymd_His') . '_' . $fileName . '.quarantined';
@@ -279,12 +513,99 @@ class ServerInvestigationService implements ServerInvestigationServiceInterface
             throw new \Exception("Gagal memindahkan file ke karantina. Pastikan user SSH memiliki izin write.");
         }
 
+        // Update database record for the latest scan of this site if file is in findings
+        $latestScan = ServerScan::where('site_id', $site->id)->latest()->first();
+        if ($latestScan && is_array($latestScan->findings)) {
+            $findings = $latestScan->findings;
+            $updated = false;
+            foreach ($findings as &$f) {
+                if (($f['path'] ?? '') === $cleanPath || ($f['full_path'] ?? '') === $sourceFile) {
+                    $f['is_quarantined'] = true;
+                    $f['quarantined_at'] = now()->translatedFormat('d M Y, H:i') . ' WIB';
+                    $updated = true;
+                }
+            }
+            if ($updated) {
+                $latestScan->findings = $findings;
+                $latestScan->save();
+            }
+        }
+
         return [
             'success' => true,
             'original_file' => $cleanPath,
             'quarantined_as' => $quarantinedName,
             'quarantine_location' => $destination,
             'message' => "Berkas \"{$fileName}\" berhasil diisolasi ke direktori .sigap_quarantine dengan izin non-eksekusi (chmod 000).",
+        ];
+    }
+
+    /**
+     * Hapus berkas berbahaya secara permanen dari server.
+     */
+    public function deleteFile(Site $site, string $filePath, ?string $userId = null): array
+    {
+        $ssh = $this->getSshConnection($site, 15);
+        $appPath = $site->ssh_app_path ?: '/var/www/html';
+
+        $cleanPath = str_replace(['..', "\0"], '', ltrim($filePath, '/'));
+        if (empty($cleanPath)) {
+            throw new \Exception("Nama atau jalur berkas tidak valid.");
+        }
+
+        // STRICT PROTECTION: Never delete vendor, node_modules, or core framework files
+        if (str_starts_with($cleanPath, 'vendor/') || str_contains($cleanPath, '/vendor/')) {
+            throw new \Exception("Tindakan dicegah demi keselamatan sistem: Berkas di dalam folder \"vendor/\" adalah pustaka resmi Composer. Menghapusnya akan merusak framework Laravel (Error 500: Class not found).");
+        }
+
+        if (str_starts_with($cleanPath, 'node_modules/') || str_contains($cleanPath, '/node_modules/')) {
+            throw new \Exception("Tindakan dicegah: Berkas di dalam \"node_modules/\" dilindungi.");
+        }
+
+        if (str_contains($cleanPath, 'storage/framework/') || str_contains($cleanPath, 'bootstrap/cache/')) {
+            throw new \Exception("Tindakan dicegah demi keselamatan sistem: Berkas di dalam \"{$cleanPath}\" adalah cache kompilasi internal framework Laravel. Gunakan perintah php artisan view:clear atau optimize:clear jika ingin membersihkan cache.");
+        }
+
+        $protectedCoreFiles = [
+            'artisan', 'server.php', 'index.php', 'composer.json', 'composer.lock',
+            'package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+            'tsconfig.json', '.gitignore', '.env'
+        ];
+        if (in_array(strtolower(basename($cleanPath)), $protectedCoreFiles)) {
+            throw new \Exception("Tindakan dicegah demi keselamatan sistem: Berkas konfigurasi atau lockfile dependensi \"{$cleanPath}\" dilindungi dan tidak boleh dihapus.");
+        }
+
+        $sourceFile = rtrim($appPath, '/') . '/' . $cleanPath;
+        $cmd = "rm -f " . escapeshellarg($sourceFile);
+        $ssh->exec($cmd);
+
+        $verify = trim($ssh->exec("test -f " . escapeshellarg($sourceFile) . " && echo 'exists' || echo 'gone'"));
+        if ($verify !== 'gone') {
+            throw new \Exception("Gagal menghapus berkas \"{$cleanPath}\". Pastikan user SSH memiliki izin write.");
+        }
+
+        // Update latest scan findings in database
+        $latestScan = ServerScan::where('site_id', $site->id)->latest()->first();
+        if ($latestScan && is_array($latestScan->findings)) {
+            $findings = $latestScan->findings;
+            $updated = false;
+            foreach ($findings as &$f) {
+                if (($f['path'] ?? '') === $cleanPath || ($f['full_path'] ?? '') === $sourceFile) {
+                    $f['is_deleted'] = true;
+                    $f['deleted_at'] = now()->translatedFormat('d M Y, H:i') . ' WIB';
+                    $updated = true;
+                }
+            }
+            if ($updated) {
+                $latestScan->findings = $findings;
+                $latestScan->save();
+            }
+        }
+
+        return [
+            'success' => true,
+            'deleted_file' => $cleanPath,
+            'message' => "Berkas \"{$cleanPath}\" berhasil dihapus permanen dari server target.",
         ];
     }
 

@@ -18,15 +18,25 @@ interface ServerInvestigationServiceInterface
     public function checkServerConnection(Site $site): array;
 
     /**
+     * Dapatkan hasil pemindaian server terakhir untuk situs tertentu dari database.
+     */
+    public function getLatestScan(Site $site): ?\App\Models\ServerScan;
+
+    /**
      * Pindai berkas proyek di server target untuk menemukan webshell, backdoor, atau perubahan berkas.
      * Mode: 'quick' (24-48 jam), 'deep' (heuristik regex webshell), 'git' (perubahan repositori git).
      */
-    public function scanFiles(Site $site, string $mode = 'quick'): array;
+    public function scanFiles(Site $site, string $mode = 'quick', ?string $userId = null, bool $includeVendor = false): array;
 
     /**
      * Karantina berkas berbahaya (pindahkan ke .sigap_quarantine dengan izin 000).
      */
-    public function quarantineFile(Site $site, string $filePath): array;
+    public function quarantineFile(Site $site, string $filePath, ?string $userId = null): array;
+
+    /**
+     * Hapus berkas berbahaya secara permanen dari server (dicegah untuk berkas vendor atau sistem inti).
+     */
+    public function deleteFile(Site $site, string $filePath, ?string $userId = null): array;
 
     /**
      * Pulihkan berkas inti (misal index.php) dari cadangan atau git checkout.

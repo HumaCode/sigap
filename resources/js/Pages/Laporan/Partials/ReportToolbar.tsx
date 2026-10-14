@@ -1,4 +1,5 @@
 import React from 'react';
+import Tooltip from '@/Components/Tooltip';
 
 interface ReportToolbarProps {
     searchTerm: string;
@@ -50,32 +51,41 @@ export default function ReportToolbar({
                     }}
                 />
                 {searchTerm && (
-                    <button
-                        type="button"
-                        onClick={onClearSearch}
-                        style={{ 
-                            position: 'absolute', 
-                            right: '0.65rem', 
-                            top: '50%', 
-                            transform: 'translateY(-50%)', 
-                            background: 'none', 
-                            border: 'none', 
-                            color: 'var(--ink-faint)', 
-                            cursor: 'pointer', 
-                            padding: '0.2rem' 
-                        }}
-                        title="Hapus pencarian"
-                    >
-                        <i className="bi bi-x-circle-fill"></i>
-                    </button>
+                    <Tooltip title="Hapus Pencarian" description="Bersihkan kata kunci filter pencarian" variant="dark">
+                        <button
+                            type="button"
+                            onClick={onClearSearch}
+                            style={{ 
+                                position: 'absolute', 
+                                right: '0.65rem', 
+                                top: '50%', 
+                                transform: 'translateY(-50%)', 
+                                background: 'none', 
+                                border: 'none', 
+                                color: 'var(--ink-faint)', 
+                                cursor: 'pointer', 
+                                padding: '0.2rem' 
+                            }}
+                        >
+                            <i className="bi bi-x-circle-fill"></i>
+                        </button>
+                    </Tooltip>
                 )}
             </div>
 
             {/* Range Filter Chips */}
-            <div className={`range-chip ${rangeFilter === '24h' ? 'active' : ''}`} onClick={() => onRangeChange('24h')}>24 Jam</div>
-            <div className={`range-chip ${rangeFilter === '7d' ? 'active' : ''}`} onClick={() => onRangeChange('7d')}>7 Hari</div>
-            <div className={`range-chip ${rangeFilter === '30d' ? 'active' : ''}`} onClick={() => onRangeChange('30d')}>30 Hari</div>
-            <div className={`range-chip ${rangeFilter === '90d' ? 'active' : ''}`} onClick={() => onRangeChange('90d')}>90 Hari</div>
+            <Tooltip title="Periode 24 Jam" description="Tampilkan data ketersediaan 24 jam terakhir" variant="dark">
+                <div className={`range-chip ${rangeFilter === '24h' ? 'active' : ''}`} onClick={() => onRangeChange('24h')}>24 Jam</div>
+            </Tooltip>
+            <Tooltip title="Periode 7 Hari" description="Tampilkan data ketersediaan 7 hari terakhir" variant="dark">
+                <div className={`range-chip ${rangeFilter === '7d' ? 'active' : ''}`} onClick={() => onRangeChange('7d')}>7 Hari</div>
+            </Tooltip>
+            <Tooltip title="Periode 30 Hari" description="Tampilkan data ketersediaan 30 hari terakhir" variant="dark">
+                <div className={`range-chip ${rangeFilter === '30d' ? 'active' : ''}`} onClick={() => onRangeChange('30d')}>30 Hari</div>
+            </Tooltip>
+            <Tooltip title="Periode 90 Hari" description="Tampilkan data ketersediaan 90 hari terakhir" variant="dark">
+                <div className={`range-chip ${rangeFilter === '90d' ? 'active' : ''}`} onClick={() => onRangeChange('90d')}>90 Hari</div>
+            </Tooltip>
             
             {/* Category Selector */}
             <select className="select-site d-none d-md-block" value={categoryFilter} onChange={onCategoryChange}>
@@ -87,10 +97,12 @@ export default function ReportToolbar({
             
             {/* PDF Export Button */}
             {canExport && (
-                <button className="btn-export ms-auto" onClick={onExportPdf}>
-                    <i className="bi bi-file-earmark-pdf-fill"></i>
-                    <span>Cetak PDF</span>
-                </button>
+                <Tooltip title="Export Laporan PDF" description="Buka dokumen pratinjau resmi & cetak laporan uptime" variant="teal">
+                    <button className="btn-export ms-auto" onClick={onExportPdf}>
+                        <i className="bi bi-file-earmark-pdf-fill"></i>
+                        <span>Cetak PDF</span>
+                    </button>
+                </Tooltip>
             )}
         </div>
     );

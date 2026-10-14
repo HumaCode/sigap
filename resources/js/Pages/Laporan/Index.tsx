@@ -46,6 +46,7 @@ export default function LaporanUptime({
     const [categoryFilter, setCategoryFilter] = useState(filters.category || 'Semua Kategori Situs');
     const [rangeFilter, setRangeFilter] = useState(filters.range || '7d');
     const [selectedSite, setSelectedSite] = useState<any>(null);
+    const [selectedDay, setSelectedDay] = useState<any>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     
     // Loader modal state for filtering
@@ -183,8 +184,9 @@ export default function LaporanUptime({
                 sites={sites}
                 totalSites={stats.total_sites}
                 canViewDetail={can?.viewDetail}
-                onSelectSite={(site) => {
+                onSelectSite={(site, dayMeta) => {
                     setSelectedSite(site);
+                    setSelectedDay(dayMeta || null);
                     setShowDetailModal(true);
                 }}
                 onPageChange={(page) => {
@@ -199,8 +201,13 @@ export default function LaporanUptime({
             {/* Modal Detail Uptime Per-Site */}
             <DetailReportModal 
                 show={showDetailModal}
-                onClose={() => { setShowDetailModal(false); setSelectedSite(null); }}
+                onClose={() => { 
+                    setShowDetailModal(false); 
+                    setSelectedSite(null); 
+                    setSelectedDay(null); 
+                }}
                 site={selectedSite}
+                initialDay={selectedDay}
             />
 
             {/* Popup Loader Modal */}

@@ -19,7 +19,8 @@ class UptimeReportRepository implements UptimeReportRepositoryInterface
                 $q->where('category', 'uptime')
                   ->where('status', 'resolved')
                   ->where('created_at', '>=', now()->subDays(30));
-            }
+            },
+            'incidents as incidents_count'
         ]);
 
         if (!empty($filters['search'])) {
@@ -34,9 +35,14 @@ class UptimeReportRepository implements UptimeReportRepositoryInterface
             $query->where('category', $filters['category']);
         }
 
-        return $query->with(['detectionLogs' => function ($q) {
-            $q->latest();
-        }])->latest()->paginate($perPage);
+        return $query->with([
+            'detectionLogs' => function ($q) {
+                $q->latest();
+            },
+            'incidents' => function ($q) {
+                $q->latest();
+            }
+        ])->latest()->paginate($perPage);
     }
 
     public function getSummaryStats(array $filters = []): array

@@ -94,6 +94,19 @@ class SiteResource extends JsonResource
                         'is_danger' => false,
                     ],
                 ],
+            'incidents_count' => $this->incidents_count ?? ($this->relationLoaded('incidents') ? $this->incidents->count() : $this->incidents()->count()),
+            'incidents' => ($this->relationLoaded('incidents') ? $this->incidents : $this->incidents()->latest()->take(5)->get())->map(function ($inc) {
+                return [
+                    'id' => (string) $inc->id,
+                    'title' => $inc->title,
+                    'type' => $inc->type,
+                    'severity' => $inc->severity,
+                    'status' => $inc->status,
+                    'description' => $inc->description,
+                    'time_ago' => $inc->detected_at ? $inc->detected_at->diffForHumans() : ($inc->created_at ? $inc->created_at->diffForHumans() : 'Baru saja'),
+                    'detected_at' => $inc->detected_at ? $inc->detected_at->format('d M Y, H:i') : null,
+                ];
+            })->values()->all(),
         ];
     }
 }

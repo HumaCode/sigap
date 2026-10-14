@@ -64,6 +64,11 @@ class Site extends Model
         return $this->hasOne(ServerScan::class)->latestOfMany();
     }
 
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class);
+    }
+
     /**
      * Calculate 30-day uptime percentage dynamically based on check logs.
      */

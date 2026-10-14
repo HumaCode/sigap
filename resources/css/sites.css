@@ -79,7 +79,7 @@
 .chip-up{ background:rgba(14,165,163,0.12); color:var(--teal-1); }
 .chip-down{ background:rgba(255,122,110,0.15); color:#e0453a; }
 .chip-warn{ background:rgba(255,182,72,0.18); color:#b3720a; }
-.chip-paused{ background:rgba(124,147,163,0.15); color:var(--ink-faint); }
+.chip-paused{ background:rgba(239,68,68,0.12); color:#dc2626; border:1px solid rgba(239,68,68,0.25); }
 .chip-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
 
 .category-tag{

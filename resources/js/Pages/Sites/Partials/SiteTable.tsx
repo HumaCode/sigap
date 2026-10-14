@@ -2,6 +2,7 @@ import React from 'react';
 import EmptyState from '@/Components/EmptyState';
 import Pagination from '@/Components/Pagination';
 import Tooltip from '@/Components/Tooltip';
+import ColumnInfoTooltip from '@/Components/ColumnInfoTooltip';
 
 interface SiteTableProps {
     sites: {
@@ -68,7 +69,10 @@ export default function SiteTable({
         }
     };
 
-    const getStatusChip = (status: string) => {
+    const getStatusChip = (status: string, isActive?: boolean) => {
+        if (isActive === false || status === 'paused') {
+            return <span className="status-chip chip-paused"><span className="chip-dot"></span>Nonaktif</span>;
+        }
         switch (status) {
             case 'up':
                 return <span className="status-chip chip-up"><span className="chip-dot"></span>Online</span>;
@@ -218,12 +222,63 @@ export default function SiteTable({
                             <th>Kategori</th>
                             <th>Status</th>
                             <th>
-                                Trafik / Request
-                                <span className="badge ms-1 text-white" style={{ background: '#ef4444', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '10px', verticalAlign: 'middle', letterSpacing: '0.5px' }}>
-                                    <i className="bi bi-broadcast me-1"></i>REALTIME
+                                <span className="d-inline-flex align-items-center">
+                                    <span>Trafik / Request</span>
+                                    <span className="badge ms-1 text-white" style={{ background: '#ef4444', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '10px', verticalAlign: 'middle', letterSpacing: '0.5px' }}>
+                                        <i className="bi bi-broadcast me-1"></i>REALTIME
+                                    </span>
+                                    <ColumnInfoTooltip
+                                        title="Trafik / Request (Realtime)"
+                                        badgeText="METRIK TELEMETRI"
+                                        icon="bi-speedometer2"
+                                        functionDescription={
+                                            <>
+                                                Mengukur estimasi volume permintaan HTTP yang sedang ditangani oleh web server setiap menitnya (<strong>Requests per Minute / RPM</strong>). Kolom ini berfungsi sebagai <em>radar deteksi dini</em> untuk memantau lonjakan pengunjung (<em>traffic surge</em>) atau potensi serangan <strong>DDoS / HTTP Flood</strong> yang dapat melumpuhkan server.
+                                            </>
+                                        }
+                                        sourceDescription={
+                                            <>
+                                                Nilai RPM dihitung otomatis oleh sensor pemantau SIGAP saat siklus pemeriksaan kesehatan (<em>health check</em>) berlangsung. Ketika situs dalam kondisi <strong>Offline/Down</strong>, nilai otomatis bernilai <strong>0 req/mnt</strong>. Saat online, data disinkronkan secara berkala dengan animasi denyut (<em>pulse</em>) aktif.
+                                            </>
+                                        }
+                                        formula="RPM = Total Request HTTP Masuk / Menit"
+                                        indicators={[
+                                            { badge: 'Normal', label: '< 450 req/mnt', color: 'teal', desc: 'Lalu lintas pengunjung wajar' },
+                                            { badge: 'Sedang', label: '450 - 1.200 req/mnt', color: 'blue', desc: 'Aktivitas pengguna meningkat' },
+                                            { badge: 'Padat', label: '1.200 - 3.000 req/mnt', color: 'amber', desc: 'Beban server tinggi / waspada' },
+                                            { badge: 'Bahaya', label: '> 3.000 req/mnt', color: 'danger', desc: 'Lonjakan ekstrim / Flood suspect' },
+                                        ]}
+                                        notes="Data diperbarui secara live dengan denyut telemetri real-time."
+                                    />
                                 </span>
                             </th>
-                            <th>Uptime 30 Hari</th>
+                            <th>
+                                <span className="d-inline-flex align-items-center">
+                                    <span>Uptime 30 Hari</span>
+                                    <ColumnInfoTooltip
+                                        title="Uptime 30 Hari"
+                                        badgeText="STANDAR KETERSEDIAAN SLA"
+                                        icon="bi-activity"
+                                        functionDescription={
+                                            <>
+                                                Menunjukkan persentase tingkat ketersediaan (<strong>Availability SLA</strong>) situs web publik selama 30 hari ke belakang. Kolom ini menjadi tolok ukur keandalan layanan digital pemerintah (SPBE) untuk memastikan masyarakat dapat mengakses portal tanpa kendala situs mati (<em>downtime</em>).
+                                            </>
+                                        }
+                                        sourceDescription={
+                                            <>
+                                                Dihitung otomatis dari agregasi riwayat audit probe bot pada tabel <code>detection_logs</code> (kategori <code>uptime</code>) dalam rentang 30 hari terakhir. Setiap pemeriksaan probe yang menghasilkan status sukses (HTTP 200/Redirect) dicatat sebagai <em>Success Check</em>.
+                                            </>
+                                        }
+                                        formula="Uptime (%) = (Pemeriksaan Sukses / Total Pemeriksaan 30 Hari) × 100%"
+                                        indicators={[
+                                            { badge: 'Optimal', label: '≥ 99.9%', color: 'teal', desc: 'Standar emas keandalan SPBE' },
+                                            { badge: 'Waspada', label: '98.0% - 99.8%', color: 'amber', desc: 'Terjadi beberapa kali insiden down' },
+                                            { badge: 'Kritis', label: '< 98.0%', color: 'danger', desc: 'Sering mati / butuh investigasi' },
+                                        ]}
+                                        notes="Frekuensi probe audit bergantung pada pengaturan Interval Cek situs."
+                                    />
+                                </span>
+                            </th>
                             <th>Interval Cek</th>
                             <th>PIC</th>
                             <th style={{ textAlign: 'right' }}>Aksi</th>
@@ -251,7 +306,7 @@ export default function SiteTable({
                                     </div>
                                 </td>
                                 <td><span className="category-tag">{site.category}</span></td>
-                                <td>{getStatusChip(site.status)}</td>
+                                <td>{getStatusChip(site.status, site.is_active)}</td>
                                 <td>{renderTrafficTag(site)}</td>
                                 <td>{site.uptime}%</td>
                                 <td>{site.check_interval} menit</td>
@@ -352,7 +407,7 @@ export default function SiteTable({
                                 <p className="site-name">{site.name}</p>
                                 <p className="site-url">{site.url}</p>
                             </div>
-                            {getStatusChip(site.status)}
+                            {getStatusChip(site.status, site.is_active)}
                         </div>
                         <div className="meta-row">
                             <span><span className="category-tag">{site.category}</span></span>

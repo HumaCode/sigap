@@ -12,6 +12,10 @@ class IncidentRepository implements IncidentRepositoryInterface
     {
         $query = Incident::with('site');
 
+        if (!empty($filters['site_id']) && $filters['site_id'] !== 'all') {
+            $query->where('site_id', $filters['site_id']);
+        }
+
         if (!empty($filters['search'])) {
             $search = trim($filters['search']);
             $query->where(function ($q) use ($search) {
@@ -26,9 +30,6 @@ class IncidentRepository implements IncidentRepositoryInterface
 
         if (!empty($filters['type']) && $filters['type'] !== 'all') {
             $query->where('type', $filters['type']);
-        } else {
-            // Default: Skip routine site down/uptime checks to focus feed on security incidents
-            $query->whereNotIn('type', ['down', 'uptime']);
         }
 
         if (!empty($filters['status']) && $filters['status'] !== 'all') {
@@ -74,11 +75,28 @@ class IncidentRepository implements IncidentRepositoryInterface
             ->update(['status' => 'resolved']);
     }
 
-    public function getStats(): array
+    public function getStats(array $filters = []): array
     {
+        $query = Incident::query();
+
+        if (!empty($filters['site_id']) && $filters['site_id'] !== 'all') {
+            $query->where('site_id', $filters['site_id']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = trim($filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%')
+                  ->orWhereHas('site', function ($sq) use ($search) {
+                      $sq->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('url', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
         // Execute a single aggregated SQL query instead of multiple roundtrips
-        $stats = Incident::whereNotIn('type', ['down', 'uptime'])
-            ->selectRaw("
+        $stats = $query->selectRaw("
                 COUNT(*) as total,
                 SUM(CASE WHEN severity IN ('critical', 'high') AND status NOT IN ('resolved', 'false_positive') THEN 1 ELSE 0 END) as critical,
                 SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,

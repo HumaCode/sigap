@@ -299,6 +299,64 @@
   .heatmap-30{ max-width:100%; }
 }
 
+/* ===== Interactive Report Collapse Cards ===== */
+.report-collapse-card {
+  transition: all 0.25s ease;
+}
+.report-collapse-header {
+  cursor: pointer;
+  user-select: none;
+  border-radius: 14px;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  transition: background 0.18s ease;
+}
+.report-collapse-header:hover {
+  background: rgba(15, 42, 63, 0.025);
+}
+.report-collapse-badge-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.report-collapse-badge-toggle.open {
+  background: rgba(14, 165, 163, 0.12);
+  color: var(--teal-1);
+}
+.report-collapse-badge-toggle.closed {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.report-collapse-badge-toggle:hover {
+  filter: brightness(0.96);
+}
+.report-collapse-body {
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin-top 0.25s ease;
+}
+.report-scroll-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 42, 63, 0.15) transparent;
+}
+.report-scroll-list::-webkit-scrollbar {
+  width: 5px;
+}
+.report-scroll-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.report-scroll-list::-webkit-scrollbar-thumb {
+  background: rgba(15, 42, 63, 0.15);
+  border-radius: 10px;
+}
+.report-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 163, 0.4);
+}
+
 @media (max-width: 767.98px){
   .chart-wrap-lg{ height:210px; }
   .btn-export span{ display:none; }

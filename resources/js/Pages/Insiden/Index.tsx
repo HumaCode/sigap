@@ -15,7 +15,8 @@ import IncidentList from './Partials/IncidentList';
 
 interface IncidentProps extends PageProps {
     incidents: { data: any[]; links: any[]; meta: any };
-    filters: { search?: string; status?: string; type?: string };
+    filters: { search?: string; status?: string; type?: string; site_id?: string };
+    sites?: any[];
     stats: {
         total: number;
         critical: number;
@@ -32,11 +33,12 @@ interface IncidentProps extends PageProps {
     };
 }
 
-export default function Index({ incidents, filters, stats, can }: IncidentProps) {
+export default function Index({ incidents, filters, sites = [], stats, can }: IncidentProps) {
     const safeIncidents = incidents || { data: [], links: [], meta: { total: 0, last_page: 1 } };
     const safeData = safeIncidents.data || [];
     const safeFilters = filters || {};
 
+    const [siteFilter, setSiteFilter] = useState(safeFilters.site_id || 'all');
     const [searchTerm, setSearchTerm] = useState(safeFilters.search || '');
     const [statusFilter, setStatusFilter] = useState(safeFilters.status || 'all');
     const [selectedIncident, setSelectedIncident] = useState<any>(null);
@@ -105,10 +107,23 @@ export default function Index({ incidents, filters, stats, can }: IncidentProps)
         }
     };
 
+    const handleSiteFilterChange = (siteId: string) => {
+        setSiteFilter(siteId);
+        const targetSite = (sites || []).find((s: any) => s.id === siteId);
+        const msg = siteId && siteId !== 'all'
+            ? `Memfilter insiden "${targetSite?.name || 'Situs'}"...`
+            : 'Memuat insiden seluruh situs...';
+        executeFilter(
+            route('incidents.index'),
+            { site_id: siteId, search: searchTerm, status: statusFilter },
+            msg
+        );
+    };
+
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             const msg = searchTerm.trim() ? `Mencari insiden "${searchTerm.trim()}"...` : 'Memuat data insiden...';
-            executeFilter(route('incidents.index'), { search: searchTerm, status: statusFilter }, msg);
+            executeFilter(route('incidents.index'), { site_id: siteFilter, search: searchTerm, status: statusFilter }, msg);
         }
     };
 
@@ -123,12 +138,13 @@ export default function Index({ incidents, filters, stats, can }: IncidentProps)
         };
         executeFilter(
             route('incidents.index'),
-            { search: searchTerm, status },
+            { site_id: siteFilter, search: searchTerm, status },
             `Memuat ${statusMap[status] || status}...`
         );
     };
 
     const handleReset = () => {
+        setSiteFilter('all');
         setSearchTerm('');
         setStatusFilter('all');
         executeFilter(route('incidents.index'), {}, 'Mereset filter insiden...');
@@ -192,6 +208,9 @@ export default function Index({ incidents, filters, stats, can }: IncidentProps)
             {/* Main Content Card with Toolbar & List */}
             <div className="incident-main-card mb-4">
                 <IncidentToolbar
+                    sites={sites}
+                    selectedSiteId={siteFilter}
+                    onSiteChange={handleSiteFilterChange}
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     onSearchKeyDown={handleSearchKeyDown}

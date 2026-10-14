@@ -64,7 +64,7 @@ export default function BaseModal({
         md: '540px',
         lg: '800px',
         xl: '960px',
-        xxl: '1100px',
+        xxl: '1140px',
     };
 
     const dialogMaxWidth = maxWidth || defaultMaxWidthMap[size];
@@ -89,7 +89,7 @@ export default function BaseModal({
         >
             <div 
                 className={`modal-dialog ${sizeClassMap[size]} modal-dialog-centered modal-dialog-scrollable`}
-                style={{ maxWidth: dialogMaxWidth }}
+                style={{ maxWidth: dialogMaxWidth, width: '95%' }}
             >
                 <div 
                     className="modal-content border-0 shadow-lg" 

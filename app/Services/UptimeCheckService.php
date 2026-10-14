@@ -86,8 +86,8 @@ class UptimeCheckService
         // Create incident if site just went DOWN or is DOWN with HTTP 502/500
         if ($status === 'down') {
             $existingOpenIncident = Incident::where('site_id', $site->id)
-                ->where('status', 'investigating')
-                ->where('type', 'uptime')
+                ->whereIn('status', ['open', 'investigating', 'acknowledged'])
+                ->whereIn('type', ['down', 'uptime'])
                 ->first();
 
             if (!$existingOpenIncident) {
@@ -121,8 +121,8 @@ class UptimeCheckService
         } elseif ($status === 'up' && $oldStatus === 'down') {
             // Resolve previous incidents automatically
             Incident::where('site_id', $site->id)
-                ->where('status', 'investigating')
-                ->where('type', 'uptime')
+                ->whereIn('status', ['open', 'investigating', 'acknowledged'])
+                ->whereIn('type', ['down', 'uptime'])
                 ->update(['status' => 'resolved']);
 
             $formattedRecoveryTime = now()->translatedFormat('d F Y, H:i:s') . ' WIB';

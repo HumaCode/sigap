@@ -41,8 +41,8 @@ class IncidentService implements IncidentServiceInterface
         return $this->repository->resolveAllActive();
     }
 
-    public function getStats(): array
+    public function getStats(array $filters = []): array
     {
-        return $this->repository->getStats();
+        return $this->repository->getStats($filters);
     }
 }

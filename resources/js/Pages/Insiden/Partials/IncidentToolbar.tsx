@@ -1,6 +1,10 @@
 import React from 'react';
+import SearchableSelect, { SelectOption } from '@/Components/SearchableSelect';
 
 interface IncidentToolbarProps {
+    sites?: any[];
+    selectedSiteId: string;
+    onSiteChange: (siteId: string) => void;
     searchTerm: string;
     onSearchChange: (val: string) => void;
     onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -10,6 +14,9 @@ interface IncidentToolbarProps {
 }
 
 export default function IncidentToolbar({
+    sites = [],
+    selectedSiteId,
+    onSiteChange,
     searchTerm,
     onSearchChange,
     onSearchKeyDown,
@@ -23,6 +30,22 @@ export default function IncidentToolbar({
         { key: 'open', label: 'Terbuka', dotColor: '#ef4444' },
         { key: 'investigating', label: 'Ditinjau', dotColor: '#d97706' },
         { key: 'resolved', label: 'Selesai', dotColor: '#0ea5a3' },
+    ];
+
+    const siteOptions: SelectOption[] = [
+        {
+            value: 'all',
+            label: 'Semua Situs Terpantau',
+            subLabel: 'Menampilkan seluruh insiden dari semua situs',
+            icon: 'bi bi-grid-fill'
+        },
+        ...sites.map((s: any) => ({
+            value: s.id,
+            label: s.name,
+            subLabel: s.url,
+            badge: s.status === 'down' ? 'Down' : (s.status === 'warn' ? 'High Load' : 'Online'),
+            icon: s.status === 'down' ? 'bi bi-x-octagon-fill' : 'bi bi-hdd-network-fill',
+        }))
     ];
 
     return (
@@ -102,6 +125,27 @@ export default function IncidentToolbar({
                 }
             `}</style>
 
+            {/* Site Select2 Filter */}
+            <div style={{ minWidth: '240px', maxWidth: '320px', flex: '1 1 240px' }}>
+                <SearchableSelect
+                    options={siteOptions}
+                    value={selectedSiteId}
+                    onChange={onSiteChange}
+                    placeholder="Semua Situs Terpantau..."
+                    searchPlaceholder="Cari nama atau URL situs..."
+                    leadingIcon="bi bi-globe2"
+                    dropdownWidth="360px"
+                    triggerStyle={{
+                        height: '40px',
+                        borderRadius: '12px',
+                        border: '1.5px solid rgba(15, 42, 63, 0.12)',
+                        background: '#ffffff',
+                        fontSize: '0.84rem',
+                        fontWeight: 500,
+                    }}
+                />
+            </div>
+
             {/* Search Input Box */}
             <div className="incident-search-box">
                 <i
@@ -111,7 +155,7 @@ export default function IncidentToolbar({
                 <input
                     type="text"
                     className="incident-search-input"
-                    placeholder="Cari insiden atau situs..."
+                    placeholder="Cari insiden, kata kunci..."
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
                     onKeyDown={onSearchKeyDown}

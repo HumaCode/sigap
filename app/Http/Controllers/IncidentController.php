@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateIncidentRequest;
 use App\Http\Resources\IncidentResource;
 use App\Http\Resources\PaginateResource;
 use App\Models\Incident;
+use App\Models\Site;
 use App\Services\Interfaces\IncidentServiceInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -29,13 +30,15 @@ class IncidentController extends Controller
         $perPage = (int) $request->input('per_page', 10);
 
         $incidents = $this->incidentService->getPaginatedIncidents($perPage, $filters);
-        $stats = $this->incidentService->getStats();
+        $stats = $this->incidentService->getStats($filters);
+        $sites = Site::select('id', 'name', 'url', 'status')->orderBy('name')->get();
         $user = $request->user();
 
         return Inertia::render('Insiden/Index', [
             'incidents' => new PaginateResource($incidents, IncidentResource::class),
             'filters'   => (object) $filters,
             'stats'     => (object) $stats,
+            'sites'     => $sites,
             'can'       => [
                 'resolveAll' => $user?->can('resolve-all-incidents') ?? false,
                 'create'     => $user?->can('create', Incident::class) ?? false,

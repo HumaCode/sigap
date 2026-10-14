@@ -25,6 +25,7 @@ class IncidentIndexRequest extends FormRequest
             'search'   => ['nullable', 'string', 'max:255'],
             'status'   => ['nullable', 'string', 'in:all,critical,open,investigating,acknowledged,resolved,false_positive'],
             'type'     => ['nullable', 'string', 'max:50'],
+            'site_id'  => ['nullable', 'string', 'max:50'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page'     => ['nullable', 'integer', 'min:1'],
         ];
@@ -35,14 +36,16 @@ class IncidentIndexRequest extends FormRequest
      */
     public function filters(): array
     {
-        $search = $this->filled('search') ? trim((string) $this->input('search')) : null;
-        $status = $this->input('status', 'all');
-        $type   = $this->input('type', 'all');
+        $search  = $this->filled('search') ? trim((string) $this->input('search')) : null;
+        $status  = $this->input('status', 'all');
+        $type    = $this->input('type', 'all');
+        $siteId  = $this->filled('site_id') ? trim((string) $this->input('site_id')) : null;
 
         return [
-            'search' => $search,
-            'status' => $status,
-            'type'   => $type,
+            'search'  => $search,
+            'status'  => $status,
+            'type'    => $type,
+            'site_id' => $siteId,
         ];
     }
 }

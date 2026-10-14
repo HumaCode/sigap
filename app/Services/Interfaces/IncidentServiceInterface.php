@@ -13,5 +13,5 @@ interface IncidentServiceInterface
     public function updateIncident(string|int $id, array $data): Incident;
     public function deleteIncident(string|int $id): bool;
     public function resolveAllActive(): int;
-    public function getStats(): array;
+    public function getStats(array $filters = []): array;
 }

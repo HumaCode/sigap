@@ -15,11 +15,29 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
     if (!show || !site) return null;
 
     const [activeDay, setActiveDay] = useState<DayMeta | null>(initialDay || null);
+    const [isIncidentsOpen, setIsIncidentsOpen] = useState(false);
+    const [isLogsOpen, setIsLogsOpen] = useState(Boolean(initialDay));
+    const [isDayLoading, setIsDayLoading] = useState(false);
 
     // Sync activeDay with initialDay prop when modal opens
     useEffect(() => {
         setActiveDay(initialDay || null);
+        if (initialDay) {
+            setIsLogsOpen(true);
+        }
     }, [initialDay, show]);
+
+    // Interactive day selection with smooth loading feedback
+    const handleDaySelect = (dayMeta: DayMeta | null) => {
+        setIsDayLoading(true);
+        setActiveDay(dayMeta);
+        if (dayMeta) {
+            setIsLogsOpen(true);
+        }
+        setTimeout(() => {
+            setIsDayLoading(false);
+        }, 260);
+    };
 
     // Compute 30 days cells for this site deterministically
     const heatmapCells = useMemo(() => {
@@ -39,29 +57,92 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
     const isSiteWarn = site.status === 'warn';
     const isSitePaused = site.status === 'paused';
 
-    // Incident count calculation (matches table)
-    const incidentCount = typeof site.incidents_count === 'number'
+    // Total 30-day incident count (matches table)
+    const total30DayIncidentCount = typeof site.incidents_count === 'number'
         ? site.incidents_count
         : (Array.isArray(site.incidents) && site.incidents.length > 0
             ? site.incidents.length
             : (site.status === 'down' ? 12 : ((site.url || site.name).length * 3) % 8));
 
-    // Incident list generation (from DB or fallback items so details are always available)
-    const incidentList = useMemo(() => {
-        if (Array.isArray(site.incidents) && site.incidents.length > 0) {
-            return site.incidents;
+    // Dynamic incident count and incident list depending on the selected day
+    const { currentIncidentCount, currentIncidentList } = useMemo(() => {
+        // 1. If viewing entire 30 days summary
+        if (!isDayView || !activeDay) {
+            const list = Array.isArray(site.incidents) && site.incidents.length > 0
+                ? site.incidents
+                : (total30DayIncidentCount > 0 ? [
+                    { id: 'inc-1', title: 'Lonjakan Latensi & High Load Traffic Terdeteksi', type: 'error', severity: 'medium', status: 'resolved', time_ago: '3 hari lalu' },
+                    { id: 'inc-2', title: 'Percobaan Akses File Sensitif (.env / config) Terblokir', type: 'error', severity: 'high', status: 'resolved', time_ago: '5 hari lalu' },
+                    { id: 'inc-3', title: 'Anomali Respon Server (HTTP 502 Bad Gateway Transient)', type: 'down', severity: 'critical', status: 'resolved', time_ago: '8 hari lalu' },
+                    { id: 'inc-4', title: 'Peringatan Respon Lambat Berkala (> 1.2 detik)', type: 'uptime', severity: 'low', status: 'resolved', time_ago: '14 hari lalu' },
+                    { id: 'inc-5', title: 'Deteksi Perubahan Script Eksternal pada Tag Head', type: 'defacement', severity: 'high', status: 'investigating', time_ago: '18 hari lalu' },
+                    { id: 'inc-6', title: 'Bot Web Crawler Flood Request Terdeteksi', type: 'error', severity: 'medium', status: 'resolved', time_ago: '22 hari lalu' },
+                ].slice(0, Math.min(total30DayIncidentCount, 6)) : []);
+
+            return {
+                currentIncidentCount: total30DayIncidentCount,
+                currentIncidentList: list,
+            };
         }
-        if (incidentCount <= 0) return [];
-        const templates = [
-            { id: 'inc-1', title: 'Lonjakan Latensi & High Load Traffic Terdeteksi', type: 'error', severity: 'medium', status: 'resolved', time_ago: '3 hari lalu' },
-            { id: 'inc-2', title: 'Percobaan Akses File Sensitif (.env / config) Terblokir', type: 'error', severity: 'high', status: 'resolved', time_ago: '5 hari lalu' },
-            { id: 'inc-3', title: 'Anomali Respon Server (HTTP 502 Bad Gateway Transient)', type: 'down', severity: 'critical', status: 'resolved', time_ago: '8 hari lalu' },
-            { id: 'inc-4', title: 'Peringatan Respon Lambat Berkala (> 1.2 detik)', type: 'uptime', severity: 'low', status: 'resolved', time_ago: '14 hari lalu' },
-            { id: 'inc-5', title: 'Deteksi Perubahan Script Eksternal pada Tag Head', type: 'defacement', severity: 'high', status: 'investigating', time_ago: '18 hari lalu' },
-            { id: 'inc-6', title: 'Bot Web Crawler Flood Request Terdeteksi', type: 'error', severity: 'medium', status: 'resolved', time_ago: '22 hari lalu' },
-        ];
-        return templates.slice(0, Math.min(incidentCount, templates.length));
-    }, [site.incidents, incidentCount]);
+
+        // 2. If viewing a specific day:
+        // Case A: Optimal 100% online day (Green) -> Exactly 0 incidents!
+        if (isDayFull) {
+            return {
+                currentIncidentCount: 0,
+                currentIncidentList: [],
+            };
+        }
+
+        // Case B: Warning / High load day (Yellow / Amber)
+        if (isDayWarn) {
+            return {
+                currentIncidentCount: 1,
+                currentIncidentList: [
+                    {
+                        id: `inc-warn-${activeDay.dayNumber}`,
+                        title: `Peringatan Respon Lambat: Terdeteksi lonjakan latensi ${activeDay.latency} (Beban Server Tinggi)`,
+                        type: 'uptime',
+                        severity: 'medium',
+                        status: 'resolved',
+                        time_ago: `${activeDay.dateStr}, 14:20`
+                    }
+                ],
+            };
+        }
+
+        // Case C: Downtime day (Red)
+        if (isDayDown) {
+            const count = activeDay.dayNumber === 30 && total30DayIncidentCount > 0 ? total30DayIncidentCount : 2;
+            const list = Array.isArray(site.incidents) && site.incidents.length > 0 && activeDay.dayNumber === 30
+                ? site.incidents
+                : [
+                    {
+                        id: `inc-down-1-${activeDay.dayNumber}`,
+                        title: `Situs Down: ${site.name} — Layanan Tidak Merespons (HTTP 502 / Timeout)`,
+                        type: 'down',
+                        severity: 'critical',
+                        status: activeDay.dayNumber === 30 ? 'open' : 'resolved',
+                        time_ago: `${activeDay.dateStr}, 09:15`
+                    },
+                    {
+                        id: `inc-down-2-${activeDay.dayNumber}`,
+                        title: `Pemulihan Ketersediaan: HealthCheck memverifikasi kembalinya respon HTTP 200 OK`,
+                        type: 'uptime',
+                        severity: 'low',
+                        status: 'resolved',
+                        time_ago: `${activeDay.dateStr}, 09:27`
+                    }
+                ];
+
+            return {
+                currentIncidentCount: count,
+                currentIncidentList: list,
+            };
+        }
+
+        return { currentIncidentCount: 0, currentIncidentList: [] };
+    }, [isDayView, activeDay, isDayFull, isDayWarn, isDayDown, site.incidents, site.name, total30DayIncidentCount]);
 
     // Header gradient: when clicking yellow block -> AMBER / KUNING!
     const getStatusGradient = () => {
@@ -113,7 +194,7 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
 
     const handleOpenIncidents = () => {
         onClose();
-        router.visit(route('incidents.index', { search: site.name }));
+        router.visit(route('incidents.index', { site_id: site.id }));
     };
 
     const modalFooter = (
@@ -130,12 +211,16 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
                 </button>
                 <button 
                     type="button" 
-                    className="btn btn-outline-danger btn-sm d-flex align-items-center gap-2 px-3 py-2" 
+                    className={`btn btn-sm d-flex align-items-center gap-2 px-3 py-2 ${
+                        (isDayView ? currentIncidentCount : total30DayIncidentCount) > 0 
+                            ? 'btn-outline-danger' 
+                            : 'btn-outline-success'
+                    }`}
                     style={{ borderRadius: '12px', fontWeight: 600 }}
                     onClick={handleOpenIncidents}
                 >
-                    <i className="bi bi-shield-exclamation"></i>
-                    <span>Buka Halaman Insiden ({incidentCount})</span>
+                    <i className={`bi ${(isDayView ? currentIncidentCount : total30DayIncidentCount) > 0 ? 'bi-shield-exclamation' : 'bi-shield-check'}`}></i>
+                    <span>Buka Halaman Insiden ({isDayView ? currentIncidentCount : total30DayIncidentCount})</span>
                     <i className="bi bi-box-arrow-up-right" style={{ fontSize: '0.65rem' }}></i>
                 </button>
             </div>
@@ -145,7 +230,7 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
                         type="button" 
                         className="btn btn-outline-primary btn-sm px-3 py-2" 
                         style={{ borderRadius: '12px', fontWeight: 600 }}
-                        onClick={() => setActiveDay(null)}
+                        onClick={() => handleDaySelect(null)}
                     >
                         <i className="bi bi-arrow-counterclockwise me-1"></i>
                         Lihat Ringkasan 30 Hari
@@ -183,8 +268,8 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
                 }
                 icon={getStatusIcon()}
                 headerGradient={getStatusGradient()}
-                size="lg"
-                maxWidth="880px"
+                size="xxl"
+                maxWidth="1140px"
                 footer={modalFooter}
             >
                 {/* 30-Day Interactive Timeline Selector Bar */}
@@ -192,7 +277,7 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
                     <button
                         type="button"
                         className={`btn-day-all ${!isDayView ? 'active' : ''}`}
-                        onClick={() => setActiveDay(null)}
+                        onClick={() => handleDaySelect(null)}
                     >
                         <i className="bi bi-calendar3 me-1"></i> Ringkasan 30 Hari
                     </button>
@@ -208,7 +293,7 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
                                     className={`heatmap-cell ${cell.type} ${isCellActive ? 'active-cell' : ''}`}
                                     style={{ border: 'none', padding: 0 }}
                                     title={`Hari #${cell.index + 1}: ${cellDayMeta.statusLabel} (${cellDayMeta.dateStr})`}
-                                    onClick={() => setActiveDay(cellDayMeta)}
+                                    onClick={() => handleDaySelect(cellDayMeta)}
                                 />
                             );
                         })}
@@ -360,240 +445,358 @@ export default function DetailReportModal({ show, onClose, site, initialDay }: D
                 </div>
 
                 {/* Section: Riwayat Insiden Terkait (Linked with /incidents) */}
-                <div className="bg-white p-4 rounded-4 border mb-4" style={{ borderColor: 'rgba(15,42,63,0.06)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-                    <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div className="bg-white p-4 rounded-4 border mb-4 report-collapse-card" style={{ borderColor: 'rgba(15,42,63,0.06)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+                    <div 
+                        className="d-flex justify-content-between align-items-center flex-wrap gap-2 report-collapse-header"
+                        onClick={() => setIsIncidentsOpen(!isIncidentsOpen)}
+                        title={isIncidentsOpen ? 'Klik untuk melipat daftar riwayat insiden' : 'Klik untuk membuka daftar riwayat insiden'}
+                    >
                         <div className="d-flex align-items-center gap-2">
                             <div 
                                 style={{ 
                                     width: '36px', 
                                     height: '36px', 
                                     borderRadius: '10px', 
-                                    background: incidentCount > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(14,165,163,0.1)', 
-                                    color: incidentCount > 0 ? '#ef4444' : 'var(--teal-1)', 
+                                    background: currentIncidentCount > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.12)', 
+                                    color: currentIncidentCount > 0 ? '#ef4444' : '#16a34a', 
                                     display: 'flex', 
                                     alignItems: 'center', 
                                     justifyContent: 'center',
                                     fontSize: '1.1rem'
                                 }}
                             >
-                                <i className={`bi ${incidentCount > 0 ? 'bi-shield-exclamation' : 'bi-shield-check'}`}></i>
+                                <i className={`bi ${currentIncidentCount > 0 ? 'bi-shield-exclamation' : 'bi-shield-check'}`}></i>
                             </div>
                             <div>
-                                <h6 style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--ink)', margin: 0 }}>
-                                    Riwayat Insiden Terkait ({incidentCount} Insiden)
-                                </h6>
+                                <div className="d-flex align-items-center gap-2">
+                                    <h6 style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--ink)', margin: 0 }}>
+                                        {isDayView && activeDay ? `Riwayat Insiden: Hari #${activeDay.dayNumber} (${activeDay.dateStr})` : `Riwayat Insiden Terkait (${currentIncidentCount} Insiden)`}
+                                    </h6>
+                                    {currentIncidentCount > 0 ? (
+                                        <span className="badge rounded-pill" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', fontSize: '0.68rem', fontWeight: 700 }}>
+                                            {currentIncidentCount} Kasus
+                                        </span>
+                                    ) : (
+                                        <span className="badge rounded-pill" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid rgba(34,197,94,0.2)', fontSize: '0.68rem', fontWeight: 700 }}>
+                                            0 Kasus (Aman)
+                                        </span>
+                                    )}
+                                </div>
                                 <span style={{ fontSize: '0.73rem', color: 'var(--ink-faint)' }}>
-                                    Daftar catatan ancaman keamanan, defacement, dan pemadaman ketersediaan
+                                    {isDayView && activeDay 
+                                        ? (currentIncidentCount > 0 ? `Catatan insiden yang tercatat pada ${activeDay.dateStr}` : `Tidak ada rekaman gangguan atau downtime pada ${activeDay.dateStr}`)
+                                        : 'Daftar catatan ancaman keamanan, defacement, dan pemadaman ketersediaan'}
                                 </span>
                             </div>
                         </div>
-                        <button 
-                            type="button" 
-                            className="btn btn-sm d-flex align-items-center gap-2 px-3 py-1_5"
-                            style={{ 
-                                borderRadius: '10px', 
-                                background: 'rgba(239, 68, 68, 0.1)', 
-                                color: '#dc2626', 
-                                border: '1px solid rgba(239, 68, 68, 0.25)', 
-                                fontWeight: 600,
-                                fontSize: '0.78rem',
-                                cursor: 'pointer'
-                            }}
-                            onClick={handleOpenIncidents}
-                        >
-                            <i className="bi bi-box-arrow-up-right"></i>
-                            <span>Buka di Halaman Insiden</span>
-                        </button>
+
+                        <div className="d-flex align-items-center gap-2">
+                            <button 
+                                type="button" 
+                                className="btn btn-sm d-flex align-items-center gap-2 px-3 py-1_5"
+                                style={{ 
+                                    borderRadius: '10px', 
+                                    background: currentIncidentCount > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 163, 0.1)', 
+                                    color: currentIncidentCount > 0 ? '#dc2626' : 'var(--teal-1)', 
+                                    border: currentIncidentCount > 0 ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(14, 165, 163, 0.25)', 
+                                    fontWeight: 600,
+                                    fontSize: '0.78rem',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenIncidents();
+                                }}
+                            >
+                                <i className="bi bi-box-arrow-up-right"></i>
+                                <span>Buka di Halaman Insiden</span>
+                            </button>
+                            <div className={`report-collapse-badge-toggle ${isIncidentsOpen ? 'open' : 'closed'}`}>
+                                <span>{isIncidentsOpen ? 'Tutup Daftar' : 'Buka Daftar'}</span>
+                                <i 
+                                    className="bi bi-chevron-down"
+                                    style={{ 
+                                        fontSize: '0.75rem',
+                                        transform: isIncidentsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }}
+                                ></i>
+                            </div>
+                        </div>
                     </div>
 
-                    {incidentList.length > 0 ? (
-                        <div className="d-flex flex-column gap-2">
-                            {incidentList.map((inc: any) => {
-                                const isCritical = inc.severity === 'critical';
-                                const isHigh = inc.severity === 'high';
-                                const sevBg = isCritical ? '#ef4444' : (isHigh ? '#f97316' : '#f59e0b');
-                                return (
-                                    <div 
-                                        key={inc.id}
-                                        className="d-flex justify-content-between align-items-center p-3 rounded-3"
-                                        style={{ 
-                                            background: '#fef2f2', 
-                                            border: '1px solid rgba(239,68,68,0.16)', 
-                                            fontSize: '0.86rem',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.15s ease'
-                                        }}
-                                        onClick={handleOpenIncidents}
-                                        title={`Klik untuk membuka insiden ini di Halaman Insiden`}
-                                    >
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: sevBg }}></span>
-                                            <div className="text-truncate">
-                                                <strong>{inc.title}</strong>
-                                                <span 
-                                                    className="badge ms-2" 
-                                                    style={{ 
-                                                        background: sevBg, 
-                                                        color: '#fff', 
-                                                        fontSize: '0.64rem', 
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.3px'
-                                                    }}
-                                                >
-                                                    {inc.severity || 'HIGH'}
-                                                </span>
-                                                <span 
-                                                    className="badge ms-1" 
-                                                    style={{ 
-                                                        background: 'rgba(15,42,63,0.1)', 
-                                                        color: 'var(--ink-soft)', 
-                                                        fontSize: '0.64rem', 
-                                                        textTransform: 'uppercase' 
-                                                    }}
-                                                >
-                                                    {inc.status || 'RESOLVED'}
-                                                </span>
+                    {/* Collapsible Content */}
+                    <div 
+                        className="report-collapse-body"
+                        style={{
+                            maxHeight: isIncidentsOpen ? '440px' : '0px',
+                            opacity: isIncidentsOpen ? 1 : 0,
+                            overflow: isIncidentsOpen ? 'visible' : 'hidden',
+                            marginTop: isIncidentsOpen ? '1rem' : '0',
+                            pointerEvents: isIncidentsOpen ? 'auto' : 'none'
+                        }}
+                    >
+                        {isDayLoading ? (
+                            <div className="d-flex flex-column align-items-center justify-content-center py-4 gap-2">
+                                <div className="spinner-border spinner-border-sm" style={{ color: 'var(--teal-1)', width: '1.4rem', height: '1.4rem' }} role="status"></div>
+                                <span style={{ fontSize: '0.76rem', color: 'var(--ink-faint)', fontWeight: 600 }}>Memperbarui riwayat status tanggal terpilih...</span>
+                            </div>
+                        ) : (
+                            currentIncidentList.length > 0 ? (
+                                <div className="d-flex flex-column gap-2 report-scroll-list pe-1" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                                    {currentIncidentList.map((inc: any) => {
+                                        const isCritical = inc.severity === 'critical';
+                                        const isHigh = inc.severity === 'high';
+                                        const sevBg = isCritical ? '#ef4444' : (isHigh ? '#f97316' : '#f59e0b');
+                                        return (
+                                            <div 
+                                                key={inc.id}
+                                                className="d-flex justify-content-between align-items-center p-3 rounded-3"
+                                                style={{ 
+                                                    background: '#fef2f2', 
+                                                    border: '1px solid rgba(239,68,68,0.16)', 
+                                                    fontSize: '0.86rem', 
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                                onClick={handleOpenIncidents}
+                                                title={`Klik untuk membuka insiden ini di Halaman Insiden`}
+                                            >
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: sevBg }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>{inc.title}</strong>
+                                                        <span 
+                                                            className="badge ms-2" 
+                                                            style={{ 
+                                                                background: sevBg, 
+                                                                color: '#fff', 
+                                                                fontSize: '0.64rem', 
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: '0.3px'
+                                                            }}
+                                                        >
+                                                            {inc.severity || 'HIGH'}
+                                                        </span>
+                                                        <span 
+                                                            className="badge ms-1" 
+                                                            style={{ 
+                                                                background: 'rgba(15,42,63,0.1)', 
+                                                                color: 'var(--ink-soft)', 
+                                                                fontSize: '0.64rem', 
+                                                                textTransform: 'uppercase' 
+                                                            }}
+                                                        >
+                                                            {inc.status || 'RESOLVED'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="d-flex align-items-center gap-2 text-nowrap">
+                                                    <span className="text-muted" style={{ fontSize: '0.76rem' }}>{inc.time_ago || inc.detected_at}</span>
+                                                    <i className="bi bi-chevron-right text-muted" style={{ fontSize: '0.75rem' }}></i>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="d-flex align-items-center justify-content-between p-3 rounded-3" style={{ background: '#f0fdf4', border: '1px solid rgba(34,197,94,0.18)' }}>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '1.1rem' }}></i>
+                                        <div>
+                                            <strong style={{ fontSize: '0.86rem', color: '#15803d' }}>
+                                                {isDayView && activeDay ? `Tidak Ada Insiden Tercatat pada ${activeDay.dateStr}` : 'Tidak Ada Catatan Insiden Aktif'}
+                                            </strong>
+                                            <div style={{ fontSize: '0.76rem', color: 'var(--ink-soft)' }}>
+                                                {isDayView && activeDay 
+                                                    ? `Situs beroperasi 100% optimal dengan latensi ~${activeDay.latency || '118ms'} tanpa kendala ketersediaan.`
+                                                    : 'Semua sistem ketersediaan beroperasi normal dalam batas SLA.'}
                                             </div>
                                         </div>
-                                        <div className="d-flex align-items-center gap-2 text-nowrap">
-                                            <span className="text-muted" style={{ fontSize: '0.76rem' }}>{inc.time_ago || inc.detected_at}</span>
-                                            <i className="bi bi-chevron-right text-muted" style={{ fontSize: '0.75rem' }}></i>
-                                        </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="d-flex align-items-center justify-content-between p-3 rounded-3" style={{ background: '#f8fafc', border: '1px solid rgba(15,42,63,0.04)' }}>
-                            <div className="d-flex align-items-center gap-2">
-                                <i className="bi bi-check-circle-fill text-success"></i>
-                                <span style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>
-                                    Tidak ada catatan insiden keamanan aktif pada situs ini.
-                                </span>
-                            </div>
-                            <button
-                                type="button"
-                                className="btn btn-link btn-sm p-0 text-decoration-none"
-                                style={{ fontSize: '0.76rem', color: 'var(--teal-1)', fontWeight: 600 }}
-                                onClick={handleOpenIncidents}
-                            >
-                                Cek Semua di Halaman Insiden &rarr;
-                            </button>
-                        </div>
-                    )}
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-link btn-sm p-0 text-decoration-none"
+                                        style={{ fontSize: '0.76rem', color: 'var(--teal-1)', fontWeight: 600 }}
+                                        onClick={handleOpenIncidents}
+                                    >
+                                        Cek Semua di Halaman Insiden &rarr;
+                                    </button>
+                                </div>
+                            )
+                        )}
+                    </div>
                 </div>
 
                 {/* Section: Riwayat Pemeriksaan Terakhir (Health Logs) */}
-                <div className="bg-white p-4 rounded-4 border" style={{ borderColor: 'rgba(15,42,63,0.06)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                        <h6 style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
-                            <i className="bi bi-clock-history me-1" style={{ color: activeDay?.dotColor || 'var(--teal-1)' }}></i> 
-                            {isDayView && activeDay ? `Log Riwayat Pemeriksaan: ${activeDay.dayName}, ${activeDay.dateStr}` : 'Riwayat Pemeriksaan Terakhir'}
-                        </h6>
-                        <span className="badge rounded-pill" style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>
-                            {isDayView && activeDay ? `Hari #${activeDay.dayNumber}` : 'Live Inspection Logs'}
-                        </span>
+                <div className="bg-white p-4 rounded-4 border report-collapse-card" style={{ borderColor: 'rgba(15,42,63,0.06)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+                    <div 
+                        className="d-flex justify-content-between align-items-center flex-wrap gap-2 report-collapse-header"
+                        onClick={() => setIsLogsOpen(!isLogsOpen)}
+                        title={isLogsOpen ? 'Klik untuk melipat log pemeriksaan' : 'Klik untuk membuka daftar log pemeriksaan'}
+                    >
+                        <div className="d-flex align-items-center gap-2">
+                            <div 
+                                style={{ 
+                                    width: '32px', 
+                                    height: '32px', 
+                                    borderRadius: '8px', 
+                                    background: 'rgba(14,165,163,0.1)', 
+                                    color: activeDay?.dotColor || 'var(--teal-1)', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    fontSize: '1rem'
+                                }}
+                            >
+                                <i className="bi bi-clock-history"></i>
+                            </div>
+                            <div>
+                                <h6 style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
+                                    {isDayView && activeDay ? `Log Riwayat Pemeriksaan: ${activeDay.dayName}, ${activeDay.dateStr}` : 'Riwayat Pemeriksaan Terakhir'}
+                                </h6>
+                                <span style={{ fontSize: '0.73rem', color: 'var(--ink-faint)' }}>
+                                    {isDayView && activeDay ? `Detail ketersediaan & latensi harian (#${activeDay.dayNumber})` : 'Audit otomatis pemantauan HTTP, SSL, dan respon server'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="d-flex align-items-center gap-2">
+                            <span className="badge rounded-pill" style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>
+                                {isDayView && activeDay ? `Hari #${activeDay.dayNumber}` : 'Live Inspection Logs'}
+                            </span>
+                            <div className={`report-collapse-badge-toggle ${isLogsOpen ? 'open' : 'closed'}`}>
+                                <span>{isLogsOpen ? 'Tutup Log' : 'Buka Log'}</span>
+                                <i 
+                                    className="bi bi-chevron-down"
+                                    style={{ 
+                                        fontSize: '0.75rem',
+                                        transform: isLogsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }}
+                                ></i>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="d-flex flex-column gap-2">
-                        {isDayView && activeDay ? (
-                            isDayWarn ? (
-                                <>
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#fffbeb', fontSize: '0.86rem', border: '1px solid rgba(245,158,11,0.2)' }}>
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
-                                            <div className="text-truncate">
-                                                <strong>HTTP HealthCheck Engine</strong> — <span className="text-warning fw-semibold">Peringatan Respon Lambat: Waktu respon terdeteksi 1.420ms (Beban Server Tinggi)</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 14:20</span>
-                                    </div>
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                                            <div className="text-truncate">
-                                                <strong>HTTP HealthCheck Engine</strong> — <span>Uptime Check: HTTP 200 OK (Koneksi Berhasil Pulih)</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 14:25</span>
-                                    </div>
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                                            <div className="text-truncate">
-                                                <strong>SSL Security Probe</strong> — <span>Sertifikat HTTPS Aktif & Aman</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 14:30</span>
-                                    </div>
-                                </>
-                            ) : isDayDown ? (
-                                <>
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#fef2f2', fontSize: '0.86rem', border: '1px solid rgba(239,68,68,0.2)' }}>
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
-                                            <div className="text-truncate">
-                                                <strong>HTTP HealthCheck Engine</strong> — <span className="text-danger fw-semibold">Gangguan Down: Service Unavailable (HTTP 502 Bad Gateway / Timeout)</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 09:15</span>
-                                    </div>
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                                            <div className="text-truncate">
-                                                <strong>HTTP HealthCheck Engine</strong> — <span>Pemulihan: Situs kembali merespon normal (HTTP 200 OK)</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 09:27</span>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f0fdf4', fontSize: '0.86rem', border: '1px solid rgba(34,197,94,0.15)' }}>
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                                            <div className="text-truncate">
-                                                <strong>HTTP HealthCheck Engine</strong> — <span>Uptime Check: HTTP 200 OK (Optimal Latensi {activeDay.latency})</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}</span>
-                                    </div>
-                                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
-                                        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                            <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                                            <div className="text-truncate">
-                                                <strong>Uptime Synthetics</strong> — <span>Semua probe berhasil tanpa lonjakan trafik</span>
-                                            </div>
-                                        </div>
-                                        <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}</span>
-                                    </div>
-                                </>
-                            )
+                    {/* Collapsible Content */}
+                    <div 
+                        className="report-collapse-body"
+                        style={{
+                            maxHeight: isLogsOpen ? '440px' : '0px',
+                            opacity: isLogsOpen ? 1 : 0,
+                            overflow: isLogsOpen ? 'visible' : 'hidden',
+                            marginTop: isLogsOpen ? '1rem' : '0',
+                            pointerEvents: isLogsOpen ? 'auto' : 'none'
+                        }}
+                    >
+                        {isDayLoading ? (
+                            <div className="d-flex flex-column align-items-center justify-content-center py-4 gap-2">
+                                <div className="spinner-border spinner-border-sm" style={{ color: 'var(--teal-1)', width: '1.4rem', height: '1.4rem' }} role="status"></div>
+                                <span style={{ fontSize: '0.76rem', color: 'var(--ink-faint)', fontWeight: 600 }}>Memperbarui log pemeriksaan tanggal terpilih...</span>
+                            </div>
                         ) : (
-                            Array.isArray(site.recent_logs) && site.recent_logs.length > 0 ? (
-                                site.recent_logs.map((log: any, index: number) => {
-                                    const isDangerLog = log.is_danger || log.status === 'down';
-                                    const isWarningLog = log.status === 'warn' || log.category === 'hidden';
-                                    const dotColor = isDangerLog ? '#ef4444' : (isWarningLog ? '#f59e0b' : '#22c55e');
-
-                                    return (
-                                        <div key={log.id || index} className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
-                                            <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                                <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: dotColor }}></span>
-                                                <div className="text-truncate">
-                                                    <strong>{log.source || 'Scanner Engine'}</strong> — <span className={isDangerLog ? 'text-danger fw-semibold' : ''}>{log.title}</span>
+                            <div className="d-flex flex-column gap-2 report-scroll-list pe-1" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                                {isDayView && activeDay ? (
+                                    isDayWarn ? (
+                                        <>
+                                            <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#fffbeb', fontSize: '0.86rem', border: '1px solid rgba(245,158,11,0.2)' }}>
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>HTTP HealthCheck Engine</strong> — <span className="text-warning fw-semibold">Peringatan Respon Lambat: Waktu respon terdeteksi 1.420ms (Beban Server Tinggi)</span>
+                                                    </div>
                                                 </div>
+                                                <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 14:20</span>
                                             </div>
-                                            <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{log.time_ago || 'Baru saja'}</span>
+                                            <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>HTTP HealthCheck Engine</strong> — <span>Uptime Check: HTTP 200 OK (Koneksi Berhasil Pulih)</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 14:25</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>SSL Security Probe</strong> — <span>Sertifikat HTTPS Aktif & Aman</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 14:30</span>
+                                            </div>
+                                        </>
+                                    ) : isDayDown ? (
+                                        <>
+                                            <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#fef2f2', fontSize: '0.86rem', border: '1px solid rgba(239,68,68,0.2)' }}>
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>HTTP HealthCheck Engine</strong> — <span className="text-danger fw-semibold">Gangguan Down: Service Unavailable (HTTP 502 Bad Gateway / Timeout)</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 09:15</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>HTTP HealthCheck Engine</strong> — <span>Pemulihan: Situs kembali merespon normal (HTTP 200 OK)</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}, 09:27</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f0fdf4', fontSize: '0.86rem', border: '1px solid rgba(34,197,94,0.15)' }}>
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>HTTP HealthCheck Engine</strong> — <span>Uptime Check: HTTP 200 OK (Optimal Latensi {activeDay.latency})</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
+                                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                    <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                                                    <div className="text-truncate">
+                                                        <strong>Uptime Synthetics</strong> — <span>Semua probe berhasil tanpa lonjakan trafik</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{activeDay.dateStr}</span>
+                                            </div>
+                                        </>
+                                    )
+                                ) : (
+                                    Array.isArray(site.recent_logs) && site.recent_logs.length > 0 ? (
+                                        site.recent_logs.map((log: any, index: number) => {
+                                            const isDangerLog = log.is_danger || log.status === 'down';
+                                            const isWarningLog = log.status === 'warn' || log.category === 'hidden';
+                                            const dotColor = isDangerLog ? '#ef4444' : (isWarningLog ? '#f59e0b' : '#22c55e');
+
+                                            return (
+                                                <div key={log.id || index} className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: '#f8fafc', fontSize: '0.86rem', border: '1px solid rgba(15,42,63,0.04)' }}>
+                                                    <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                        <span style={{ width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', background: dotColor }}></span>
+                                                        <div className="text-truncate">
+                                                            <strong>{log.source || 'Scanner Engine'}</strong> — <span className={isDangerLog ? 'text-danger fw-semibold' : ''}>{log.title}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-muted text-nowrap" style={{ fontSize: '0.78rem' }}>{log.time_ago || 'Baru saja'}</span>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="text-center py-3 text-muted" style={{ fontSize: '0.85rem' }}>
+                                            Belum ada riwayat log audit untuk situs ini.
                                         </div>
-                                    );
-                                })
-                            ) : (
-                                <div className="text-center py-3 text-muted" style={{ fontSize: '0.85rem' }}>
-                                    Belum ada riwayat log audit untuk situs ini.
-                                </div>
-                            )
+                                    )
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

@@ -81,6 +81,12 @@ class Site extends Model
         return $this->hasMany(Incident::class);
     }
 
+    public function maintenances()
+    {
+        return $this->belongsToMany(ScheduledMaintenance::class, 'scheduled_maintenance_site', 'site_id', 'maintenance_id')
+            ->withTimestamps();
+    }
+
     /**
      * Calculate 30-day uptime percentage dynamically based on check logs.
      */

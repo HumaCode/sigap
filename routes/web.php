@@ -127,6 +127,10 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+// Public Status Page & Incident Subscriptions
+Route::get('/status', [\App\Http\Controllers\PublicStatusController::class, 'index'])->name('status.index');
+Route::post('/status/subscribe', [\App\Http\Controllers\PublicStatusController::class, 'subscribe'])->name('status.subscribe');
+
 Route::get('/api/realtime-status', function () {
     $sites = \App\Models\Site::take(4)->get(['id', 'name', 'url', 'status'])->map(function ($site) {
         return [
@@ -234,6 +238,10 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/backups/{id}/download', [\App\Http\Controllers\BackupController::class, 'download'])->name('backups.download');
     Route::post('/backups/{id}/restore', [\App\Http\Controllers\BackupController::class, 'restore'])->name('backups.restore');
     Route::delete('/backups/{id}', [\App\Http\Controllers\BackupController::class, 'destroy'])->name('backups.destroy');
+
+    // Manajemen Jadwal Pemeliharaan Resmi (Scheduled Maintenance)
+    Route::patch('/maintenance/{maintenance}/status', [\App\Http\Controllers\ScheduledMaintenanceController::class, 'updateStatus'])->name('maintenance.update-status');
+    Route::resource('maintenance', \App\Http\Controllers\ScheduledMaintenanceController::class)->names('maintenance')->except(['create', 'edit', 'show']);
 
     Route::get('/server-investigations', [\App\Http\Controllers\ServerInvestigationController::class, 'index'])->name('server-investigations.index');
     Route::get('/server-investigations/{site}/check-health', [\App\Http\Controllers\ServerInvestigationController::class, 'checkHealth'])->name('server-investigations.check-health');

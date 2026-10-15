@@ -244,13 +244,15 @@ export default function StatusPublikSection({
                             Dipantau dengan standar tata kelola keamanan siber modern &amp; jaminan ketersediaan SLA 99.9%.
                         </span>
                     </div>
-                    <a
-                        href="#pilar-pengawasan"
-                        className="text-xs font-['JetBrains_Mono'] text-primary hover:underline flex items-center gap-1 shrink-0"
-                    >
-                        <span>Lihat Panduan &amp; SLA Layanan</span>
-                        <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-                    </a>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <a
+                            href="/status"
+                            className="px-3.5 py-2 rounded-xl bg-primary text-slate-950 font-bold text-xs hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-1.5"
+                        >
+                            <span>Halaman Status Publik Mandiri</span>
+                            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </section>

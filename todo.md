@@ -60,16 +60,16 @@ Dokumen ini memuat rencana kerja, prioritas pengembangan fitur, dan daftar perik
 > **Prioritas**: 🟡 *Sedang (Medium)*  
 > **Tujuan**: Menyediakan transparansi publik yang kredibel dan memisahkan antara gangguan darurat dengan pemeliharaan terjadwal.
 
-- [ ] **3.1 Halaman Publik Status Layanan Mandiri (`/status`)**
-  - [ ] Buat rute dan halaman publik mandiri (`/status`) yang dapat diakses publik tanpa login.
-  - [ ] Tampilkan status sistem real-time per klaster layanan (Portal Utama, SPBE, PPID, Layanan Publik, Faskes/RSUD).
-  - [ ] Sediakan fitur berlangganan update insiden bagi warga (*Subscribe Incident Updates via Email/WA*).
+- [x] **3.1 Halaman Publik Status Layanan Mandiri (`/status`)**
+  - [x] Buat rute dan halaman publik mandiri (`/status`) yang dapat diakses publik tanpa login.
+  - [x] Tampilkan status sistem real-time per klaster layanan (Portal Utama, SPBE, PPID, Layanan Publik, Faskes/RSUD).
+  - [x] Sediakan fitur berlangganan update insiden bagi warga (*Subscribe Incident Updates via Email/WA*).
 
-- [ ] **3.2 Manajemen Jadwal Pemeliharaan Resmi (*Scheduled Maintenance*)**
-  - [ ] Buat modul CRUD *Jadwal Pemeliharaan* di menu admin.
-  - [ ] Parameter jadwal: Situs terdampak, waktu mulai, estimasi selesai, dan deskripsi pekerjaan.
-  - [ ] Status maintenance otomatis ditampilkan di status page publik dengan banner informatif.
-  - [ ] *SLA Exclusion*: Downtime selama jendela maintenance tidak dihitung sebagai penalti SLA ketersediaan bulanan.
+- [x] **3.2 Manajemen Jadwal Pemeliharaan Resmi (*Scheduled Maintenance*)**
+  - [x] Buat modul CRUD *Jadwal Pemeliharaan* di menu admin.
+  - [x] Parameter jadwal: Situs terdampak, waktu mulai, estimasi selesai, dan deskripsi pekerjaan.
+  - [x] Status maintenance otomatis ditampilkan di status page publik dengan banner informatif.
+  - [x] *SLA Exclusion*: Downtime selama jendela maintenance tidak dihitung sebagai penalti SLA ketersediaan bulanan.
 
 ---
 

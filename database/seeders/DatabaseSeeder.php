@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -23,14 +24,14 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             MenuSeeder::class,
-            SiteSeeder::class,
-            IncidentSeeder::class,
-            NotificationSeeder::class,
-            KeywordSeeder::class,
+            // SiteSeeder::class,
+            // IncidentSeeder::class,
+            // NotificationSeeder::class,
+            // KeywordSeeder::class,
         ]);
 
         // Pastikan tabel activity_log bersih dari log proses seeder
-        \Illuminate\Support\Facades\DB::table('activity_log')->truncate();
+        DB::table('activity_log')->truncate();
 
         // Aktifkan kembali Activity Log untuk operasional normal aplikasi
         if (function_exists('activity')) {

@@ -99,7 +99,7 @@ export default function ScorecardDetailModal({ show, onClose, site }: ScorecardD
                 {/* 3 Pillar Calculation Formula Transparency */}
                 <h6 className="fw-bold mb-2.5" style={{ color: '#0f2a3f', fontSize: '0.9rem' }}>
                     <i className="bi bi-calculator me-1.5 text-primary"></i>
-                    Transparansi Formula Penilaian (3 Pilar Utama SPBE & BSSN)
+                    Transparansi Formula Penilaian (3 Pilar Utama Mutu & Keamanan)
                 </h6>
 
                 <div className="d-flex flex-column gap-2.5 mb-4">
@@ -159,7 +159,7 @@ export default function ScorecardDetailModal({ show, onClose, site }: ScorecardD
                 <div className="p-3 rounded-3 mb-4" style={{ background: '#fefce8', border: '1px solid #fef08a' }}>
                     <div className="d-flex align-items-center gap-2 mb-1 text-warning-emphasis">
                         <i className="bi bi-lightbulb-fill"></i>
-                        <strong style={{ fontSize: '0.84rem' }}>Rekomendasi Peningkatan Mutu OPD:</strong>
+                        <strong style={{ fontSize: '0.84rem' }}>Rekomendasi Peningkatan Mutu:</strong>
                     </div>
                     <p className="mb-0 text-muted" style={{ fontSize: '0.8rem', lineHeight: 1.5 }}>
                         {site.recommendation}

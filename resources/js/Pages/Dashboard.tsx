@@ -392,16 +392,25 @@ export default function Dashboard({ stats, chart_data, latest_sites, recent_inci
                             <h6>Insiden Terbaru</h6>
                             <span className="muted ms-auto">{stats.open_incidents} terbuka</span>
                         </div>
-                        <div className="scroll-slim" style={{maxHeight: '340px', overflowY: 'auto'}}>
+                        <div className="scroll-slim pe-1" style={{maxHeight: '340px', overflowY: 'auto'}}>
                             {recent_incidents && recent_incidents.length > 0 ? (
                                 recent_incidents.map((inc) => (
                                     <div key={inc.id} className="incident-item">
                                         {getIncidentIcon(inc.type)}
-                                        <div className="flex-grow-1">
-                                            <p className="incident-title mb-0">{inc.title}</p>
-                                            <span className="incident-meta">{inc.site_name} • {inc.detected_at}</span>
+                                        <div className="flex-grow-1 min-w-0">
+                                            <p className="incident-title mb-0 text-truncate" title={inc.title}>{inc.title}</p>
+                                            <span className="incident-meta text-truncate d-block">{inc.site_name} • {inc.detected_at}</span>
                                         </div>
                                         <span className={getSeverityBadgeClass(inc.severity)}>
+                                            <span 
+                                                style={{ 
+                                                    width: '5px', 
+                                                    height: '5px', 
+                                                    borderRadius: '50%', 
+                                                    background: 'currentColor',
+                                                    display: 'inline-block' 
+                                                }} 
+                                            />
                                             {inc.severity === 'critical' ? 'Kritis' : inc.severity === 'high' ? 'Tinggi' : inc.severity === 'medium' ? 'Sedang' : 'Rendah'}
                                         </span>
                                     </div>

@@ -6,7 +6,8 @@
 
         @php
             try {
-                $seoTitle = \App\Models\Setting::getValue('seo_meta_title') ?: config('app.name', 'SIGAP Web');
+                $appName = \App\Models\Setting::getValue('app_name') ?: config('app.name', 'SIGAP');
+                $seoTitle = \App\Models\Setting::getValue('seo_meta_title') ?: $appName;
                 $seoDesc = \App\Models\Setting::getValue('seo_meta_description') ?: 'Platform monitoring keamanan, defacement detection, uptime ketersediaan, dan postur keamanan aset digital dan website secara real-time.';
                 $seoKeywords = \App\Models\Setting::getValue('seo_meta_keywords') ?: 'monitoring website, deface detection, cyber security, uptime monitoring, web defense, sigap';
                 $seoAuthor = \App\Models\Setting::getValue('seo_author') ?: '';
@@ -17,7 +18,8 @@
                     $googleVerification = substr($googleVerification, strlen('google-site-verification='));
                 }
             } catch (\Throwable $e) {
-                $seoTitle = config('app.name', 'SIGAP Web');
+                $appName = config('app.name', 'SIGAP');
+                $seoTitle = $appName;
                 $seoDesc = 'Platform monitoring keamanan, defacement detection, uptime ketersediaan, dan postur keamanan aset digital dan website secara real-time.';
                 $seoKeywords = 'monitoring website, deface detection, cyber security, uptime monitoring, web defense, sigap';
                 $seoAuthor = '';
@@ -26,7 +28,11 @@
             }
         @endphp
 
-        <title inertia>{{ $seoTitle }}</title>
+        <meta name="app-name" content="{{ $appName }}">
+        <script>
+            window.__APP_NAME__ = @json($appName);
+        </script>
+        <title inertia>{{ $appName }}</title>
 
         <!-- Favicon / Brand Icon -->
         <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">

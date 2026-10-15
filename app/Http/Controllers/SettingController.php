@@ -7,6 +7,9 @@ use App\Services\Interfaces\SettingServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -102,6 +105,14 @@ class SettingController extends Controller
 
         $this->settingService->saveSettings($group, $data);
 
+        // Otomatis bersihkan seluruh cache aplikasi (seperti php artisan optimize:clear)
+        try {
+            Artisan::call('optimize:clear');
+            Cache::flush();
+        } catch (\Throwable $e) {
+            Log::warning('Gagal membersihkan cache saat update pengaturan: ' . $e->getMessage());
+        }
+
         $groupLabels = [
             'ninerouter' => 'Konfigurasi 9Router AI Engine',
             'sso' => 'Konfigurasi SSO HumaCode',
@@ -112,7 +123,7 @@ class SettingController extends Controller
 
         $label = $groupLabels[$group] ?? 'Pengaturan';
 
-        return redirect()->back()->with('success', "{$label} berhasil disimpan.");
+        return redirect()->back()->with('success', "{$label} berhasil disimpan & seluruh cache sistem telah dibersihkan.");
     }
 
     /**
@@ -196,5 +207,49 @@ class SettingController extends Controller
             ->log("Membersihkan seluruh jejak log audit sistem ({$count} data log dihapus)");
 
         return redirect()->back()->with('success', "Riwayat log aktivitas ({$count} entri) berhasil dibersihkan.");
+    }
+
+    /**
+     * Bersihkan seluruh cache sistem aplikasi (ekuivalen php artisan optimize:clear).
+     */
+    public function clearSystemCache(Request $request): RedirectResponse|JsonResponse
+    {
+        if (!$request->user() || !$request->user()->hasAnyRole(['dev', 'admin'])) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            }
+            abort(403, 'Akses ditolak.');
+        }
+
+        try {
+            Artisan::call('optimize:clear');
+            Cache::flush();
+
+            activity('setting')
+                ->causedBy($request->user())
+                ->log('Membersihkan seluruh cache sistem (optimize:clear)');
+
+            $msg = 'Seluruh cache sistem (konfigurasi, routing, view, dan cache aplikasi) berhasil dibersihkan.';
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                ]);
+            }
+
+            return redirect()->back()->with('success', $msg);
+        } catch (\Throwable $e) {
+            Log::error('Gagal membersihkan cache sistem: ' . $e->getMessage());
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal membersihkan cache: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Gagal membersihkan cache: ' . $e->getMessage());
+        }
     }
 }

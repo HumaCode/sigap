@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from '@/Components/DynamicToast';
 import PopupLoader from '@/Components/PopupLoader';
+import ConfirmModal from '@/Components/ConfirmModal';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps } from '@/types';
 import '../../../css/settings.css';
@@ -116,6 +117,8 @@ export default function Index({
 
     const [activeTab, setActiveTab] = useState<SettingsTabKey>(getInitialTab);
     const [isSaving, setIsSaving] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [isClearingCache, setIsClearingCache] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Menyimpan pengaturan...');
 
     // Flash notifications (cegah pemicu ganda dengan ref)
@@ -126,12 +129,12 @@ export default function Index({
         const key = `${success || ''}#${error || ''}`;
 
         if (key === '#') {
-return;
-}
+            return;
+        }
 
         if (lastFlashRef.current === key) {
-return;
-}
+            return;
+        }
 
         lastFlashRef.current = key;
 
@@ -153,7 +156,7 @@ return;
     };
 
     const handleSaveGroup = (groupKey: SettingsTabKey, groupData: Record<string, any>) => {
-        setLoaderMessage('Menyimpan perubahan pengaturan...');
+        setLoaderMessage('Menyimpan perubahan & membersihkan cache...');
         setIsSaving(true);
 
         router.post(
@@ -172,7 +175,7 @@ return;
                     }
 
                     if (!page?.props?.flash?.success) {
-                        toast.success('Berhasil', 'Pengaturan berhasil diperbarui.');
+                        toast.success('Berhasil', 'Pengaturan berhasil diperbarui & cache dibersihkan.');
                     }
                 },
                 onError: (errs) => {
@@ -187,12 +190,47 @@ return;
         );
     };
 
+    const handleClearSystemCache = () => {
+        setShowClearConfirm(true);
+    };
+
+    const handleExecuteClearCache = () => {
+        setShowClearConfirm(false);
+        setIsClearingCache(true);
+        setLoaderMessage('Membersihkan seluruh cache sistem (optimize:clear)...');
+
+        router.post(
+            route('settings.clear-cache'),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: (page: any) => {
+                    setIsClearingCache(false);
+                    if (page?.props?.flash?.error) {
+                        return;
+                    }
+                    if (!page?.props?.flash?.success) {
+                        toast.success('Berhasil', 'Seluruh cache sistem berhasil dibersihkan.');
+                    }
+                },
+                onError: (errs) => {
+                    setIsClearingCache(false);
+                    const firstErr = Object.values(errs)[0];
+                    toast.error('Gagal Membersihkan Cache', typeof firstErr === 'string' ? firstErr : 'Terjadi kesalahan sistem.');
+                },
+                onFinish: () => {
+                    setIsClearingCache(false);
+                },
+            }
+        );
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Pengaturan Sistem" />
 
-            {/* Header */}
-            <SettingsHeader />
+            {/* Header with Clear Cache Button */}
+            <SettingsHeader onClearCache={handleClearSystemCache} isClearing={isClearingCache} />
 
             {/* Tab Navigation */}
             <SettingsTabsNav activeTab={activeTab} onTabChange={handleTabChange} />
@@ -244,8 +282,31 @@ return;
                 )}
             </div>
 
+            {/* Clear Cache Confirmation Modal */}
+            <ConfirmModal
+                show={showClearConfirm}
+                title="Bersihkan Seluruh Cache Sistem"
+                icon="bi-arrow-repeat"
+                variant="primary"
+                size="md"
+                itemName="Pembersihan Cache Sistem (optimize:clear)"
+                itemDetails="Cache Konfigurasi, Route, View, dan Aplikasi"
+                message="Apakah Anda yakin ingin membersihkan seluruh cache sistem aplikasi?"
+                warningTitle="Dampak pembersihan cache sistem:"
+                warningPoints={[
+                    'Cache konfigurasi (.env & config) akan dibangun ulang dari berkas terbaru.',
+                    'Cache pemetaan URL (routing) dan template tampilan (Blade Views) akan di-refresh.',
+                    'Cache memori internal aplikasi akan dikosongkan agar perubahan langsung aktif.',
+                ]}
+                confirmText="Ya, Bersihkan Sekarang"
+                cancelText="Batal"
+                onConfirm={handleExecuteClearCache}
+                onCancel={() => setShowClearConfirm(false)}
+                isProcessing={isClearingCache}
+            />
+
             {/* Fullscreen Loader */}
-            <PopupLoader isOpen={isSaving} status="loading" message={loaderMessage} />
+            <PopupLoader isOpen={isSaving || isClearingCache} status="loading" message={loaderMessage} />
         </AuthenticatedLayout>
     );
 }

@@ -11,7 +11,7 @@ export default function ScorecardPodium({ podium, onSelectSite }: ScorecardPodiu
     const medals = [
         {
             rank: 1,
-            label: 'Juara 1 — Teladan Utama SPBE',
+            label: 'Peringkat 1 — Kinerja Layanan Terbaik',
             badgeBg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
             cardBg: 'linear-gradient(135deg, rgba(254, 243, 199, 0.4) 0%, rgba(255, 255, 255, 0.95) 100%)',
             borderColor: 'rgba(245, 158, 11, 0.4)',
@@ -20,7 +20,7 @@ export default function ScorecardPodium({ podium, onSelectSite }: ScorecardPodiu
         },
         {
             rank: 2,
-            label: 'Juara 2 — Kepatuhan Tinggi',
+            label: 'Peringkat 2 — Kepatuhan Tinggi',
             badgeBg: 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
             cardBg: 'linear-gradient(135deg, rgba(241, 245, 249, 0.5) 0%, rgba(255, 255, 255, 0.95) 100%)',
             borderColor: 'rgba(148, 163, 184, 0.4)',
@@ -29,7 +29,7 @@ export default function ScorecardPodium({ podium, onSelectSite }: ScorecardPodiu
         },
         {
             rank: 3,
-            label: 'Juara 3 — Layanan Prima',
+            label: 'Peringkat 3 — Layanan Prima',
             badgeBg: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
             cardBg: 'linear-gradient(135deg, rgba(254, 215, 170, 0.3) 0%, rgba(255, 255, 255, 0.95) 100%)',
             borderColor: 'rgba(217, 119, 6, 0.35)',
@@ -44,10 +44,10 @@ export default function ScorecardPodium({ podium, onSelectSite }: ScorecardPodiu
                 <div>
                     <h5 className="mb-0" style={{ fontWeight: 800, color: '#0f2a3f', fontSize: '1.15rem' }}>
                         <i className="bi bi-stars text-warning me-2"></i>
-                        Top 3 Peringkat Kepatuhan & Mutu Digital Daerah
+                        Top 3 Peringkat Mutu & Ketersediaan Layanan
                     </h5>
                     <span style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>
-                        Website OPD dengan nilai indeks gabungan tertinggi berdasarkan ketersediaan 30 hari, kepatuhan keamanan informasi, dan mitigasi insiden.
+                        Website dengan nilai indeks gabungan tertinggi berdasarkan ketersediaan 30 hari, kepatuhan keamanan informasi, dan mitigasi insiden.
                     </span>
                 </div>
             </div>

@@ -61,7 +61,7 @@ export default function ScorecardSummaryCards({ summary }: ScorecardSummaryCards
                     </div>
                     <div className="mt-3">
                         <div className="d-flex justify-content-between mb-1" style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--ink-soft)' }}>
-                            <span>Standar BSSN & SPBE</span>
+                            <span>Standar SLA & Keamanan</span>
                             <span style={{ color: avg_score >= 80 ? 'var(--teal-1)' : '#d97706' }}>
                                 {avg_score >= 85 ? 'Sangat Baik' : (avg_score >= 70 ? 'Memenuhi Standar' : 'Perlu Evaluasi')}
                             </span>
@@ -81,7 +81,7 @@ export default function ScorecardSummaryCards({ summary }: ScorecardSummaryCards
                 </div>
             </div>
 
-            {/* 2. Tingkat Kepatuhan Standar SPBE */}
+            {/* 2. Tingkat Kepatuhan Standar SLA */}
             <div className="col-12 col-sm-6 col-xl-3">
                 <div 
                     className="glass-card p-3.5 h-100 position-relative overflow-hidden" 
@@ -94,7 +94,7 @@ export default function ScorecardSummaryCards({ summary }: ScorecardSummaryCards
                 >
                     <div className="d-flex align-items-center justify-content-between mb-2">
                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Kepatuhan SPBE
+                            Kepatuhan SLA
                         </span>
                         <div 
                             style={{ 
@@ -172,7 +172,7 @@ export default function ScorecardSummaryCards({ summary }: ScorecardSummaryCards
                         </span>
                     </div>
                     <p className="mt-2 mb-0" style={{ fontSize: '0.74rem', color: 'var(--ink-faint)' }}>
-                        Total evaluasi komprehensif pada {total_sites} portal OPD.
+                        Total evaluasi komprehensif pada {total_sites} situs web yang dipantau.
                     </p>
                 </div>
             </div>
@@ -223,7 +223,7 @@ export default function ScorecardSummaryCards({ summary }: ScorecardSummaryCards
                     <p className="mt-2 mb-0" style={{ fontSize: '0.78rem', color: 'var(--ink-soft)' }}>
                         {(grade_counts.C + grade_counts.D) > 0 
                             ? 'Membutuhkan intervensi teknis segera pada ketersediaan atau SSL.' 
-                            : 'Luar biasa! Seluruh situs OPD memenuhi standar kepatuhan minimum.'}
+                            : 'Luar biasa! Seluruh situs memenuhi standar kepatuhan minimum.'}
                     </p>
                 </div>
             </div>

@@ -6,130 +6,20 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    $totalSites = \App\Models\Site::count();
-    $downSites = \App\Models\Site::where('status', 'down')->count();
-    $warnSites = \App\Models\Site::where('status', 'warn')->count();
-    $activeSites = \App\Models\Site::where('status', 'up')->count();
-    $pausedSites = \App\Models\Site::where('status', 'paused')->count();
-
-    $avgUptime = 99.85;
-    if ($totalSites > 0) {
-        $totalUptimeSum = ($downSites * 92.4) + ($warnSites * 98.2) + (($activeSites + $pausedSites) * 99.9);
-        $avgUptime = round($totalUptimeSum / $totalSites, 2);
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
     }
-
-    $activeIncidents = \App\Models\Incident::whereIn('status', ['open', 'investigating'])->count();
-    $criticalIncidents = \App\Models\Incident::where('severity', 'critical')
-        ->whereIn('status', ['open', 'investigating'])
-        ->count();
-
-    if ($criticalIncidents > 0) {
-        $defconLevel = 'DEFCON 2';
-        $defconStatus = 'CRITICAL ALERT';
-        $defconType = 'error';
-    } elseif ($activeIncidents > 0 || $downSites > 0) {
-        $defconLevel = 'DEFCON 3';
-        $defconStatus = 'ELEVATED';
-        $defconType = 'warning';
-    } elseif ($warnSites > 0) {
-        $defconLevel = 'DEFCON 4';
-        $defconStatus = 'GUARDED';
-        $defconType = 'secondary';
-    } else {
-        $defconLevel = 'DEFCON 5';
-        $defconStatus = 'NOMINAL';
-        $defconType = 'primary';
-    }
-
-    $sampleSites = \App\Models\Site::where('status', 'up')
-        ->inRandomOrder()
-        ->take(2)
-        ->pluck('url')
-        ->map(function ($url) {
-            return preg_replace('#^https?://#', '', rtrim($url, '/'));
-        })
-        ->values()
-        ->toArray();
-
-    $radarBlip1 = $sampleSites[0] ?? 'portal.layanan-digital.id';
-    $radarBlip2 = $sampleSites[1] ?? 'api.service-cloud.id';
-
-    $latestSite = \App\Models\Site::latest('updated_at')->first(['name', 'url']);
-    $latestDomain = $latestSite ? preg_replace('#^https?://#', '', rtrim($latestSite->url, '/')) : 'portal.layanan-digital.id';
-
-    $sslValidCount = \App\Models\Site::where('status', '!=', 'down')->count();
-    $sslPercentage = $totalSites > 0 ? round(($sslValidCount / $totalSites) * 100) : 100;
-
-    $publicServices = \App\Models\Site::take(4)->get(['id', 'name', 'url', 'status'])->map(function ($site) {
-        return [
-            'id' => (string) $site->id,
-            'name' => $site->name,
-            'url' => preg_replace('#^https?://#', '', rtrim($site->url, '/')),
-            'status' => $site->status,
-            'status_label' => match ($site->status) {
-                'up' => 'Aktif Normal',
-                'warn' => 'Perlu Atensi',
-                'down' => 'Gangguan',
-                default => 'Pemeliharaan',
-            },
-            'uptime' => match ($site->status) {
-                'up' => '99.98%',
-                'warn' => '98.50%',
-                'down' => '89.20%',
-                default => '99.90%',
-            },
-        ];
-    });
-
-    if ($downSites > 0) {
-        $systemStatus = [
-            'type' => 'critical',
-            'text' => "$downSites Layanan Mengalami Gangguan",
-            'dot_color' => 'bg-error',
-            'badge_color' => 'bg-error/10 text-error border-error/30 shadow-[0_0_24px_rgba(239,68,68,0.2)]',
-        ];
-    } elseif ($warnSites > 0) {
-        $systemStatus = [
-            'type' => 'warning',
-            'text' => "$warnSites Layanan Perlu Perhatian",
-            'dot_color' => 'bg-warning',
-            'badge_color' => 'bg-warning/10 text-warning border-warning/30 shadow-[0_0_24px_rgba(245,158,11,0.2)]',
-        ];
-    } else {
-        $systemStatus = [
-            'type' => 'normal',
-            'text' => 'Seluruh Sistem Beroperasi Normal',
-            'dot_color' => 'bg-primary',
-            'badge_color' => 'bg-primary/10 text-primary border-primary/30 shadow-[0_0_24px_rgba(20,184,166,0.2)]',
-        ];
-    }
-
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'stats' => [
-            'total_sites' => $totalSites > 0 ? $totalSites : 48,
-            'avg_uptime' => $avgUptime,
-            'active_incidents' => $activeIncidents,
-        ],
-        'socTelemetry' => [
-            'defcon_level' => $defconLevel,
-            'defcon_status' => $defconStatus,
-            'defcon_type' => $defconType,
-            'radar_blip_1' => $radarBlip1,
-            'radar_blip_2' => $radarBlip2,
-            'anomalies_count' => $downSites + $warnSites + $activeIncidents,
-            'critical_count' => $criticalIncidents,
-            'ssl_percentage' => $sslPercentage,
-            'latest_scanned_domain' => $latestDomain,
-        ],
-        'publicServices' => $publicServices,
-        'systemStatus' => $systemStatus,
-    ]);
+    return redirect()->route('login');
 })->name('home');
 
-// Public Status Page & Incident Subscriptions
-Route::get('/status', [\App\Http\Controllers\PublicStatusController::class, 'index'])->name('status.index');
-Route::post('/status/subscribe', [\App\Http\Controllers\PublicStatusController::class, 'subscribe'])->name('status.subscribe');
+// Public Status Page redirected to login or internal statistics for security
+Route::get('/status', function () {
+    if (auth()->check()) {
+        return redirect()->route('statistics.index');
+    }
+    return redirect()->route('login');
+})->name('status.index');
+Route::post('/status/subscribe', [\App\Http\Controllers\PublicStatusController::class, 'subscribe'])->middleware(['auth', 'active'])->name('status.subscribe');
 
 Route::get('/api/realtime-status', function () {
     $sites = \App\Models\Site::take(4)->get(['id', 'name', 'url', 'status'])->map(function ($site) {
@@ -229,6 +119,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/uptime-reports', [\App\Http\Controllers\UptimeReportController::class, 'index'])->name('reports.uptime');
     Route::get('/uptime-reports/export', [\App\Http\Controllers\UptimeReportController::class, 'export'])->name('reports.uptime.export');
 
+    // Statistik & Telemetri Layanan
+    Route::get('/statistics', [\App\Http\Controllers\StatisticsController::class, 'index'])->name('statistics.index');
+
+    // Global Search Endpoint
+    Route::get('/api/global-search', [\App\Http\Controllers\GlobalSearchController::class, 'search'])->name('api.global-search');
+
     // Fase 6: Rapor Kematangan & Scorecard Mutu Website OPD
     Route::get('/scorecard', [\App\Http\Controllers\ScorecardController::class, 'index'])->name('scorecard.index');
     Route::get('/scorecard/export', [\App\Http\Controllers\ScorecardController::class, 'export'])->name('scorecard.export');
@@ -276,6 +172,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/settings/telegram/test', [\App\Http\Controllers\SettingController::class, 'testTelegram'])->name('settings.telegram.test');
     Route::post('/settings/ninerouter/test', [\App\Http\Controllers\SettingController::class, 'testNineRouter'])->name('settings.ninerouter.test');
     Route::post('/settings/sso/test', [\App\Http\Controllers\SettingController::class, 'testSso'])->name('settings.sso.test');
+    Route::post('/settings/clear-cache', [\App\Http\Controllers\SettingController::class, 'clearSystemCache'])->name('settings.clear-cache');
     Route::delete('/settings/activity-logs', [\App\Http\Controllers\SettingController::class, 'clearActivityLogs'])->name('settings.activity-logs.clear');
 });
 

@@ -35,7 +35,7 @@ export default function ScorecardToolbar({
                 />
                 <input 
                     type="text" 
-                    placeholder="Cari OPD atau domain..." 
+                    placeholder="Cari situs atau domain..." 
                     value={search}
                     onChange={(e) => onSearchChange(e.target.value)}
                     onKeyDown={onSearchKeyDown}
@@ -63,7 +63,7 @@ export default function ScorecardToolbar({
                 )}
             </div>
 
-            {/* Kluster Category Filter */}
+            {/* Category Filter */}
             <select
                 className="form-select"
                 value={category}
@@ -80,7 +80,7 @@ export default function ScorecardToolbar({
                     cursor: 'pointer'
                 }}
             >
-                <option value="all">Semua Kluster OPD</option>
+                <option value="all">Semua Kategori Situs</option>
                 {categories.map((cat) => (
                     <option key={cat} value={cat}>
                         {cat}

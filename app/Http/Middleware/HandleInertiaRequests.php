@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'unread_notifications_count' => fn () => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             'menus' => $request->user() ? menus(true) : [],
+            'app_name' => Setting::getValue('app_name') ?: config('app.name', 'SIGAP'),
             'sso_enabled' => (bool) Setting::getValue('sso_enabled', true),
             'seo' => [
                 'meta_title' => Setting::getValue('seo_meta_title', config('app.name', 'SIGAP Web')),

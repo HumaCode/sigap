@@ -49,6 +49,14 @@ class MenuSeeder extends Seeder
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
             [
+                'name' => 'Statistik & Telemetri',
+                'url' => 'statistics.index',
+                'category' => 'Menu Utama',
+                'icon' => 'bi bi-pie-chart-fill',
+                'orders' => 3,
+                'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
+            ],
+            [
                 'name' => 'Laporan Uptime',
                 'url' => 'reports.uptime',
                 'category' => 'Menu Utama',

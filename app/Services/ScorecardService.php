@@ -252,13 +252,13 @@ class ScorecardService
     public function exportScorecard(array $filters = []): StreamedResponse
     {
         $data = $this->getLeaderboard($filters);
-        $filename = 'rapor_mutu_website_opd_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'rapor_mutu_website_' . now()->format('Ymd_His') . '.csv';
 
         $headers = [
             'Peringkat',
-            'Nama Situs / OPD',
+            'Nama Situs / Layanan Web',
             'URL Domain',
-            'Kategori / Kluster OPD',
+            'Kategori Layanan',
             'Nilai Mutu (Grade)',
             'Total Skor Indeks (0-100)',
             'Poin Uptime 30 Hari (Maks 40)',

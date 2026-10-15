@@ -19,7 +19,7 @@ export default function ScorecardTable({ leaderboard, onSelectSite }: ScorecardT
                 <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
                 <h5 className="mt-3 mb-1" style={{ fontWeight: 700, color: '#0f2a3f' }}>Tidak Ada Data Evaluasi</h5>
                 <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-                    Tidak ditemukan data situs yang sesuai dengan kriteria filter pencarian atau kluster OPD.
+                    Tidak ditemukan data situs yang sesuai dengan kriteria filter pencarian atau kategori situs.
                 </p>
             </div>
         );
@@ -35,7 +35,7 @@ export default function ScorecardTable({ leaderboard, onSelectSite }: ScorecardT
                                 Peringkat
                             </th>
                             <th style={{ padding: '1rem', fontWeight: 700, color: '#475569' }}>
-                                Website & Instansi OPD
+                                Website & Layanan
                             </th>
                             <th style={{ width: '130px', padding: '1rem', fontWeight: 700, color: '#475569', textAlign: 'center' }}>
                                 Mutu (Grade)

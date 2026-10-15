@@ -87,7 +87,7 @@ export default function Index({ leaderboard, summary, categories = [], filters, 
 
     const handleCategoryChange = (cat: string) => {
         setCategoryFilter(cat);
-        const msg = cat === 'all' ? 'Memuat seluruh kluster OPD...' : `Memuat kluster ${cat}...`;
+        const msg = cat === 'all' ? 'Memuat seluruh kategori situs...' : `Memuat kategori ${cat}...`;
         executeFilter(route('scorecard.index'), { search: searchTerm, category: cat }, msg);
     };
 
@@ -118,11 +118,11 @@ export default function Index({ leaderboard, summary, categories = [], filters, 
 
     return (
         <AuthenticatedLayout>
-            <Head title="Rapor Mutu & Scorecard Website OPD" />
+            <Head title="Rapor Mutu & Scorecard Website" />
 
             <PageHeader
-                title="Rapor Mutu Website OPD"
-                subtitle="Sistem penilaian otomatis kepatuhan ketersediaan SPBE (40%), standar keamanan SSL/Port (30%), dan riwayat bebas insiden siber (30%)."
+                title="Rapor Mutu & Scorecard Website"
+                subtitle="Sistem penilaian otomatis ketersediaan layanan SLA (40%), standar keamanan SSL/Port (30%), dan riwayat bebas insiden siber (30%)."
                 icon="bi-award-fill"
             />
 

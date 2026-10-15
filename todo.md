@@ -134,6 +134,11 @@ Dokumen ini memuat rencana kerja, prioritas pengembangan fitur, dan daftar perik
     - Bobot Riwayat Bebas Insiden Siber (30%)
   - [x] Peringkat (*Leaderboard*) kepatuhan situs OPD untuk mendorong peningkatan kualitas layanan digital daerah.
 
+- [x] **6.3 Pengamanan Akses Publik & Modul Statistik & Telemetri Internal**
+  - [x] Mencegah *Information Disclosure (CWE-200)* dengan mengalihkan rute publik `/` dan `/status` langsung ke login/dashboard.
+  - [x] Memindahkan seluruh visualisasi telemetri SOC, kesiagaan DEFCON, dan agregasi ketersediaan SLA ke halaman internal terproteksi: `/statistics`.
+  - [x] Registrasi menu *Statistik & Telemetri* di database (`MenuSeeder` & permission mapping).
+
 ---
 
 *Terakhir diperbarui: 15 Oktober 2026 — Antigravity Engineering Assistant*

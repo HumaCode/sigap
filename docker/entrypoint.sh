@@ -19,7 +19,7 @@ chmod -R 775 /app/storage /app/bootstrap/cache
 # 3. Cek dependensi Composer & Build frontend jika belum ada (misal di-mount dari host bersih)
 if [ ! -f /app/vendor/autoload.php ]; then
     echo "[SIGAP] vendor/autoload.php tidak ditemukan. Menjalankan composer install..."
-    composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+    composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --ignore-platform-req=php+
 fi
 
 if [ ! -f /app/public/build/manifest.json ]; then

@@ -18,11 +18,19 @@ if [ ! -d vendor ] || [ ! -f vendor/autoload.php ]; then
     composer install --no-dev --no-interaction --optimize-autoloader --ignore-platform-req=php+
 fi
 
-# Run key:generate if APP_KEY is not set or empty
-if ! grep -q "APP_KEY=base64:" .env || [ -z "$(grep APP_KEY= .env | cut -d= -f2)" ]; then
-    echo "Generating application key..."
-    php artisan key:generate --force
+# Run key:generate if APP_KEY is not set, empty, or invalid length (must be 51 chars)
+CURRENT_KEY=$(grep -E '^APP_KEY=' .env 2>/dev/null | cut -d '=' -f2- | tr -d ' "\r\n')
+if [ ${#CURRENT_KEY} -ne 51 ] || ! echo "$CURRENT_KEY" | grep -q '^base64:'; then
+    echo "Generating valid application key..."
+    NEW_KEY="base64:$(php -r 'echo base64_encode(random_bytes(32));')"
+    if grep -q '^APP_KEY=' .env 2>/dev/null; then
+        sed -i "s|^APP_KEY=.*|APP_KEY=${NEW_KEY}|g" .env
+    else
+        echo "APP_KEY=${NEW_KEY}" >> .env
+    fi
+    CURRENT_KEY="$NEW_KEY"
 fi
+export APP_KEY="$CURRENT_KEY"
 
 # Create symlink storage
 php artisan storage:link --force 2>/dev/null || true

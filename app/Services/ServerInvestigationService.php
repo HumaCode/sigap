@@ -790,4 +790,97 @@ class ServerInvestigationService implements ServerInvestigationServiceInterface
             'analyzed_at' => now()->translatedFormat('d M Y, H:i:s') . ' WIB',
         ];
     }
+
+    /**
+     * Dapatkan data utilisasi resource real-time server target via SSH (CPU, RAM, Disk).
+     */
+    public function getServerResourceUsage(Site $site): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $ssh = $this->getSshConnection($site, 8);
+            $latencyMs = round((microtime(true) - $startTime) * 1000);
+
+            // 1. CPU Usage
+            $cpuOutput = trim($ssh->exec("top -bn1 2>/dev/null | grep 'Cpu(s)' | awk '{print 100 - $8}' || true"));
+            $cpuPercent = 0.0;
+            if (is_numeric($cpuOutput)) {
+                $cpuPercent = round((float) $cpuOutput, 1);
+            } else {
+                $cores = (int) trim($ssh->exec("nproc 2>/dev/null || echo '1'")) ?: 1;
+                $load1 = (float) trim($ssh->exec("awk '{print $1}' /proc/loadavg 2>/dev/null || echo '0.1'"));
+                $cpuPercent = min(100.0, round(($load1 / $cores) * 100, 1));
+            }
+
+            // 2. RAM Usage
+            $ramOutput = trim($ssh->exec("free -m 2>/dev/null | awk 'NR==2{printf \"%d %d %d %.1f\", $2, $3, $4, ($2>0 ? $3*100/$2 : 0)}'"));
+            $ramParts = explode(' ', $ramOutput);
+            $ramTotalMb = isset($ramParts[0]) ? (int) $ramParts[0] : 1024;
+            $ramUsedMb = isset($ramParts[1]) ? (int) $ramParts[1] : 0;
+            $ramFreeMb = isset($ramParts[2]) ? (int) $ramParts[2] : 0;
+            $ramPercent = isset($ramParts[3]) ? round((float) $ramParts[3], 1) : 0.0;
+
+            // 3. Disk Usage
+            $appPath = $site->ssh_app_path ?: '/';
+            $diskRaw = trim($ssh->exec("df -h " . escapeshellarg($appPath) . " 2>/dev/null | awk 'NR==2 {print $2, $3, $4, $5}' || df -h / 2>/dev/null | awk 'NR==2 {print $2, $3, $4, $5}'"));
+            $diskParts = explode(' ', $diskRaw);
+            $diskTotal = $diskParts[0] ?? 'N/A';
+            $diskUsed = $diskParts[1] ?? 'N/A';
+            $diskFree = $diskParts[2] ?? 'N/A';
+            $diskPercentStr = rtrim($diskParts[3] ?? '0%', '%');
+            $diskPercent = is_numeric($diskPercentStr) ? (int) $diskPercentStr : 0;
+
+            // 4. Server Uptime & Load
+            $uptimeStr = trim($ssh->exec("uptime -p 2>/dev/null || uptime 2>/dev/null | sed 's/.*up \\([^,]*\\), .*/\\1/'"));
+            $loadAvg = trim($ssh->exec("cat /proc/loadavg 2>/dev/null | awk '{print $1, $2, $3}' || echo '-'"));
+
+            // 5. Early Storage Warning if > 90%
+            $isStorageCritical = ($diskPercent >= 90);
+            if ($isStorageCritical) {
+                NotificationService::sendAlert(
+                    "🚨 *PERINGATAN KRITIS: KAPASITAS DISK SERVER HAMPIR PENUH (>90%)*\n\n" .
+                    "Situs: *{$site->name}* ({$site->url})\n" .
+                    "Host SSH: `{$site->ssh_host}`\n" .
+                    "Penggunaan Disk: *{$diskPercent}%* ({$diskUsed} terpakai dari total {$diskTotal})\n" .
+                    "Sisa Ruang Bebas: *{$diskFree}*\n" .
+                    "Waktu Deteksi: *" . now()->translatedFormat('d F Y, H:i:s') . " WIB*\n\n" .
+                    "Tindakan Darurat: Segera bersihkan log lama, cache temporary, atau cadangan berlebih untuk mencegah database crash / read-only filesystem!"
+                );
+            }
+
+            return [
+                'success' => true,
+                'latency_ms' => $latencyMs,
+                'cpu' => [
+                    'percent' => $cpuPercent,
+                    'status' => $cpuPercent >= 85 ? 'critical' : ($cpuPercent >= 65 ? 'warning' : 'optimal'),
+                ],
+                'ram' => [
+                    'total_mb' => $ramTotalMb,
+                    'used_mb' => $ramUsedMb,
+                    'free_mb' => $ramFreeMb,
+                    'percent' => $ramPercent,
+                    'status' => $ramPercent >= 90 ? 'critical' : ($ramPercent >= 75 ? 'warning' : 'optimal'),
+                ],
+                'disk' => [
+                    'total' => $diskTotal,
+                    'used' => $diskUsed,
+                    'free' => $diskFree,
+                    'percent' => $diskPercent,
+                    'is_critical' => $isStorageCritical,
+                    'status' => $diskPercent >= 90 ? 'critical' : ($diskPercent >= 75 ? 'warning' : 'optimal'),
+                ],
+                'uptime' => $uptimeStr ?: 'Up',
+                'load_average' => $loadAvg,
+                'checked_at' => now()->translatedFormat('H:i:s') . ' WIB',
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'checked_at' => now()->translatedFormat('H:i:s') . ' WIB',
+            ];
+        }
+    }
 }

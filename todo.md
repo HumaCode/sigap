@@ -77,19 +77,19 @@ Dokumen ini memuat rencana kerja, prioritas pengembangan fitur, dan daftar perik
 > **Prioritas**: 🟡 *Sedang (Security)*  
 > **Tujuan**: Memperkuat deteksi serangan siber mutakhir seperti defacement visual dan eksposur port rahasia.
 
-- [ ] **4.1 Visual Snapshot & Screenshot Diffing (Deteksi Defacement Visual)**
-  - [ ] Implementasikan microservice / library headless browser (Puppeteer / Browsershot) untuk mengambil snapshot berkala tampilan depan situs.
-  - [ ] Lakukan perbandingan visual (*pixel / perceptual hash diff*).
-  - [ ] Memicu alarm *Visual Defacement Detected* jika tampilan visual berubah drastis meskipun tidak mengandung kata kunci terlarang.
+- [x] **4.1 Visual Snapshot & Screenshot Diffing (Deteksi Defacement Visual)**
+  - [x] Implementasikan microservice / library headless browser (Puppeteer / Browsershot) untuk mengambil snapshot berkala tampilan depan situs.
+  - [x] Lakukan perbandingan visual (*pixel / perceptual hash diff*).
+  - [x] Memicu alarm *Visual Defacement Detected* jika tampilan visual berubah drastis meskipun tidak mengandung kata kunci terlarang.
 
-- [ ] **4.2 Pemindai Port & Service Exposure Terbuka**
-  - [ ] Pemindaian port eksternal otomatis untuk mendeteksi service berbahaya yang tidak sengaja terbuka ke internet publik (misal: port MySQL `3306`, Redis `6379`, MongoDB `27017`, Telnet `23`, Elasticsearch `9200`).
-  - [ ] Deteksi file konfigurasi sensitif yang terbuka ke publik (seperti `/.env`, `/.git/HEAD`, `/phpinfo.php`, `/wp-config.php.bak`).
+- [x] **4.2 Pemindai Port & Service Exposure Terbuka**
+  - [x] Pemindaian port eksternal otomatis untuk mendeteksi service berbahaya yang tidak sengaja terbuka ke internet publik (misal: port MySQL `3306`, Redis `6379`, MongoDB `27017`, Telnet `23`, Elasticsearch `9200`).
+  - [x] Deteksi file konfigurasi sensitif yang terbuka ke publik (seperti `/.env`, `/.git/HEAD`, `/phpinfo.php`, `/wp-config.php.bak`).
 
-- [ ] **4.3 Pemantauan Resource Server Target via SSH (Resource Monitoring)**
-  - [ ] Tambahkan tab / widget utilisasi resource server pada menu *Investigasi Server*.
-  - [ ] Menampilkan gauge: Beban CPU (%), Pemakaian RAM (Used vs Free), dan Kapasitas Disk / Storage (`df -h`).
-  - [ ] Peringatan dini jika storage server target mencapai ambang batas > 90% (mencegah database crash karena disk penuh).
+- [x] **4.3 Pemantauan Resource Server Target via SSH (Resource Monitoring)**
+  - [x] Tambahkan tab / widget utilisasi resource server pada menu *Investigasi Server*.
+  - [x] Menampilkan gauge: Beban CPU (%), Pemakaian RAM (Used vs Free), dan Kapasitas Disk / Storage (`df -h`).
+  - [x] Peringatan dini jika storage server target mencapai ambang batas > 90% (mencegah database crash karena disk penuh).
 
 ---
 

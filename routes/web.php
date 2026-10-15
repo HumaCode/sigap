@@ -245,6 +245,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/server-investigations', [\App\Http\Controllers\ServerInvestigationController::class, 'index'])->name('server-investigations.index');
     Route::get('/server-investigations/{site}/check-health', [\App\Http\Controllers\ServerInvestigationController::class, 'checkHealth'])->name('server-investigations.check-health');
+    Route::get('/server-investigations/{site}/resource-usage', [\App\Http\Controllers\ServerInvestigationController::class, 'resourceUsage'])->name('server-investigations.resource-usage');
     Route::post('/server-investigations/{site}/scan-files', [\App\Http\Controllers\ServerInvestigationController::class, 'scanFiles'])->name('server-investigations.scan-files');
     Route::post('/server-investigations/{site}/quarantine-file', [\App\Http\Controllers\ServerInvestigationController::class, 'quarantineFile'])->name('server-investigations.quarantine-file');
     Route::post('/server-investigations/{site}/delete-file', [\App\Http\Controllers\ServerInvestigationController::class, 'deleteFile'])->name('server-investigations.delete-file');

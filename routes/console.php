@@ -26,6 +26,18 @@ Schedule::command('security:check-domain-health')
     ->withoutOverlapping(15)
     ->runInBackground();
 
+// 4.1 Visual Defacement Diffing (Setiap 30 Menit)
+Schedule::command('security:check-visual-diff')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping(20)
+    ->runInBackground();
+
+// 4.2 Pemindai Port & Service Exposure Terbuka (Setiap Hari 07:00 WIB)
+Schedule::command('security:scan-port-exposure')
+    ->dailyAt('07:00')
+    ->withoutOverlapping(20)
+    ->runInBackground();
+
 // Prune logs pemantauan lama setiap hari pukul 00:30
 Schedule::command('logs:prune')
     ->dailyAt('00:30')

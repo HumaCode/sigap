@@ -30,6 +30,9 @@ class Site extends Model
         'ssl_status', 'ssl_issuer', 'ssl_valid_to', 'ssl_days_left', 'ssl_last_checked_at', 'ssl_alert_sent_milestone',
         'domain_name', 'domain_expires_at', 'domain_days_left', 'domain_registrar', 'domain_status', 'domain_last_checked_at', 'domain_alert_sent_milestone',
         'dns_name_servers', 'dns_records', 'dns_last_checked_at',
+        'visual_baseline_hash', 'visual_last_hash', 'visual_diff_score', 'visual_last_checked_at',
+        'visual_baseline_snapshot', 'visual_last_snapshot',
+        'open_ports', 'sensitive_files_exposed', 'ports_last_scanned_at',
     ];
 
     protected $casts = [
@@ -49,6 +52,11 @@ class Site extends Model
         'dns_last_checked_at' => 'datetime',
         'dns_name_servers' => 'array',
         'dns_records' => 'array',
+        'visual_diff_score' => 'float',
+        'visual_last_checked_at' => 'datetime',
+        'open_ports' => 'array',
+        'sensitive_files_exposed' => 'array',
+        'ports_last_scanned_at' => 'datetime',
     ];
 
     public function detectionLogs()

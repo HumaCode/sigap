@@ -9,6 +9,7 @@ import InvestigationHeader from './Partials/InvestigationHeader';
 import FileScanTab from './Partials/FileScanTab';
 import RemediationTab from './Partials/RemediationTab';
 import LogForensicsTab from './Partials/LogForensicsTab';
+import ResourceMonitoringTab from './Partials/ResourceMonitoringTab';
 import NoSshEmptyState from './Partials/NoSshEmptyState';
 
 interface InvestigationPageProps extends PageProps {
@@ -16,6 +17,7 @@ interface InvestigationPageProps extends PageProps {
     selectedSiteId: string | null;
     selectedSite: any | null;
     initialServerHealth: any | null;
+    initialResourceUsage?: any | null;
     latestScan?: any | null;
 }
 
@@ -24,9 +26,10 @@ export default function Index({
     selectedSiteId,
     selectedSite,
     initialServerHealth,
+    initialResourceUsage,
     latestScan,
 }: InvestigationPageProps) {
-    const [activeTab, setActiveTab] = useState<'scan' | 'remediation' | 'forensics'>('scan');
+    const [activeTab, setActiveTab] = useState<'scan' | 'remediation' | 'forensics' | 'resource'>('scan');
     const [serverHealth, setServerHealth] = useState<any>(initialServerHealth);
     const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
@@ -147,6 +150,22 @@ export default function Index({
                                 <i className="bi bi-file-earmark-medical-fill"></i>
                                 <span>Forensik & Analisis Log</span>
                             </button>
+
+                            <button
+                                type="button"
+                                className="btn btn-link text-decoration-none py-2.5 px-2 d-inline-flex align-items-center gap-2 transition-all text-nowrap"
+                                style={{
+                                    fontWeight: activeTab === 'resource' ? 700 : 500,
+                                    fontSize: '0.88rem',
+                                    color: activeTab === 'resource' ? 'var(--teal-1, #0ea5a3)' : '#64748b',
+                                    borderBottom: activeTab === 'resource' ? '2.5px solid var(--teal-1, #0ea5a3)' : '2.5px solid transparent',
+                                    borderRadius: 0,
+                                }}
+                                onClick={() => setActiveTab('resource')}
+                            >
+                                <i className="bi bi-speedometer2"></i>
+                                <span>Utilisasi Resource Server</span>
+                            </button>
                         </div>
 
                         {/* Active Tab Body */}
@@ -173,6 +192,14 @@ export default function Index({
                                         <LogForensicsTab
                                             siteId={selectedSite.id}
                                             siteName={selectedSite.name}
+                                        />
+                                    )}
+
+                                    {activeTab === 'resource' && (
+                                        <ResourceMonitoringTab
+                                            siteId={selectedSite.id}
+                                            siteName={selectedSite.name}
+                                            initialData={initialResourceUsage}
                                         />
                                     )}
                                 </>

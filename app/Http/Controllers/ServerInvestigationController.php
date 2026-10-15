@@ -36,12 +36,14 @@ class ServerInvestigationController extends Controller
 
         $serverHealth = null;
         $latestScan = null;
+        $resourceUsage = null;
         if ($selectedSite) {
             // Load full site model with decrypted credentials for backend SSH health check
             $fullSite = Site::find($selectedSite->id);
             if ($fullSite) {
                 $serverHealth = $this->investigationService->checkServerConnection($fullSite);
                 $latestScan = $this->investigationService->getLatestScan($fullSite);
+                $resourceUsage = $this->investigationService->getServerResourceUsage($fullSite);
             }
         }
 
@@ -60,6 +62,7 @@ class ServerInvestigationController extends Controller
                 'ssh_auth_type' => $selectedSite->ssh_auth_type,
             ] : null,
             'initialServerHealth' => $serverHealth,
+            'initialResourceUsage' => $resourceUsage,
             'latestScan' => $latestScan ? [
                 'id' => $latestScan->id,
                 'mode' => $latestScan->scan_mode,
@@ -76,6 +79,22 @@ class ServerInvestigationController extends Controller
                 'created_at' => $latestScan->created_at,
             ] : null,
         ]);
+    }
+
+    /**
+     * Dapatkan utilisasi resource server real-time (CPU, RAM, Disk).
+     */
+    public function resourceUsage(Site $site): JsonResponse
+    {
+        try {
+            $usage = $this->investigationService->getServerResourceUsage($site);
+            return response()->json($usage);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

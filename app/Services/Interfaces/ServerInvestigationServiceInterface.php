@@ -52,4 +52,9 @@ interface ServerInvestigationServiceInterface
      * Analisis berkas log web server (Nginx/Apache) untuk forensik IP penyerang dan jejak exploit.
      */
     public function analyzeLogs(Site $site, ?string $customLogPath = null): array;
+
+    /**
+     * Dapatkan data utilisasi resource real-time server target via SSH (CPU, RAM, Disk).
+     */
+    public function getServerResourceUsage(Site $site): array;
 }

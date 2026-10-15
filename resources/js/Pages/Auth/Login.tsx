@@ -3,6 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { FormEventHandler, useState, KeyboardEvent, useRef } from 'react';
 import PopupLoader from '@/Components/PopupLoader';
+import axios from 'axios';
 
 export default function Login({
     status,
@@ -14,7 +15,7 @@ export default function Login({
     ssoEnabled?: boolean;
 }) {
     const { props: pageProps } = usePage<PageProps>();
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, setError, clearErrors } = useForm({
         login: '',
         password: '',
         remember: false as boolean,
@@ -25,6 +26,8 @@ export default function Login({
     const [loaderOpen, setLoaderOpen] = useState(false);
     const [loaderStatus, setLoaderStatus] = useState<'loading' | 'success'>('loading');
     const [loaderMessage, setLoaderMessage] = useState('Memverifikasi kredensial...');
+    const [loaderProgress, setLoaderProgress] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [shakeTrigger, setShakeTrigger] = useState(false);
     const [dismissedFlash, setDismissedFlash] = useState(false);
     const [dismissedStatus, setDismissedStatus] = useState(false);
@@ -35,6 +38,7 @@ export default function Login({
     const handleSsoLogin = () => {
         setLoaderStatus('loading');
         setLoaderMessage('Mengalihkan ke Server SSO HumaCode...');
+        setLoaderProgress(70);
         setLoaderOpen(true);
         window.location.href = route('sso.redirect');
     };
@@ -43,39 +47,105 @@ export default function Login({
         setIsCapsLockOn(e.getModifierState('CapsLock'));
     };
 
-    const submit: FormEventHandler = (e) => {
+    const submit: FormEventHandler = async (e) => {
         e.preventDefault();
+        if (isSubmitting || processing) return;
 
-        let timerId: any = null;
+        // Validasi input awal jika kosong
+        if (!data.login.trim()) {
+            setError('login', 'Silakan masukkan email atau username Anda.');
+            loginInputRef.current?.focus();
+            setShakeTrigger(true);
+            setTimeout(() => setShakeTrigger(false), 500);
+            return;
+        }
 
-        post(route('login'), {
-            onBefore: () => {
-                setLoaderStatus('loading');
+        if (!data.password) {
+            setError('password', 'Silakan masukkan kata sandi Anda.');
+            passwordInputRef.current?.focus();
+            setShakeTrigger(true);
+            setTimeout(() => setShakeTrigger(false), 500);
+            return;
+        }
+
+        setIsSubmitting(true);
+        clearErrors();
+        setLoaderOpen(true);
+        setLoaderStatus('loading');
+        setLoaderProgress(6);
+        setLoaderMessage('Menghubungkan ke gateway keamanan...');
+
+        // Realtime Fluid Progress Simulator dari 0% ke atas
+        let currentP = 6;
+        let isDone = false;
+        const startTime = Date.now();
+
+        const progressInterval = setInterval(() => {
+            if (isDone) return;
+            const elapsed = Date.now() - startTime;
+
+            let target = 6;
+            if (elapsed < 300) {
+                target = 6 + (elapsed / 300) * 22; // 6% -> 28%
+                setLoaderMessage('Menghubungkan ke gateway keamanan...');
+            } else if (elapsed < 750) {
+                target = 28 + ((elapsed - 300) / 450) * 32; // 28% -> 60%
                 setLoaderMessage('Memverifikasi kredensial akun...');
-                setLoaderOpen(true);
+            } else if (elapsed < 1300) {
+                target = 60 + ((elapsed - 750) / 550) * 28; // 60% -> 88%
+                setLoaderMessage('Memvalidasi token & enkripsi sesi...');
+            } else {
+                target = 88 + Math.min(6, ((elapsed - 1300) / 800) * 6); // 88% -> ~94%
+                setLoaderMessage('Mempersiapkan hak akses & firewall...');
+            }
 
-                timerId = setTimeout(() => {
-                    setLoaderMessage('Memvalidasi token & enkripsi sesi...');
-                }, 800);
-            },
-            onSuccess: (page) => {
-                if (timerId) clearTimeout(timerId);
-                setLoaderStatus('success');
-                const userName = (page.props as any).auth?.user?.name || 'Pengguna';
-                setLoaderMessage(`Selamat datang, ${userName}! Mengalihkan ke dashboard...`);
-            },
-            onError: () => {
-                if (timerId) clearTimeout(timerId);
-                setLoaderOpen(false);
-                setDismissedFlash(false);
-                setShakeTrigger(true);
-                setTimeout(() => setShakeTrigger(false), 500);
-            },
-            onFinish: () => {
-                if (timerId) clearTimeout(timerId);
-                reset('password');
-            },
-        });
+            currentP = Math.max(currentP, Math.min(94, Math.round(target)));
+            setLoaderProgress(currentP);
+        }, 35);
+
+        try {
+            await axios.post(route('login'), {
+                login: data.login,
+                password: data.password,
+                remember: data.remember,
+            });
+
+            isDone = true;
+            clearInterval(progressInterval);
+
+            // Transisi fluid ke 100% dengan status Berhasil Login
+            setLoaderProgress(100);
+            setLoaderStatus('success');
+            setLoaderMessage('Berhasil Login! Selamat datang kembali. Mengalihkan ke dashboard...');
+
+            // Beri jeda 1.2 detik agar pengguna menikmati centang animasi interaktif & progres 100%
+            setTimeout(() => {
+                window.location.href = route('dashboard');
+            }, 1250);
+        } catch (err: any) {
+            isDone = true;
+            clearInterval(progressInterval);
+            setIsSubmitting(false);
+            setLoaderOpen(false);
+            setDismissedFlash(false);
+            setShakeTrigger(true);
+            setTimeout(() => setShakeTrigger(false), 500);
+
+            if (err.response?.data?.errors) {
+                const serverErrors = err.response.data.errors;
+                if (serverErrors.login) {
+                    setError('login', serverErrors.login[0]);
+                }
+                if (serverErrors.password) {
+                    setError('password', serverErrors.password[0]);
+                }
+            } else if (err.response?.data?.message) {
+                setError('login', err.response.data.message);
+            } else {
+                setError('login', 'Email/username atau kata sandi yang Anda masukkan tidak cocok.');
+            }
+            reset('password');
+        }
     };
 
     return (
@@ -262,8 +332,8 @@ export default function Login({
                 </div>
 
                 {/* Submit Button */}
-                <button type="submit" className="btn btn-login w-100 mt-2" disabled={processing}>
-                    {processing ? (
+                <button type="submit" className="btn btn-login w-100 mt-2" disabled={isSubmitting || processing}>
+                    {isSubmitting || processing ? (
                         <>
                             <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                             Memverifikasi Kredensial...
@@ -303,8 +373,10 @@ export default function Login({
                 isOpen={loaderOpen}
                 status={loaderStatus}
                 message={loaderMessage}
-                title={loaderStatus === 'success' ? 'Autentikasi Berhasil' : 'Memverifikasi Akses...'}
-                badgeText={loaderStatus === 'success' ? 'AKSES DITERIMA' : 'GATEWAY KEAMANAN'}
+                title={loaderStatus === 'success' ? 'Berhasil Login' : 'Memverifikasi Akses...'}
+                badgeText={loaderStatus === 'success' ? 'BERHASIL LOGIN' : 'GATEWAY KEAMANAN'}
+                progress={loaderProgress}
+                showProgressPercentage={true}
             />
         </GuestLayout>
     );

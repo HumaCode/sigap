@@ -9,6 +9,8 @@ interface PopupLoaderProps {
     icon?: ReactNode;
     badgeText?: string;
     maxWidth?: string | number;
+    progress?: number;
+    showProgressPercentage?: boolean;
 }
 
 export default function PopupLoader({
@@ -19,6 +21,8 @@ export default function PopupLoader({
     icon,
     badgeText,
     maxWidth = '520px',
+    progress,
+    showProgressPercentage = false,
 }: PopupLoaderProps) {
     const [mounted, setMounted] = useState(false);
     const [cardTransform, setCardTransform] = useState('');
@@ -140,10 +144,15 @@ export default function PopupLoader({
                         <div className="interactive-success-orb">
                             <div className="success-burst-wave wave-1" />
                             <div className="success-burst-wave wave-2" />
-                            <div className="success-badge-core">
+                            {/* Celebratory sparkle particles */}
+                            <div className="success-sparkle sparkle-1" />
+                            <div className="success-sparkle sparkle-2" />
+                            <div className="success-sparkle sparkle-3" />
+                            <div className="success-sparkle sparkle-4" />
+                            <div className="success-badge-core" title="Berhasil Login - Akses Terverifikasi">
                                 <svg className="checkmark-svg" viewBox="0 0 52 52">
-                                    <circle className="checkmark-circle" cx="26" cy="26" r="24" />
-                                    <path className="checkmark-check" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                                    <circle className="checkmark-circle" cx="26" cy="26" r="24" fill="none" />
+                                    <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
                                 </svg>
                             </div>
                         </div>
@@ -159,20 +168,60 @@ export default function PopupLoader({
 
                 {/* Interactive Progress Bar & Meta Info */}
                 <div className="popup-footer-interactive">
+                    {/* Optional percentage & status headline above progress bar */}
+                    {(showProgressPercentage || progress !== undefined) && (
+                        <div className="d-flex justify-content-between align-items-center mb-2 px-1" style={{ fontSize: '0.74rem' }}>
+                            <span className="fw-semibold d-flex align-items-center gap-1.5" style={{ color: isSuccess ? '#059669' : '#0d8b89' }}>
+                                <i className={isSuccess ? 'bi bi-check-circle-fill' : 'bi bi-shield-lock'} style={{ fontSize: '0.8rem' }} />
+                                <span>{isSuccess ? 'Autentikasi Terverifikasi' : 'Enkripsi & Validasi Sesi'}</span>
+                            </span>
+                            <span 
+                                className="badge rounded-pill fw-bold"
+                                style={{
+                                    background: isSuccess ? 'rgba(16, 185, 129, 0.12)' : 'rgba(14, 165, 163, 0.12)',
+                                    color: isSuccess ? '#059669' : 'var(--teal-1)',
+                                    border: `1px solid ${isSuccess ? 'rgba(16, 185, 129, 0.3)' : 'rgba(14, 165, 163, 0.25)'}`,
+                                    fontSize: '0.74rem',
+                                    padding: '0.22rem 0.65rem',
+                                    fontVariantNumeric: 'tabular-nums',
+                                    boxShadow: isSuccess ? '0 0 10px rgba(16, 185, 129, 0.25)' : 'none',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                {isSuccess ? 100 : Math.min(100, Math.max(0, Math.round(progress ?? 0)))}%
+                            </span>
+                        </div>
+                    )}
+
                     <div className="interactive-progress-track">
-                        <div className={`interactive-progress-fill ${isSuccess ? 'fill-complete' : 'fill-loading'}`}>
+                        <div 
+                            className={`interactive-progress-fill ${isSuccess ? 'fill-complete' : 'fill-loading'}`}
+                            style={progress !== undefined ? {
+                                width: `${isSuccess ? 100 : Math.min(100, Math.max(0, Math.round(progress)))}%`,
+                                transition: isSuccess 
+                                    ? 'width 0.45s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease' 
+                                    : 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            } : undefined}
+                        >
                             <div className="interactive-progress-shimmer" />
                         </div>
                     </div>
 
                     <div className="popup-meta-info">
                         <div className="meta-left">
-                            <i className="bi bi-cpu me-1" />
-                            <span>Protokol Keamanan Aktif</span>
+                            <i className={isSuccess ? 'bi bi-shield-fill-check me-1 text-success' : 'bi bi-cpu me-1'} />
+                            <span style={{ color: isSuccess ? '#059669' : undefined, fontWeight: isSuccess ? 600 : undefined }}>
+                                {isSuccess ? 'Sesi Aman Terverifikasi' : 'Protokol Keamanan Aktif'}
+                            </span>
                         </div>
                         <div className="meta-right">
-                            <span className="dot-blink" />
-                            <span>{isSuccess ? '100% Selesai' : 'Enkripsi 256-Bit'}</span>
+                            <span 
+                                className="dot-blink" 
+                                style={{ background: isSuccess ? '#10b981' : '#0ea5a3' }} 
+                            />
+                            <span style={{ color: isSuccess ? '#059669' : undefined, fontWeight: isSuccess ? 600 : undefined }}>
+                                {isSuccess ? '100% Berhasil' : (progress !== undefined ? `${Math.min(100, Math.max(0, Math.round(progress)))}% Siap` : 'Enkripsi 256-Bit')}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -427,6 +476,18 @@ export default function PopupLoader({
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    cursor: pointer;
+                    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                }
+
+                .interactive-success-orb:hover {
+                    transform: scale(1.08);
+                }
+
+                .interactive-success-orb:hover .success-badge-core {
+                    box-shadow: 
+                        0 14px 30px -4px rgba(16, 185, 129, 0.65),
+                        0 0 35px rgba(16, 185, 129, 0.5);
                 }
 
                 .success-burst-wave {
@@ -442,6 +503,21 @@ export default function PopupLoader({
                     animation-delay: 0.9s;
                 }
 
+                .success-sparkle {
+                    position: absolute;
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    background: #34d399;
+                    box-shadow: 0 0 10px #10b981;
+                    pointer-events: none;
+                    animation: sparklePop 1.6s ease-in-out infinite;
+                }
+                .success-sparkle.sparkle-1 { top: 8px; left: 16px; animation-delay: 0.1s; }
+                .success-sparkle.sparkle-2 { top: 12px; right: 18px; animation-delay: 0.4s; }
+                .success-sparkle.sparkle-3 { bottom: 10px; left: 20px; animation-delay: 0.7s; }
+                .success-sparkle.sparkle-4 { bottom: 12px; right: 16px; animation-delay: 0.25s; }
+
                 .success-badge-core {
                     width: 68px;
                     height: 68px;
@@ -449,11 +525,12 @@ export default function PopupLoader({
                     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
                     box-shadow: 
                         0 10px 25px -4px rgba(16, 185, 129, 0.5),
-                        0 0 20px rgba(16, 185, 129, 0.3);
+                        0 0 25px rgba(16, 185, 129, 0.35);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    animation: successBadgePop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                    animation: successBadgePop 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                    transition: all 0.3s ease;
                 }
 
                 .checkmark-svg {
@@ -466,8 +543,8 @@ export default function PopupLoader({
                     stroke-dasharray: 166;
                     stroke-dashoffset: 166;
                     stroke-width: 2.5;
-                    stroke: rgba(255, 255, 255, 0.4);
-                    fill: none;
+                    stroke: rgba(255, 255, 255, 0.5);
+                    fill: none !important;
                     animation: checkStroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
                 }
 
@@ -477,6 +554,7 @@ export default function PopupLoader({
                     stroke-dashoffset: 48;
                     stroke-width: 4;
                     stroke: #ffffff;
+                    fill: none !important;
                     stroke-linecap: round;
                     stroke-linejoin: round;
                     animation: checkStroke 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.35s forwards;
@@ -697,6 +775,17 @@ export default function PopupLoader({
                 @keyframes shimmerMove {
                     0% { transform: translateX(-100%); }
                     100% { transform: translateX(100%); }
+                }
+
+                @keyframes sparklePop {
+                    0%, 100% {
+                        transform: scale(0.3) translateY(0);
+                        opacity: 0.2;
+                    }
+                    50% {
+                        transform: scale(1.25) translateY(-5px);
+                        opacity: 1;
+                    }
                 }
 
                 @keyframes dotBlink {

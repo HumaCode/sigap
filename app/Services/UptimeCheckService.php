@@ -26,54 +26,25 @@ class UptimeCheckService
         ];
     }
 
+
+
     /**
-     * Perform HTTP Health Check for a single site and update its status.
+     * Process and record the result of an uptime check for a site.
      */
-    public function checkSite(Site $site): array
+    public function processCheckResult(Site $site, string $url, int $statusCode, int $responseTimeMs, ?string $errorMessage = null): array
     {
-        $url = $site->url;
-        if (!Str::startsWith($url, ['http://', 'https://'])) {
-            $url = 'https://' . $url;
-        }
+        // Consider 2xx and 3xx as UP, 4xx/5xx/0 as DOWN
+        $isSuccessful = ($statusCode >= 200 && $statusCode < 400);
+        $status = $isSuccessful ? 'up' : 'down';
 
-        $startTime = microtime(true);
-        $status = 'down';
-        $statusCode = 0;
-        $responseTimeMs = 0;
-        $errorMessage = null;
-
-        try {
-            $response = Http::withoutVerifying()
-                ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                    'Accept-Language' => 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-                ])
-                ->connectTimeout(15)
-                ->timeout(30)
-                ->get($url);
-
-            $responseTimeMs = round((microtime(true) - $startTime) * 1000);
-            $statusCode = $response->status();
-
-            // Consider 2xx and 3xx as UP, 4xx/5xx as DOWN or WARN
-            if ($response->successful() || $response->redirect() || $statusCode === 301 || $statusCode === 302) {
-                $status = 'up';
-            } else {
-                $status = 'down';
-                $errorMessage = "HTTP Status Code {$statusCode}";
-            }
-        } catch (\Exception $e) {
-            $responseTimeMs = round((microtime(true) - $startTime) * 1000);
-            $status = 'down';
-            $errorMessage = $e->getMessage();
+        if (!$isSuccessful && empty($errorMessage)) {
+            $errorMessage = $statusCode > 0 ? "HTTP Status Code {$statusCode}" : "Connection Timeout / Unreachable";
         }
 
         $oldStatus = $site->status;
         $site->status = $status;
 
-        // Calculate / simulate request volume (RPM)
-        // Standard normal: 60-350 req/mnt, Warn: 800-1800 req/mnt, Down/Offline: 0 req/mnt
+        // Calculate simulated request volume (RPM)
         $rpm = match($status) {
             'up' => rand(60, 320),
             'warn' => rand(850, 1850),
@@ -83,7 +54,7 @@ class UptimeCheckService
         $site->requests_per_minute = $rpm;
         $site->save();
 
-        // Create incident if site just went DOWN or is DOWN with HTTP 502/500
+        // Create incident if site went DOWN
         if ($status === 'down') {
             $existingOpenIncident = Incident::where('site_id', $site->id)
                 ->whereIn('status', ['open', 'investigating', 'acknowledged'])
@@ -91,7 +62,6 @@ class UptimeCheckService
                 ->first();
 
             if (!$existingOpenIncident) {
-                $title = "Situs Offline ({$statusCode}): " . ($errorMessage ?? '502 Bad Gateway');
                 Incident::create([
                     'site_id' => $site->id,
                     'title' => "Situs Down: {$site->name}",
@@ -143,11 +113,12 @@ class UptimeCheckService
             'context' => "Respon: {$statusCode} | Latensi: {$responseTimeMs}ms" . ($errorMessage ? " | Err: {$errorMessage}" : ""),
             'url_path' => $url,
             'status' => $status === 'up' ? 'resolved' : 'detected',
-            'source' => 'HTTP HealthCheck Engine',
+            'source' => 'HTTP HealthCheck Engine (Concurrent)',
         ]);
 
         return [
             'site_id' => $site->id,
+            'name' => $site->name,
             'url' => $url,
             'status' => $status,
             'status_code' => $statusCode,
@@ -157,15 +128,108 @@ class UptimeCheckService
     }
 
     /**
-     * Check all active sites.
+     * Perform HTTP Health Check for a single site synchronously.
      */
-    public function checkAllSites(): array
+    public function checkSite(Site $site): array
+    {
+        $url = $site->url;
+        if (!Str::startsWith($url, ['http://', 'https://'])) {
+            $url = 'https://' . $url;
+        }
+
+        $startTime = microtime(true);
+        $statusCode = 0;
+        $responseTimeMs = 0;
+        $errorMessage = null;
+
+        try {
+            $response = Http::withoutVerifying()
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language' => 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                ])
+                ->connectTimeout(10)
+                ->timeout(20)
+                ->get($url);
+
+            $responseTimeMs = (int) round((microtime(true) - $startTime) * 1000);
+            $statusCode = $response->status();
+        } catch (\Exception $e) {
+            $responseTimeMs = (int) round((microtime(true) - $startTime) * 1000);
+            $errorMessage = $e->getMessage();
+        }
+
+        return $this->processCheckResult($site, $url, $statusCode, $responseTimeMs, $errorMessage);
+    }
+
+    /**
+     * Check all active sites concurrently in parallel using Http::pool.
+     * Batches requests in chunks of 20 to avoid socket exhaustion.
+     */
+    public function checkAllSites(int $chunkSize = 20): array
     {
         $sites = Site::where('is_active', true)->get();
+        if ($sites->isEmpty()) {
+            return [];
+        }
+
         $results = [];
 
-        foreach ($sites as $site) {
-            $results[] = $this->checkSite($site);
+        // Chunk sites to prevent socket exhaustion on large site counts
+        foreach ($sites->chunk($chunkSize) as $chunk) {
+            $siteMap = [];
+            $startTimes = [];
+
+            $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($chunk, &$siteMap, &$startTimes) {
+                foreach ($chunk as $site) {
+                    $url = $site->url;
+                    if (!Str::startsWith($url, ['http://', 'https://'])) {
+                        $url = 'https://' . $url;
+                    }
+
+                    $siteMap[$site->id] = [
+                        'site' => $site,
+                        'url' => $url,
+                    ];
+                    $startTimes[$site->id] = microtime(true);
+
+                    $pool->as($site->id)
+                        ->withoutVerifying()
+                        ->withHeaders([
+                            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language' => 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                        ])
+                        ->connectTimeout(10)
+                        ->timeout(20)
+                        ->get($url);
+                }
+            });
+
+            // Process results of the pool
+            foreach ($responses as $siteId => $response) {
+                $siteData = $siteMap[$siteId] ?? null;
+                if (!$siteData) continue;
+
+                $site = $siteData['site'];
+                $url = $siteData['url'];
+                $startTime = $startTimes[$siteId] ?? microtime(true);
+                $responseTimeMs = (int) round((microtime(true) - $startTime) * 1000);
+
+                if ($response instanceof \Illuminate\Http\Client\Response) {
+                    $statusCode = $response->status();
+                    $errorMessage = $response->successful() || $response->redirect() ? null : "HTTP Status {$statusCode}";
+                } elseif ($response instanceof \Exception) {
+                    $statusCode = 0;
+                    $errorMessage = $response->getMessage();
+                } else {
+                    $statusCode = 0;
+                    $errorMessage = "Request failed / Unreachable";
+                }
+
+                $results[] = $this->processCheckResult($site, $url, $statusCode, $responseTimeMs, $errorMessage);
+            }
         }
 
         return $results;

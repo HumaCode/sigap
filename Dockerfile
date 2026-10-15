@@ -1,8 +1,9 @@
 FROM dunglas/frankenphp:php8.3
 
-# Configure FrankenPHP Environment
+# Configure FrankenPHP Environment & Timezone
 ENV SERVER_NAME=":8000" \
-    OCTANE_SERVER="frankenphp"
+    OCTANE_SERVER="frankenphp" \
+    TZ="Asia/Jakarta"
 
 # Install System Dependencies
 RUN apt-get update \
@@ -14,6 +15,8 @@ RUN apt-get update \
         libjpeg-dev \
         libpq-dev \
         curl \
+        tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions using the frankenphp base installer script
@@ -26,7 +29,8 @@ RUN install-php-extensions \
     gd \
     bcmath \
     intl \
-    opcache
+    opcache \
+    sockets
 
 # Install Node.js (needed for Vite and Octane file watching in dev)
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \

@@ -40,19 +40,19 @@ Dokumen ini memuat rencana kerja, prioritas pengembangan fitur, dan daftar perik
 > **Prioritas**: 🔴 *Tinggi (High)*  
 > **Tujuan**: Sistem bekerja mandiri secara kontinu tanpa bergantung pada tindakan manual.
 
-- [ ] **2.1 Worker Scheduler Pemantauan Uptime Otomatis**
-  - [ ] Daftarkan command `monitor:check-uptime` pada Laravel Scheduler (`app/Console/Kernel.php` atau `routes/console.php`) agar berjalan setiap menit (`* * * * *`).
-  - [ ] Optimalkan pengecekan paralel menggunakan `Http::pool` atau antrean Laravel Queue (*Jobs*) untuk menangani puluhan hingga ratusan situs secara simultan.
+- [x] **2.1 Worker Scheduler Pemantauan Uptime Otomatis**
+  - [x] Daftarkan command `monitor:check-uptime` pada Laravel Scheduler (`app/Console/Kernel.php` atau `routes/console.php`) agar berjalan setiap menit (`* * * * *`).
+  - [x] Optimalkan pengecekan paralel menggunakan `Http::pool` atau antrean Laravel Queue (*Jobs*) untuk menangani puluhan hingga ratusan situs secara simultan.
 
-- [ ] **2.2 Pelacak Kedaluwarsa Sertifikat SSL Otomatis**
-  - [ ] Buat Artisan Command `security:check-ssl-expiry`.
-  - [ ] Pengecekan masa berlaku sertifikat SSL setiap hari pada pukul 06:00 WIB.
-  - [ ] Pemicu notifikasi otomatis saat masa berlaku SSL tersisa **H-30, H-14, H-7, dan H-1** (mencegah insiden *SSL Certificate Expired*).
+- [x] **2.2 Pelacak Kedaluwarsa Sertifikat SSL Otomatis**
+  - [x] Buat Artisan Command `security:check-ssl-expiry`.
+  - [x] Pengecekan masa berlaku sertifikat SSL setiap hari pada pukul 06:00 WIB.
+  - [x] Pemicu notifikasi otomatis saat masa berlaku SSL tersisa **H-30, H-14, H-7, dan H-1** (mencegah insiden *SSL Certificate Expired*).
 
-- [ ] **2.3 Domain Expiry & DNS Health Tracker (.go.id / .id)**
-  - [ ] Integrasi lookup WHOIS / PANDI untuk mencatat tanggal kedaluwarsa sewa domain.
-  - [ ] Peringatan dini jika domain mendekati masa tenggang perpanjangan tahunan.
-  - [ ] Deteksi anomali perubahan DNS / Name Server (indikasi pembajakan domain).
+- [x] **2.3 Domain Expiry & DNS Health Tracker (.go.id / .id)**
+  - [x] Integrasi lookup WHOIS / PANDI untuk mencatat tanggal kedaluwarsa sewa domain.
+  - [x] Peringatan dini jika domain mendekati masa tenggang perpanjangan tahunan.
+  - [x] Deteksi anomali perubahan DNS / Name Server (indikasi pembajakan domain).
 
 ---
 

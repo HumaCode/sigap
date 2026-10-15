@@ -8,7 +8,6 @@ services:
       dockerfile: Dockerfile
     image: sigap-app:latest
     container_name: sigap-app
-    init: true
     restart: unless-stopped
     env_file:
       - .env
@@ -29,12 +28,8 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-sigap_secret_2026}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - AUTO_MIGRATE=${AUTO_MIGRATE:-true}
     volumes:
       - .:/app
-      - /app/vendor
-      - /app/node_modules
-      - /app/public/build
     depends_on:
       db:
         condition: service_healthy
@@ -42,7 +37,6 @@ services:
         condition: service_healthy
     networks:
       - sigap-network
-    command: ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=auto", "--max-requests=1000"]
 
   # ==========================================================
   # 2. Scheduler Container (Cron Jobs / Periodic Tasks)
@@ -53,7 +47,6 @@ services:
       dockerfile: Dockerfile
     image: sigap-app:latest
     container_name: sigap-scheduler
-    init: true
     restart: unless-stopped
     env_file:
       - .env
@@ -72,12 +65,8 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-sigap_secret_2026}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - AUTO_MIGRATE=false
     volumes:
       - .:/app
-      - /app/vendor
-      - /app/node_modules
-      - /app/public/build
     depends_on:
       app:
         condition: service_started
@@ -87,7 +76,7 @@ services:
         condition: service_healthy
     networks:
       - sigap-network
-    command: ["php", "artisan", "schedule:work"]
+    command: php artisan schedule:work
 
   # ==========================================================
   # 3. Queue Worker Container (Background Async Jobs)
@@ -98,7 +87,6 @@ services:
       dockerfile: Dockerfile
     image: sigap-app:latest
     container_name: sigap-queue
-    init: true
     restart: unless-stopped
     env_file:
       - .env
@@ -117,12 +105,8 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-sigap_secret_2026}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - AUTO_MIGRATE=false
     volumes:
       - .:/app
-      - /app/vendor
-      - /app/node_modules
-      - /app/public/build
     depends_on:
       app:
         condition: service_started
@@ -132,7 +116,7 @@ services:
         condition: service_healthy
     networks:
       - sigap-network
-    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120"]
+    command: php artisan queue:work --tries=3 --sleep=3
 
   # ==========================================================
   # 4. Database MySQL Container

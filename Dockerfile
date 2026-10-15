@@ -32,9 +32,10 @@ RUN install-php-extensions \
     opcache \
     sockets
 
-# Install Node.js (needed for Vite and Octane file watching in dev)
+# Install Node.js (v22 LTS)
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -42,11 +43,25 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /app
 
-# Copy application files (Can be overridden by docker-compose volume for local dev)
+# Copy application source code
 COPY . .
 
-# Set proper permissions for Laravel
-RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+# Copy entrypoint script and make it executable
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Default command
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8000"]
+# Install PHP and Node dependencies & build frontend assets
+RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-scripts \
+    && npm install --no-audit \
+    && npm run build \
+    && rm -rf /root/.npm /root/.composer
+
+# Set proper permissions for Laravel directories
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
+
+# Use production entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Default command: Start Octane with FrankenPHP in production mode
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=auto"]

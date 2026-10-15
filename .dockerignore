@@ -1,0 +1,63 @@
+# Version control
+.git
+.github
+
+# Dependencies (will be cleanly installed inside Docker during build)
+node_modules
+vendor
+
+# Frontend build cache & hot reload
+public/hot
+public/storage
+*.timestamp-*.mjs
+vite.config.ts.timestamp-*
+
+# Storage logs and framework cache (handled by container entrypoint)
+storage/*.key
+storage/pail
+storage/logs/*
+!storage/logs/.gitkeep
+storage/framework/cache/*
+!storage/framework/cache/.gitkeep
+storage/framework/sessions/*
+!storage/framework/sessions/.gitkeep
+storage/framework/views/*
+!storage/framework/views/.gitkeep
+
+# Environment secrets
+.env
+.env.*
+!.env.docker.example
+
+# IDE & Editor configs
+.idea
+.vscode
+.zed
+.fleet
+.nova
+.editorconfig
+.prettierrc
+.prettierignore
+eslint.config.js
+tsconfig.json
+phpstan.neon
+phpunit.xml
+
+# Package manager debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Documentation, specs, tests, and mockups (not needed in production image)
+spesifikasi/
+tests/
+todo.md
+PANDUAN_*.md
+*.md
+!README.md
+
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini

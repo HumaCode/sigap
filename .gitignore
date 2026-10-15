@@ -18,8 +18,10 @@
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 /auth.json
 /.fleet
 /.idea
@@ -30,3 +32,15 @@ yarn-error.log
 **/caddy
 frankenphp
 frankenphp-worker.php
+
+# Vite temporary timestamp files
+*.timestamp-*.mjs
+vite.config.ts.timestamp-*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker local overrides
+docker-compose.override.yml

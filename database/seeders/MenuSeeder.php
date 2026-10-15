@@ -56,6 +56,14 @@ class MenuSeeder extends Seeder
                 'orders' => 4,
                 'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
             ],
+            [
+                'name' => 'Rapor Mutu Website',
+                'url' => 'scorecard.index',
+                'category' => 'Menu Utama',
+                'icon' => 'bi bi-award-fill',
+                'orders' => 5,
+                'permissions' => ['menu', 'create', 'read', 'show', 'update', 'delete', 'activate'],
+            ],
 
             // Deteksi
             [

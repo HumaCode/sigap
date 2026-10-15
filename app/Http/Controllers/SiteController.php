@@ -178,4 +178,14 @@ class SiteController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Export Web Asset Inventory & PIC to CSV.
+     */
+    public function export(Request $request, \App\Services\ExportService $exportService): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        Gate::authorize('viewAny', Site::class);
+
+        return $exportService->exportSitesInventory($request->all());
+    }
 }

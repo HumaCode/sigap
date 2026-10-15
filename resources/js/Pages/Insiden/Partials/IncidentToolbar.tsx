@@ -11,6 +11,7 @@ interface IncidentToolbarProps {
     statusFilter: string;
     onStatusFilterChange: (status: string) => void;
     onReset: () => void;
+    onExportCsv?: () => void;
 }
 
 export default function IncidentToolbar({
@@ -23,6 +24,7 @@ export default function IncidentToolbar({
     statusFilter,
     onStatusFilterChange,
     onReset,
+    onExportCsv,
 }: IncidentToolbarProps) {
     const filterOptions = [
         { key: 'all', label: 'Semua' },
@@ -198,16 +200,30 @@ export default function IncidentToolbar({
                 );
             })}
 
-            {/* Reset Button */}
-            <button
-                type="button"
-                className="btn-incident-reset ms-auto"
-                onClick={onReset}
-                title="Reset filter & muat ulang data"
-            >
-                <i className="bi bi-arrow-clockwise"></i>
-                <span>Reset</span>
-            </button>
+            {/* Action Buttons (Export & Reset) */}
+            <div className="d-flex align-items-center gap-2 ms-auto">
+                {onExportCsv && (
+                    <button
+                        type="button"
+                        className="btn-incident-reset"
+                        onClick={onExportCsv}
+                        title="Unduh rekapitulasi data insiden format CSV/Excel"
+                    >
+                        <i className="bi bi-file-earmark-spreadsheet-fill text-success"></i>
+                        <span>Ekspor CSV</span>
+                    </button>
+                )}
+
+                <button
+                    type="button"
+                    className="btn-incident-reset"
+                    onClick={onReset}
+                    title="Reset filter & muat ulang data"
+                >
+                    <i className="bi bi-arrow-clockwise"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
         </div>
     );
 }

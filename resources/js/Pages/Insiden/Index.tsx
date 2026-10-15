@@ -150,6 +150,15 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
         executeFilter(route('incidents.index'), {}, 'Mereset filter insiden...');
     };
 
+    const handleExportCsv = () => {
+        const params = new URLSearchParams();
+        if (searchTerm) params.append('search', searchTerm);
+        if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
+        if (siteFilter && siteFilter !== 'all') params.append('site_id', siteFilter);
+
+        window.location.href = `${route('incidents.export')}?${params.toString()}`;
+    };
+
     const handleMarkAllResolved = () => {
         setShowResolveConfirm(true);
     };
@@ -217,6 +226,7 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
                     statusFilter={statusFilter}
                     onStatusFilterChange={handleStatusFilterChange}
                     onReset={handleReset}
+                    onExportCsv={handleExportCsv}
                 />
 
                 <IncidentList

@@ -12,6 +12,7 @@ interface ReportToolbarProps {
     onCategoryChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
     canExport?: boolean;
     onExportPdf: () => void;
+    onExportCsv?: () => void;
 }
 
 export default function ReportToolbar({
@@ -25,6 +26,7 @@ export default function ReportToolbar({
     onCategoryChange,
     canExport = false,
     onExportPdf,
+    onExportCsv,
 }: ReportToolbarProps) {
     return (
         <div className="report-toolbar d-flex align-items-center gap-2 flex-wrap mb-3">
@@ -95,14 +97,38 @@ export default function ReportToolbar({
                 <option value="PPID">PPID</option>
             </select>
             
-            {/* PDF Export Button */}
+            {/* Action Buttons */}
             {canExport && (
-                <Tooltip title="Export Laporan PDF" description="Buka dokumen pratinjau resmi & cetak laporan uptime" variant="teal">
-                    <button className="btn-export ms-auto" onClick={onExportPdf}>
-                        <i className="bi bi-file-earmark-pdf-fill"></i>
-                        <span>Cetak PDF</span>
-                    </button>
-                </Tooltip>
+                <div className="d-flex align-items-center gap-2 ms-auto">
+                    <Tooltip title="Export Spreadsheet Excel/CSV" description="Unduh file rekapitulasi data uptime bulanan berformat .csv yang kompatibel dengan Microsoft Excel" variant="dark">
+                        <button 
+                            type="button" 
+                            className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5" 
+                            style={{ 
+                                height: '36px', 
+                                borderRadius: '10px', 
+                                padding: '0 0.85rem', 
+                                fontWeight: 600, 
+                                fontSize: '0.8rem',
+                                border: '1.5px solid rgba(15, 42, 63, 0.15)',
+                                background: '#ffffff',
+                                color: '#0f2a3f',
+                                cursor: 'pointer'
+                            }}
+                            onClick={onExportCsv}
+                        >
+                            <i className="bi bi-file-earmark-spreadsheet-fill text-success" style={{ fontSize: '0.95rem' }}></i>
+                            <span>Ekspor CSV</span>
+                        </button>
+                    </Tooltip>
+
+                    <Tooltip title="Export Laporan PDF" description="Buka dokumen pratinjau resmi & cetak laporan uptime" variant="teal">
+                        <button className="btn-export" onClick={onExportPdf}>
+                            <i className="bi bi-file-earmark-pdf-fill"></i>
+                            <span>Cetak PDF</span>
+                        </button>
+                    </Tooltip>
+                </div>
             )}
         </div>
     );

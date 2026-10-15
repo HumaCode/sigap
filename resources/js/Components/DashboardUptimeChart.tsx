@@ -19,11 +19,15 @@ export default function DashboardUptimeChart({
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartInstanceRef = useRef<ApexCharts | null>(null);
 
+    const dataMin = data.length > 0 ? Math.min(...data) : 95;
+    const dataMax = data.length > 0 ? Math.max(...data) : 100;
+    const currentAvg = data.length > 0 ? +(data.reduce((a, b) => a + b, 0) / data.length).toFixed(2) : avgUptime;
+    const slaTarget = 99.5;
+    const slaMet = currentAvg >= slaTarget;
+
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
-        const dataMin = data.length > 0 ? Math.min(...data) : 95;
-        const dataMax = data.length > 0 ? Math.max(...data) : 100;
         const yMin = Math.max(80, Math.floor(dataMin - 1.5));
         const yMax = Math.min(100, Math.ceil(dataMax + 0.5));
 
@@ -36,19 +40,27 @@ export default function DashboardUptimeChart({
             ],
             chart: {
                 id: 'dashboard-uptime-trend',
-                height: 250,
+                height: 270,
                 type: 'area',
-                fontFamily: 'Poppins, sans-serif',
+                fontFamily: 'Poppins, -apple-system, sans-serif',
                 toolbar: {
                     show: false,
                 },
                 zoom: {
                     enabled: false,
                 },
+                dropShadow: {
+                    enabled: true,
+                    top: 3,
+                    left: 0,
+                    blur: 4,
+                    color: '#0ea5a3',
+                    opacity: 0.16,
+                },
                 animations: {
                     enabled: true,
                     easing: 'easeinout',
-                    speed: 500,
+                    speed: 550,
                     dynamicAnimation: {
                         enabled: isLive,
                         speed: 800,
@@ -61,25 +73,25 @@ export default function DashboardUptimeChart({
             },
             stroke: {
                 curve: 'smooth',
-                width: 3.2,
+                width: 3,
             },
             fill: {
                 type: 'gradient',
                 gradient: {
                     shadeIntensity: 1,
-                    opacityFrom: 0.42,
-                    opacityTo: 0.03,
+                    opacityFrom: 0.38,
+                    opacityTo: 0.02,
                     stops: [0, 85, 100],
                 },
             },
             markers: {
-                size: 4.5,
+                size: 4,
                 colors: ['#ffffff'],
                 strokeColors: '#0ea5a3',
                 strokeWidth: 2.5,
                 hover: {
-                    size: 7,
-                    sizeOffset: 3,
+                    size: 6.5,
+                    sizeOffset: 2,
                 },
             },
             grid: {
@@ -130,7 +142,7 @@ export default function DashboardUptimeChart({
                         y: 99.5,
                         borderColor: '#22c55e',
                         strokeDashArray: 4,
-                        opacity: 0.7,
+                        opacity: 0.75,
                         label: {
                             borderColor: '#22c55e',
                             style: {
@@ -152,16 +164,21 @@ export default function DashboardUptimeChart({
                 ],
             },
             tooltip: {
-                theme: 'light',
-                x: {
-                    show: true,
-                },
-                y: {
-                    formatter: (val: number) => `${val?.toFixed ? val.toFixed(2) : val}% Uptime`,
-                },
-                style: {
-                    fontSize: '12px',
-                    fontFamily: 'Poppins, sans-serif',
+                custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                    const val = series[seriesIndex][dataPointIndex];
+                    const label = w.globals.categoryLabels[dataPointIndex] || labels[dataPointIndex] || '';
+                    const isGood = val >= 99.0;
+                    return `
+                        <div style="padding: 8px 12px; background: #ffffff; border: 1px solid rgba(15,42,63,0.12); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); font-family: Poppins, sans-serif;">
+                            <div style="font-size: 11px; color: #7c93a3; font-weight: 500; margin-bottom: 2px;">${label}</div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 13px; font-weight: 700; color: #0f2a3f;">${Number(val).toFixed(2)}%</span>
+                                <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: ${isGood ? '#dcfce7' : '#fef3c7'}; color: ${isGood ? '#15803d' : '#b45309'};">
+                                    ${isGood ? 'Optimal' : 'Degradasi'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
                 },
             },
             legend: {
@@ -201,7 +218,7 @@ export default function DashboardUptimeChart({
         }
 
         return () => {
-            // Only destroy when unmounting component
+            // cleanup on dependency change handled safely
         };
     }, [activeTab, data, labels, isLive]);
 
@@ -216,8 +233,144 @@ export default function DashboardUptimeChart({
     }, []);
 
     return (
-        <div style={{ width: '100%', minHeight: '250px' }}>
-            <div ref={chartContainerRef} />
+        <div className="d-flex flex-column h-100">
+            {/* ApexCharts Canvas Container */}
+            <div style={{ width: '100%', minHeight: '270px' }}>
+                <div ref={chartContainerRef} />
+            </div>
+
+            {/* Bottom KPI Metrics Bar (Fills remaining height smoothly) */}
+            <div 
+                className="mt-auto pt-3 border-top border-light"
+            >
+                <div className="row g-2">
+                    <div className="col-6 col-sm-3">
+                        <div 
+                            className="p-2 rounded-3 d-flex align-items-center gap-2"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.75)',
+                                border: '1px solid rgba(15, 42, 63, 0.06)'
+                            }}
+                        >
+                            <div 
+                                style={{ 
+                                    width: '28px', 
+                                    height: '28px', 
+                                    borderRadius: '7px', 
+                                    background: 'rgba(14, 165, 163, 0.1)', 
+                                    color: 'var(--teal-1)', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    fontSize: '0.82rem',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <i className="bi bi-graph-up-arrow"></i>
+                            </div>
+                            <div className="min-w-0">
+                                <div style={{ fontSize: '0.66rem', color: 'var(--ink-faint)', lineHeight: 1.1 }}>Rata-rata Uptime</div>
+                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2a3f' }}>{currentAvg}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-6 col-sm-3">
+                        <div 
+                            className="p-2 rounded-3 d-flex align-items-center gap-2"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.75)',
+                                border: '1px solid rgba(15, 42, 63, 0.06)'
+                            }}
+                        >
+                            <div 
+                                style={{ 
+                                    width: '28px', 
+                                    height: '28px', 
+                                    borderRadius: '7px', 
+                                    background: 'rgba(2, 132, 199, 0.1)', 
+                                    color: '#0284c7', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    fontSize: '0.82rem',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <i className="bi bi-award-fill"></i>
+                            </div>
+                            <div className="min-w-0">
+                                <div style={{ fontSize: '0.66rem', color: 'var(--ink-faint)', lineHeight: 1.1 }}>Target SLA</div>
+                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2a3f' }}>99.5%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-6 col-sm-3">
+                        <div 
+                            className="p-2 rounded-3 d-flex align-items-center gap-2"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.75)',
+                                border: '1px solid rgba(15, 42, 63, 0.06)'
+                            }}
+                        >
+                            <div 
+                                style={{ 
+                                    width: '28px', 
+                                    height: '28px', 
+                                    borderRadius: '7px', 
+                                    background: 'rgba(22, 163, 74, 0.1)', 
+                                    color: '#16a34a', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    fontSize: '0.82rem',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <i className="bi bi-shield-check"></i>
+                            </div>
+                            <div className="min-w-0">
+                                <div style={{ fontSize: '0.66rem', color: 'var(--ink-faint)', lineHeight: 1.1 }}>Puncak Uptime</div>
+                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2a3f' }}>{dataMax.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-6 col-sm-3">
+                        <div 
+                            className="p-2 rounded-3 d-flex align-items-center gap-2"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.75)',
+                                border: '1px solid rgba(15, 42, 63, 0.06)'
+                            }}
+                        >
+                            <div 
+                                style={{ 
+                                    width: '28px', 
+                                    height: '28px', 
+                                    borderRadius: '7px', 
+                                    background: slaMet ? 'rgba(22, 163, 74, 0.1)' : 'rgba(245, 158, 11, 0.1)', 
+                                    color: slaMet ? '#16a34a' : '#d97706', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    fontSize: '0.82rem',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <i className={slaMet ? "bi bi-check-circle-fill" : "bi bi-exclamation-circle-fill"}></i>
+                            </div>
+                            <div className="min-w-0">
+                                <div style={{ fontSize: '0.66rem', color: 'var(--ink-faint)', lineHeight: 1.1 }}>Status SLA</div>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: slaMet ? '#15803d' : '#b45309' }}>
+                                    {slaMet ? 'Memenuhi' : 'Atensi'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

@@ -7,6 +7,7 @@ interface SiteToolbarProps {
     onFilterChange: (filter: string) => void;
     onReset: () => void;
     onAddSite: () => void;
+    onExportCsv?: () => void;
     can?: {
         create?: boolean;
         update?: boolean;
@@ -22,6 +23,7 @@ export default function SiteToolbar({
     onFilterChange,
     onReset,
     onAddSite,
+    onExportCsv,
     can = { create: true }
 }: SiteToolbarProps) {
     return (
@@ -100,6 +102,23 @@ export default function SiteToolbar({
                     >
                         <i className="bi bi-arrow-clockwise" style={{ fontSize: '1rem' }}></i> Reset
                     </button>
+
+                    {onExportCsv && (
+                        <button
+                            type="button"
+                            className="btn btn-light"
+                            style={{
+                                height: '38px', borderRadius: '10px', padding: '0 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                border: '1px solid rgba(0,0,0,0.08)', background: '#ffffff', color: 'var(--ink-dark)', fontSize: '0.82rem', fontWeight: 600,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.03)', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                            }}
+                            onClick={onExportCsv}
+                            title="Unduh Rekap Inventaris Aset Web format CSV/Excel"
+                        >
+                            <i className="bi bi-file-earmark-spreadsheet-fill text-success" style={{ fontSize: '0.95rem' }}></i>
+                            <span>Ekspor CSV</span>
+                        </button>
+                    )}
 
                     {can?.create && (
                         <button className="btn-add-site" style={{ margin: 0 }} onClick={onAddSite}>

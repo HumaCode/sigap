@@ -120,20 +120,20 @@ Dokumen ini memuat rencana kerja, prioritas pengembangan fitur, dan daftar perik
 > **Prioritas**: 🟢 *Manajemen (Reporting)*  
 > **Tujuan**: Mempermudah pelaporan formal ke pimpinan daerah dan kepatuhan audit BSSN/Kemenkominfo.
 
-- [ ] **6.1 Ekspor Data Rekapitulasi Format Excel (.xlsx / .csv)**
-  - [ ] Tambahkan fitur export spreadsheet pada menu:
+- [x] **6.1 Ekspor Data Rekapitulasi Format Excel (.xlsx / .csv)**
+  - [x] Tambahkan fitur export spreadsheet pada menu:
     - Rekap Uptime & Ketersediaan Situs Bulanan.
     - Rekap Insiden & Log Penanganan Siber.
     - Rekap Daftar Inventaris Aset Situs Web & PIC.
-  - [ ] Mendukung filter berdasarkan rentang tanggal dan kategori instansi.
+  - [x] Mendukung filter berdasarkan rentang tanggal dan kategori instansi.
 
-- [ ] **6.2 Indeks Kematangan & Rapor Kesehatan Website (Scorecard)**
-  - [ ] Sistem penilaian otomatis mutu website OPD (Nilai: *A+, A, B, C, D*):
+- [x] **6.2 Indeks Kematangan & Rapor Kesehatan Website (Scorecard)**
+  - [x] Sistem penilaian otomatis mutu website OPD (Nilai: *A+, A, B, C, D*):
     - Bobot Uptime 30 Hari (40%)
     - Bobot Kepatuhan SSL & Security Headers (30%)
     - Bobot Riwayat Bebas Insiden Siber (30%)
-  - [ ] Peringkat (*Leaderboard*) kepatuhan situs OPD untuk mendorong peningkatan kualitas layanan digital daerah.
+  - [x] Peringkat (*Leaderboard*) kepatuhan situs OPD untuk mendorong peningkatan kualitas layanan digital daerah.
 
 ---
 
-*Terakhir diperbarui: 14 Oktober 2026 — Antigravity Engineering Assistant*
+*Terakhir diperbarui: 15 Oktober 2026 — Antigravity Engineering Assistant*

@@ -100,4 +100,14 @@ class IncidentController extends Controller
 
         return redirect()->back()->with('success', 'Insiden berhasil dihapus.');
     }
+
+    /**
+     * Export security incidents to CSV.
+     */
+    public function export(\Illuminate\Http\Request $request, \App\Services\ExportService $exportService): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        Gate::authorize('viewAny', Incident::class);
+
+        return $exportService->exportIncidents($request->all());
+    }
 }

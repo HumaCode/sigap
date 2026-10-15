@@ -1,6 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import EmptyState from '@/Components/EmptyState';
 import DashboardUptimeChart from '@/Components/DashboardUptimeChart';
+import DashboardVitalityMonitor from '@/Components/DashboardVitalityMonitor';
+import DashboardSecurityCard from '@/Components/DashboardSecurityCard';
 import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import '../../css/dashboard.css';
@@ -55,9 +57,10 @@ interface DashboardProps {
         list: string[];
         remaining_count: number;
     };
+    vitality_monitor?: any;
 }
 
-export default function Dashboard({ stats, chart_data, latest_sites, recent_incidents, keywords }: DashboardProps) {
+export default function Dashboard({ stats, chart_data, latest_sites, recent_incidents, keywords, vitality_monitor }: DashboardProps) {
     const user = usePage<PageProps>().props.auth.user;
     const [currentTime, setCurrentTime] = useState(new Date());
     const [activeTab, setActiveTab] = useState<'hourly' | '7days' | '30days' | '90days'>('7days');
@@ -300,8 +303,8 @@ export default function Dashboard({ stats, chart_data, latest_sites, recent_inci
                             100% { opacity: 0.6; }
                         }
                     `}} />
-                    <div className="glass-card section-card h-100">
-                        <div className="section-head">
+                    <div className="glass-card section-card h-100 d-flex flex-column">
+                        <div className="section-head mb-2">
                             <div>
                                 <h6 className="d-flex align-items-center gap-2 mb-1">
                                     {config.title}
@@ -323,13 +326,15 @@ export default function Dashboard({ stats, chart_data, latest_sites, recent_inci
                         </div>
 
                         {stats.total_sites > 0 ? (
-                            <DashboardUptimeChart
-                                activeTab={activeTab}
-                                data={config.data}
-                                labels={config.labels}
-                                avgUptime={stats.avg_uptime}
-                                isLive={config.isLive}
-                            />
+                            <div className="flex-grow-1 d-flex flex-column">
+                                <DashboardUptimeChart
+                                    activeTab={activeTab}
+                                    data={config.data}
+                                    labels={config.labels}
+                                    avgUptime={stats.avg_uptime}
+                                    isLive={config.isLive}
+                                />
+                            </div>
                         ) : (
                             <EmptyState
                                 icon="bi-activity"
@@ -340,69 +345,14 @@ export default function Dashboard({ stats, chart_data, latest_sites, recent_inci
                     </div>
                 </div>
 
-                {/* Ring summary - Real Security Posture */}
+                {/* Interactive Security Posture Card */}
                 <div className="col-12 col-xl-4">
-                    <div className="glass-card section-card h-100">
-                        <div className="section-head">
-                            <h6>Status Keamanan</h6>
-                            <span className="badge bg-light text-teal border px-2 py-1 rounded-pill ms-auto" style={{ fontSize: '0.68rem', fontWeight: 600 }}>
-                                Terenkripsi &amp; Teruji
-                            </span>
-                        </div>
-                        <div className="d-flex align-items-center gap-3 mb-3">
-                            <div className="ring-mini">
-                                <svg width="64" height="64">
-                                    <circle cx="32" cy="32" r="26" stroke="rgba(15,42,63,0.08)" strokeWidth="7" fill="none"/>
-                                    <circle 
-                                        cx="32" 
-                                        cy="32" 
-                                        r="26" 
-                                        stroke="#0ea5a3" 
-                                        strokeWidth="7" 
-                                        fill="none" 
-                                        strokeDasharray={circumference} 
-                                        strokeDashoffset={strokeDashoffset} 
-                                        strokeLinecap="round"
-                                        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-                                    />
-                                </svg>
-                                <div className="ring-val">{stats.pct_secure}%</div>
-                            </div>
-                            <div>
-                                <div style={{fontWeight: 600, fontSize: '0.9rem'}}>Situs Terverifikasi Aman</div>
-                                <div style={{fontSize: '0.78rem', color: 'var(--ink-soft)'}}>
-                                    {stats.clean_sec_count} dari {stats.audited_count ?? stats.total_sites} situs terverifikasi bebas temuan kritis
-                                </div>
-                            </div>
-                        </div>
-                        <hr style={{borderColor: 'var(--line)', margin: '0.9rem 0'}} />
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-file-earmark-lock2 me-1" style={{color: 'var(--coral)'}}></i>File .env terekspos</span>
-                            <span className={`fw-semibold badge ${stats.exposed_env_count === 0 ? 'bg-light text-success' : 'bg-danger text-white'}`} style={{fontSize: '0.75rem'}}>
-                                {stats.exposed_env_count}
-                            </span>
-                        </div>
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-shield-x me-1" style={{color: 'var(--sun)'}}></i>Header CSP hilang</span>
-                            <span className="fw-semibold badge bg-light text-dark" style={{fontSize: '0.75rem'}}>
-                                {stats.missing_csp_count}
-                            </span>
-                        </div>
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-clock-history me-1" style={{color: 'var(--blue-1)'}}></i>SSL kedaluwarsa / fail</span>
-                            <span className={`fw-semibold badge ${stats.expiring_ssl_count === 0 ? 'bg-light text-success' : 'bg-warning text-dark'}`} style={{fontSize: '0.75rem'}}>
-                                {stats.expiring_ssl_count}
-                            </span>
-                        </div>
-                        <div className="d-flex justify-content-between align-items-center">
-                            <span style={{fontSize: '0.82rem'}}><i className="bi bi-window-dash me-1" style={{color: 'var(--teal-1)'}}></i>X-Frame-Options (Clickjacking)</span>
-                            <span className="fw-semibold badge bg-light text-dark" style={{fontSize: '0.75rem'}}>
-                                {stats.xframe_count ?? 0}
-                            </span>
-                        </div>
-                    </div>
+                    <DashboardSecurityCard stats={stats} />
                 </div>
             </div>
+
+            {/* Service Vitality & HTTP Diagnostics (Monitoring Keaktifan & Diagnostik Respon/TTFB) */}
+            <DashboardVitalityMonitor data={vitality_monitor} />
 
             <div className="row g-3 mt-1">
                 {/* Site status list with Real Latency */}

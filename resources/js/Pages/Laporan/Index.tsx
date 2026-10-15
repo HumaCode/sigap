@@ -127,6 +127,15 @@ export default function LaporanUptime({
         window.print();
     };
 
+    const handleExportCsv = () => {
+        const params = new URLSearchParams();
+        if (searchTerm) params.append('search', searchTerm);
+        if (categoryFilter && categoryFilter !== 'Semua Kategori Situs') params.append('category', categoryFilter);
+        if (rangeFilter) params.append('range', rangeFilter);
+
+        window.location.href = `${route('reports.uptime.export')}?${params.toString()}`;
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Laporan Uptime" />
@@ -149,6 +158,7 @@ export default function LaporanUptime({
                 onCategoryChange={handleCategoryChange}
                 canExport={can?.export}
                 onExportPdf={handlePrintOverall}
+                onExportCsv={handleExportCsv}
             />
 
             {/* SLA KPI Summary Cards */}

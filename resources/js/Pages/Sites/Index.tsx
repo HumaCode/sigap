@@ -149,6 +149,14 @@ export default function Index(props: any) {
         executeFilter(route('sites.index'), {}, 'Mereset filter situs...');
     };
 
+    const handleExportCsv = () => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (filter && filter !== 'all') params.append('filter', filter);
+
+        window.location.href = `${route('sites.export')}?${params.toString()}`;
+    };
+
     // Actions: Ping, Create, Edit, Delete
     const handlePing = (site: any) => {
         setPingingSiteId(site.id);
@@ -231,6 +239,7 @@ export default function Index(props: any) {
                     onFilterChange={handleFilter}
                     onReset={handleReset}
                     onAddSite={handleOpenAddModal}
+                    onExportCsv={handleExportCsv}
                     can={props.can}
                 />
 

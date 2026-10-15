@@ -37,4 +37,14 @@ class UptimeReportController extends Controller
             ],
         ]);
     }
+
+    public function export(UptimeReportIndexRequest $request, \App\Services\ExportService $exportService): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = $request->user();
+        if (!$user || !$user->can('export-uptime-reports')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunduh laporan.');
+        }
+
+        return $exportService->exportUptime($request->filters());
+    }
 }

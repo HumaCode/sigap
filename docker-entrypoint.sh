@@ -15,7 +15,7 @@ chmod -R 775 storage bootstrap/cache
 # Run composer install if vendor directory is missing
 if [ ! -d vendor ] || [ ! -f vendor/autoload.php ]; then
     echo "Running composer install..."
-    composer install --no-interaction --optimize-autoloader --ignore-platform-req=php+
+    composer install --no-dev --no-interaction --optimize-autoloader --ignore-platform-req=php+
 fi
 
 # Run key:generate if APP_KEY is not set or empty

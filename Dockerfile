@@ -53,7 +53,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Install PHP and Node dependencies & build frontend assets
 RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-scripts --ignore-platform-req=php+ \
     && npm install --no-audit \
-    && npm run build \
+    && npx vite build \
     && rm -rf /root/.npm /root/.composer
 
 # Set proper permissions for Laravel directories

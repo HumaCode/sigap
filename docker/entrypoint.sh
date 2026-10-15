@@ -27,7 +27,7 @@ if [ ! -f /app/public/build/manifest.json ]; then
     if [ ! -d /app/node_modules ]; then
         npm install --no-audit --prefer-offline || npm install
     fi
-    npm run build
+    npx vite build
 fi
 
 # 4. Tunggu database siap (jika DB_HOST dikonfigurasi)

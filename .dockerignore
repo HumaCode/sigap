@@ -39,7 +39,6 @@ storage/framework/views/*
 .prettierrc
 .prettierignore
 eslint.config.js
-tsconfig.json
 phpstan.neon
 phpunit.xml
 

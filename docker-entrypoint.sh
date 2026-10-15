@@ -54,7 +54,7 @@ if [ $# -eq 0 ]; then
 fi
 
 # Auto-compile Vite assets for production if they don't exist
-if [ ! -d public/build ]; then
+if [ ! -f public/build/manifest.json ]; then
     echo "Compiled assets not found. Building Vite assets for production..."
     if [ ! -d node_modules ] || [ -z "$(ls -A node_modules)" ]; then
         echo "Installing npm dependencies..."

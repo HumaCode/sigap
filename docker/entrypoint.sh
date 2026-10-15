@@ -69,11 +69,25 @@ case "$*" in
         # Buat symlink storage jika belum ada
         php artisan storage:link --force 2>/dev/null || true
         
-        # Generate APP_KEY jika belum terisi
-        if [ -z "$APP_KEY" ]; then
-            echo "[SIGAP] APP_KEY belum diatur. Mengenerate APP_KEY baru..."
-            php artisan key:generate --force
+        # Pastikan public/frankenphp-worker.php tersedia
+        if [ ! -f /app/public/frankenphp-worker.php ]; then
+            echo "[SIGAP] Menyiapkan public/frankenphp-worker.php..."
+            cat << 'EOF' > /app/public/frankenphp-worker.php
+<?php
+$_SERVER['APP_BASE_PATH'] = $_ENV['APP_BASE_PATH'] ?? $_SERVER['APP_BASE_PATH'] ?? __DIR__.'/..';
+$_SERVER['APP_PUBLIC_PATH'] = $_ENV['APP_PUBLIC_PATH'] ?? $_SERVER['APP_PUBLIC_PATH'] ?? __DIR__;
+require __DIR__.'/../vendor/laravel/octane/bin/frankenphp-worker.php';
+EOF
         fi
+
+        # Pastikan APP_KEY tersedia dan diekspor ke env proses kontainer
+        CURRENT_KEY=$(grep -E '^APP_KEY=' /app/.env 2>/dev/null | cut -d '=' -f2- | tr -d ' "\r\n')
+        if [ -z "$CURRENT_KEY" ]; then
+            echo "[SIGAP] APP_KEY belum diatur di .env. Mengenerate APP_KEY baru..."
+            php artisan key:generate --force
+            CURRENT_KEY=$(grep -E '^APP_KEY=' /app/.env 2>/dev/null | cut -d '=' -f2- | tr -d ' "\r\n')
+        fi
+        export APP_KEY="$CURRENT_KEY"
 
         # Jalankan migrasi database otomatis jika diaktifkan (default true)
         if [ "${AUTO_MIGRATE:-true}" = "true" ]; then

@@ -31,7 +31,6 @@ pnpm-debug.log*
 
 **/caddy
 frankenphp
-frankenphp-worker.php
 
 # Vite temporary timestamp files
 *.timestamp-*.mjs
@@ -44,3 +43,7 @@ desktop.ini
 
 # Docker local overrides
 docker-compose.override.yml
+
+**/caddy
+frankenphp
+frankenphp-worker.php

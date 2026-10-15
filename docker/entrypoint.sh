@@ -80,13 +80,25 @@ require __DIR__.'/../vendor/laravel/octane/bin/frankenphp-worker.php';
 EOF
         fi
 
-        # Pastikan APP_KEY tersedia dan diekspor ke env proses kontainer
+        # Pastikan APP_KEY valid (wajib dimulai dengan base64: dan panjang 44 char base64)
         CURRENT_KEY=$(grep -E '^APP_KEY=' /app/.env 2>/dev/null | cut -d '=' -f2- | tr -d ' "\r\n')
-        if [ -z "$CURRENT_KEY" ]; then
-            echo "[SIGAP] APP_KEY belum diatur di .env. Mengenerate APP_KEY baru..."
-            php artisan key:generate --force
-            CURRENT_KEY=$(grep -E '^APP_KEY=' /app/.env 2>/dev/null | cut -d '=' -f2- | tr -d ' "\r\n')
-        fi
+        case "$CURRENT_KEY" in
+            base64:????????????????????????????????????????????)
+                # Format key valid
+                ;;
+            *)
+                echo "[SIGAP] APP_KEY tidak valid atau belum terisi. Membuat key baru..."
+                NEW_KEY="base64:$(php -r 'echo base64_encode(random_bytes(32));')"
+                if [ -f /app/.env ]; then
+                    if grep -q '^APP_KEY=' /app/.env; then
+                        sed -i "s|^APP_KEY=.*|APP_KEY=${NEW_KEY}|g" /app/.env
+                    else
+                        echo "APP_KEY=${NEW_KEY}" >> /app/.env
+                    fi
+                fi
+                CURRENT_KEY="$NEW_KEY"
+                ;;
+        esac
         export APP_KEY="$CURRENT_KEY"
 
         # Jalankan migrasi database otomatis jika diaktifkan (default true)

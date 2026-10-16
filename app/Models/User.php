@@ -13,6 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Carbon;
 
 /**
@@ -32,7 +33,7 @@ use Illuminate\Support\Carbon;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasUlids, HasRoles, LogsActivity;
+    use HasApiTokens, HasFactory, Notifiable, HasUlids, HasRoles, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import '../../../css/sites.css';
@@ -25,6 +25,20 @@ export default function Index(props: any) {
     const [filter, setFilter] = useState(initialFilter);
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
+
+    const isMounted = useRef(false);
+    const filterRef = useRef(filter);
+    const searchQueryRef = useRef(initialSearch);
+
+    useEffect(() => {
+        filterRef.current = filter;
+    }, [filter]);
+
+    useEffect(() => {
+        if (filters.search !== undefined) {
+            searchQueryRef.current = String(filters.search);
+        }
+    }, [filters.search]);
 
     // Modal & Selection State
     const [showModal, setShowModal] = useState(false);
@@ -125,10 +139,46 @@ export default function Index(props: any) {
         executeFilter(route('sites.index'), { search, filter, page }, `Memuat halaman ${page}...`);
     };
 
+    // Debounced Search Effect (menunggu ketikan selesai 400ms sebelum request)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            if (search !== searchQueryRef.current) {
+                searchQueryRef.current = search;
+                const msg = search.trim() ? `Mencari situs "${search.trim()}"...` : 'Memuat data situs...';
+                executeFilter(route('sites.index'), { search, filter: filterRef.current }, msg);
+            }
+        }, 400);
+
+        return () => clearTimeout(delayDebounce);
+    }, [search]);
+
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        setSearch(val);
-        executeFilter(route('sites.index'), { search: val, filter }, val.trim() ? `Mencari situs "${val.trim()}"...` : 'Memuat data situs...');
+        setSearch(e.target.value);
+    };
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (search !== searchQueryRef.current) {
+                searchQueryRef.current = search;
+                const msg = search.trim() ? `Mencari situs "${search.trim()}"...` : 'Memuat data situs...';
+                executeFilter(route('sites.index'), { search, filter: filterRef.current }, msg);
+            }
+        }
+    };
+
+    const handleClearSearch = () => {
+        searchQueryRef.current = '';
+        setSearch('');
+        const currentQuery = filters.search ? String(filters.search) : '';
+        if (currentQuery !== '') {
+            executeFilter(route('sites.index'), { search: '', filter: filterRef.current }, 'Memuat semua situs...');
+        }
     };
 
     const handleFilter = (f: string) => {
@@ -144,6 +194,7 @@ export default function Index(props: any) {
     };
 
     const handleReset = () => {
+        searchQueryRef.current = '';
         setSearch('');
         setFilter('all');
         executeFilter(route('sites.index'), {}, 'Mereset filter situs...');
@@ -235,6 +286,8 @@ export default function Index(props: any) {
                 <SiteToolbar 
                     search={search}
                     onSearchChange={handleSearch}
+                    onSearchKeyDown={handleSearchKeyDown}
+                    onClearSearch={handleClearSearch}
                     filter={filter}
                     onFilterChange={handleFilter}
                     onReset={handleReset}

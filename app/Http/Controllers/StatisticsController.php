@@ -60,7 +60,7 @@ class StatisticsController extends Controller
         }
 
         // 4. SLA Uptime Calculations
-        $avgUptime = 99.85;
+        $avgUptime = 0.0;
         if ($totalSites > 0) {
             $totalUptimeSum = ($downSites * 92.4) + ($warnSites * 98.2) + (($activeSites + $pausedSites) * 99.9);
             $avgUptime = round($totalUptimeSum / $totalSites, 2);

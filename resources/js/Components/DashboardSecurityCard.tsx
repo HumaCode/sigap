@@ -41,6 +41,7 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
 
     const auditedCount = stats.audited_count ?? stats.total_sites;
     const xframeCount = stats.xframe_count ?? 0;
+    const hasAuditedSites = (stats.total_sites > 0) && (auditedCount > 0);
 
     const securityItems: SecurityCheckItem[] = [
         {
@@ -151,7 +152,7 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
                             boxShadow: '0 2px 6px rgba(14, 165, 163, 0.1)'
                         }}
                     >
-                        <i className="bi bi-shield-check-fill"></i>
+                        <i className="bi bi-shield-fill-check"></i>
                     </div>
                     <div>
                         <h6 className="mb-0 fw-bold" style={{ fontSize: '0.94rem', color: '#0f2a3f' }}>Status Keamanan</h6>
@@ -244,7 +245,7 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
                             strokeWidth="6" 
                             fill="none" 
                             strokeDasharray={170} 
-                            strokeDashoffset={170 - (170 * Math.min(100, Math.max(0, stats.pct_secure))) / 100} 
+                            strokeDashoffset={170 - (170 * (hasAuditedSites ? Math.min(100, Math.max(0, stats.pct_secure)) : 0)) / 100} 
                             strokeLinecap="round"
                             style={{ transition: 'stroke-dashoffset 0.8s ease' }}
                         />
@@ -253,8 +254,8 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
                         className="position-absolute d-flex flex-column align-items-center justify-content-center"
                         style={{ top: 0, left: 0, right: 0, bottom: 0 }}
                     >
-                        <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f2a3f', lineHeight: 1 }}>{stats.pct_secure}%</span>
-                        <span style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--teal-1)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Aman</span>
+                        <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f2a3f', lineHeight: 1 }}>{hasAuditedSites ? `${stats.pct_secure}%` : '0%'}</span>
+                        <span style={{ fontSize: '0.58rem', fontWeight: 700, color: hasAuditedSites ? 'var(--teal-1)' : 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{hasAuditedSites ? 'Aman' : 'N/A'}</span>
                     </div>
                 </div>
 
@@ -264,22 +265,22 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
                         <span 
                             className="badge rounded-pill px-2 py-0.5 d-inline-flex align-items-center gap-1"
                             style={{
-                                background: stats.pct_secure >= 90 ? '#f0fdf4' : '#fffbeb',
-                                color: stats.pct_secure >= 90 ? '#15803d' : '#b45309',
-                                border: stats.pct_secure >= 90 ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                                background: !hasAuditedSites ? '#f1f5f9' : (stats.pct_secure >= 90 ? '#f0fdf4' : '#fffbeb'),
+                                color: !hasAuditedSites ? '#64748b' : (stats.pct_secure >= 90 ? '#15803d' : '#b45309'),
+                                border: !hasAuditedSites ? '1px solid #e2e8f0' : (stats.pct_secure >= 90 ? '1px solid #bbf7d0' : '1px solid #fde68a'),
                                 fontSize: '0.68rem',
                                 fontWeight: 700
                             }}
                         >
-                            <i className={stats.pct_secure >= 90 ? "bi bi-shield-check" : "bi bi-shield-exclamation"}></i>
-                            {stats.pct_secure >= 90 ? 'Situs Terverifikasi Aman' : 'Perlu Penguatan Postur'}
+                            <i className={!hasAuditedSites ? "bi bi-shield-slash" : (stats.pct_secure >= 90 ? "bi bi-shield-check" : "bi bi-shield-exclamation")}></i>
+                            {!hasAuditedSites ? 'Belum Ada Audit Keamanan' : (stats.pct_secure >= 90 ? 'Situs Terverifikasi Aman' : 'Perlu Penguatan Postur')}
                         </span>
                     </div>
                     <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f2a3f' }}>
-                        {stats.clean_sec_count} dari {auditedCount} situs bebas temuan kritis
+                        {hasAuditedSites ? `${stats.clean_sec_count} dari ${auditedCount} situs bebas temuan kritis` : 'Belum ada situs terdaftar untuk diaudit'}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', lineHeight: 1.3 }}>
-                        Klik tiap indikator di bawah untuk melihat rincian &amp; panduan perbaikan.
+                        {hasAuditedSites ? 'Klik tiap indikator di bawah untuk melihat rincian & panduan perbaikan.' : 'Daftarkan situs pertama Anda untuk mengaktifkan audit postur keamanan otomatis.'}
                     </div>
                 </div>
             </div>
@@ -358,7 +359,7 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
                 ) : (
                     displayedItems.map((item) => {
                         const isExpanded = expandedItem === item.id;
-                        const isWarning = item.count > 0;
+                        const isWarning = hasAuditedSites && item.count > 0;
 
                         return (
                             <div 
@@ -441,16 +442,18 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
                                                 fontSize: '0.72rem',
                                                 fontWeight: 700,
                                                 borderRadius: '6px',
-                                                background: !isWarning ? '#f0fdf4' : '#fffbeb',
-                                                color: !isWarning ? '#15803d' : '#b45309',
-                                                border: !isWarning ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                                                background: !hasAuditedSites ? '#f1f5f9' : (!isWarning ? '#f0fdf4' : '#fffbeb'),
+                                                color: !hasAuditedSites ? '#64748b' : (!isWarning ? '#15803d' : '#b45309'),
+                                                border: !hasAuditedSites ? '1px solid #e2e8f0' : (!isWarning ? '1px solid #bbf7d0' : '1px solid #fde68a')
                                             }}
                                         >
-                                            {!isWarning ? (
+                                            {!hasAuditedSites ? (
+                                                <><i className="bi bi-dash-circle me-1"></i>Belum Ada Data</>
+                                            ) : (!isWarning ? (
                                                 <><i className="bi bi-check-lg me-1"></i>{item.goodLabel}</>
                                             ) : (
                                                 <><i className="bi bi-exclamation-triangle-fill me-1"></i>{item.warnLabel}</>
-                                            )}
+                                            ))}
                                         </span>
                                         <i 
                                             className={`bi bi-chevron-down text-muted`} 
@@ -478,16 +481,28 @@ export default function DashboardSecurityCard({ stats }: DashboardSecurityCardPr
                                                 Tingkat Risiko: <strong>{item.risk}</strong>
                                             </span>
                                             <span style={{ fontSize: '0.68rem', color: 'var(--ink-faint)' }}>
-                                                Audit Status: {isWarning ? 'Perlu Atensi' : 'Optimal'}
+                                                Audit Status: {!hasAuditedSites ? 'Belum Ada Data' : (isWarning ? 'Perlu Atensi' : 'Optimal')}
                                             </span>
                                         </div>
 
-                                        <div className="p-2 rounded-2 mb-2" style={{ background: isWarning ? '#fff7ed' : '#f0fdf4', border: `1px solid ${isWarning ? '#fed7aa' : '#bbf7d0'}` }}>
-                                            <div className="fw-bold mb-0.5" style={{ color: isWarning ? '#9a3412' : '#166534', fontSize: '0.74rem' }}>
-                                                {isWarning ? '⚠️ Temuan Audit:' : '✅ Status Aman:'}
+                                        <div className="p-2 rounded-2 mb-2" style={{ 
+                                            background: !hasAuditedSites ? '#f8fafc' : (isWarning ? '#fff7ed' : '#f0fdf4'), 
+                                            border: `1px solid ${!hasAuditedSites ? '#e2e8f0' : (isWarning ? '#fed7aa' : '#bbf7d0')}` 
+                                        }}>
+                                            <div className="fw-bold mb-0.5" style={{ 
+                                                color: !hasAuditedSites ? '#475569' : (isWarning ? '#9a3412' : '#166534'), 
+                                                fontSize: '0.74rem' 
+                                            }}>
+                                                {!hasAuditedSites ? 'ℹ️ Status Audit:' : (isWarning ? '⚠️ Temuan Audit:' : '✅ Status Aman:')}
                                             </div>
-                                            <div style={{ color: isWarning ? '#c2410c' : '#15803d', fontSize: '0.72rem', lineHeight: 1.35 }}>
-                                                {isWarning ? item.details.findingWarn : item.details.findingGood}
+                                            <div style={{ 
+                                                color: !hasAuditedSites ? '#64748b' : (isWarning ? '#c2410c' : '#15803d'), 
+                                                fontSize: '0.72rem', 
+                                                lineHeight: 1.35 
+                                            }}>
+                                                {!hasAuditedSites 
+                                                    ? 'Belum ada data situs untuk memeriksa indikator ini. Silakan daftarkan situs di menu Manajemen Situs terlebih dahulu.'
+                                                    : (isWarning ? item.details.findingWarn : item.details.findingGood)}
                                             </div>
                                         </div>
 

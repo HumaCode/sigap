@@ -19,17 +19,19 @@ export default function DashboardUptimeChart({
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartInstanceRef = useRef<ApexCharts | null>(null);
 
-    const dataMin = data.length > 0 ? Math.min(...data) : 95;
-    const dataMax = data.length > 0 ? Math.max(...data) : 100;
-    const currentAvg = data.length > 0 ? +(data.reduce((a, b) => a + b, 0) / data.length).toFixed(2) : avgUptime;
+    const hasData = data.some((v) => v > 0);
+    const positiveData = data.filter((v) => v > 0);
+    const dataMin = positiveData.length > 0 ? Math.min(...positiveData) : 0;
+    const dataMax = hasData ? Math.max(...data) : 0;
+    const currentAvg = hasData ? +(data.reduce((a, b) => a + b, 0) / data.length).toFixed(2) : avgUptime;
     const slaTarget = 99.5;
-    const slaMet = currentAvg >= slaTarget;
+    const slaMet = hasData && currentAvg >= slaTarget;
 
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
-        const yMin = Math.max(80, Math.floor(dataMin - 1.5));
-        const yMax = Math.min(100, Math.ceil(dataMax + 0.5));
+        const yMin = hasData ? Math.max(80, Math.floor(dataMin - 1.5)) : 0;
+        const yMax = hasData ? Math.min(100, Math.ceil(dataMax + 0.5)) : 100;
 
         const options: ApexCharts.ApexOptions = {
             series: [
@@ -270,7 +272,7 @@ export default function DashboardUptimeChart({
                             </div>
                             <div className="min-w-0">
                                 <div style={{ fontSize: '0.66rem', color: 'var(--ink-faint)', lineHeight: 1.1 }}>Rata-rata Uptime</div>
-                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2a3f' }}>{currentAvg}%</div>
+                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2a3f' }}>{hasData ? `${currentAvg}%` : '-'}</div>
                             </div>
                         </div>
                     </div>
@@ -319,8 +321,8 @@ export default function DashboardUptimeChart({
                                     width: '28px', 
                                     height: '28px', 
                                     borderRadius: '7px', 
-                                    background: 'rgba(22, 163, 74, 0.1)', 
-                                    color: '#16a34a', 
+                                    background: hasData ? 'rgba(22, 163, 74, 0.1)' : 'rgba(100, 116, 139, 0.1)', 
+                                    color: hasData ? '#16a34a' : '#64748b', 
                                     display: 'flex', 
                                     alignItems: 'center', 
                                     justifyContent: 'center',
@@ -332,7 +334,7 @@ export default function DashboardUptimeChart({
                             </div>
                             <div className="min-w-0">
                                 <div style={{ fontSize: '0.66rem', color: 'var(--ink-faint)', lineHeight: 1.1 }}>Puncak Uptime</div>
-                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2a3f' }}>{dataMax.toFixed(1)}%</div>
+                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2a3f' }}>{hasData ? `${dataMax.toFixed(1)}%` : '-'}</div>
                             </div>
                         </div>
                     </div>
@@ -350,8 +352,8 @@ export default function DashboardUptimeChart({
                                     width: '28px', 
                                     height: '28px', 
                                     borderRadius: '7px', 
-                                    background: slaMet ? 'rgba(22, 163, 74, 0.1)' : 'rgba(245, 158, 11, 0.1)', 
-                                    color: slaMet ? '#16a34a' : '#d97706', 
+                                    background: hasData ? (slaMet ? 'rgba(22, 163, 74, 0.1)' : 'rgba(245, 158, 11, 0.1)') : 'rgba(100, 116, 139, 0.1)', 
+                                    color: hasData ? (slaMet ? '#16a34a' : '#d97706') : '#64748b', 
                                     display: 'flex', 
                                     alignItems: 'center', 
                                     justifyContent: 'center',
@@ -359,12 +361,12 @@ export default function DashboardUptimeChart({
                                     flexShrink: 0
                                 }}
                             >
-                                <i className={slaMet ? "bi bi-check-circle-fill" : "bi bi-exclamation-circle-fill"}></i>
+                                <i className={hasData ? (slaMet ? "bi bi-check-circle-fill" : "bi bi-exclamation-circle-fill") : "bi bi-dash-circle"}></i>
                             </div>
                             <div className="min-w-0">
                                 <div style={{ fontSize: '0.66rem', color: 'var(--ink-faint)', lineHeight: 1.1 }}>Status SLA</div>
-                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: slaMet ? '#15803d' : '#b45309' }}>
-                                    {slaMet ? 'Memenuhi' : 'Atensi'}
+                                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: hasData ? (slaMet ? '#15803d' : '#b45309') : 'var(--ink-faint)' }}>
+                                    {hasData ? (slaMet ? 'Memenuhi' : 'Atensi') : 'Belum Ada Data'}
                                 </div>
                             </div>
                         </div>

@@ -3,6 +3,8 @@ import React from 'react';
 interface SiteToolbarProps {
     search: string;
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    onClearSearch?: () => void;
     filter: string;
     onFilterChange: (filter: string) => void;
     onReset: () => void;
@@ -19,6 +21,8 @@ interface SiteToolbarProps {
 export default function SiteToolbar({
     search,
     onSearchChange,
+    onSearchKeyDown,
+    onClearSearch,
     filter,
     onFilterChange,
     onReset,
@@ -70,7 +74,20 @@ export default function SiteToolbar({
                         placeholder="Cari nama situs atau URL..." 
                         value={search}
                         onChange={onSearchChange}
+                        onKeyDown={onSearchKeyDown}
+                        style={{ paddingRight: search ? '2.4rem' : '1rem' }}
                     />
+                    {search && onClearSearch && (
+                        <button
+                            type="button"
+                            onClick={onClearSearch}
+                            className="clear-search-btn"
+                            title="Hapus pencarian"
+                            aria-label="Hapus pencarian"
+                        >
+                            <i className="bi bi-x-circle-fill"></i>
+                        </button>
+                    )}
                 </div>
                 
                 <div className={`filter-chip ${filter === 'all' ? 'active' : ''}`} onClick={() => onFilterChange('all')}>

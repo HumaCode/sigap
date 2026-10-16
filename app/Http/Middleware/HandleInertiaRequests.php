@@ -56,7 +56,7 @@ class HandleInertiaRequests extends Middleware
                     $warnSites = Site::where('status', 'warn')->count();
                     $upSites = Site::where('status', 'up')->count();
 
-                    $avgUptime = 99.9;
+                    $avgUptime = 0.0;
                     if ($totalSites > 0) {
                         $computed = (($upSites * 100) + ($warnSites * 95)) / $totalSites;
                         $avgUptime = round($computed, 1);
@@ -65,14 +65,14 @@ class HandleInertiaRequests extends Middleware
                     return [
                         'total_sites' => $totalSites,
                         'active_sites' => $activeSites,
-                        'avg_uptime' => $avgUptime . '%',
+                        'avg_uptime' => $totalSites > 0 ? ($avgUptime . '%') : '0%',
                         'ai_sentinel' => '24/7',
                     ];
                 } catch (\Throwable $e) {
                     return [
                         'total_sites' => 0,
                         'active_sites' => 0,
-                        'avg_uptime' => '99.9%',
+                        'avg_uptime' => '0%',
                         'ai_sentinel' => '24/7',
                     ];
                 }

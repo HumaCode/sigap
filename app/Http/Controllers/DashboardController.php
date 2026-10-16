@@ -33,7 +33,7 @@ class DashboardController extends Controller
 
         // 3. Compute Real SLA Uptime & Current Availability
         // Using SLA weighted formula standard from UptimeReportRepository
-        $avgUptime = 99.2;
+        $avgUptime = 0.0;
         if ($totalSites > 0) {
             $totalUptimeSum = ($downSites * 92.4) + ($warnSites * 98.2) + (($activeSites + $pausedSites) * 99.9);
             $avgUptime = round($totalUptimeSum / $totalSites, 1);
@@ -55,7 +55,7 @@ class DashboardController extends Controller
 
         // Clean / Secure: audited sites with Grade A/B or score >= 75
         $cleanSec = $securities->where('score', '>=', 75)->count();
-        $pctSecure = $auditedCount > 0 ? (int) round(($cleanSec / $auditedCount) * 100) : 100;
+        $pctSecure = $auditedCount > 0 ? (int) round(($cleanSec / $auditedCount) * 100) : 0;
 
         $exposedEnv = 0;
         $missingCsp = 0;
@@ -94,10 +94,14 @@ class DashboardController extends Controller
         for ($i = 11; $i >= 0; $i--) {
             $time = Carbon::now()->subHours($i);
             $hourlyLabels[] = $time->format('H:00');
-            // Small realistic variation around baseline avgUptime
-            $variation = (($i * 3 + 7) % 5 - 2) * 0.1;
-            $val = min(100.0, max(95.0, round($avgUptime + $variation, 1)));
-            $hourlyData[] = $i === 0 ? $avgUptime : $val;
+            if ($totalSites === 0) {
+                $hourlyData[] = 0.0;
+            } else {
+                // Small realistic variation around baseline avgUptime
+                $variation = (($i * 3 + 7) % 5 - 2) * 0.1;
+                $val = min(100.0, max(95.0, round($avgUptime + $variation, 1)));
+                $hourlyData[] = $i === 0 ? $avgUptime : $val;
+            }
         }
 
         // 7b. 7-Day Trend ending TODAY
@@ -109,7 +113,9 @@ class DashboardController extends Controller
             $dayOfWeek = $date->dayOfWeek; // 0 = Sunday, 1 = Monday, etc.
             $dailyLabels[] = $dayNames[$dayOfWeek];
             
-            if ($i === 0) {
+            if ($totalSites === 0) {
+                $dailyData[] = 0.0;
+            } elseif ($i === 0) {
                 $dailyData[] = $avgUptime;
             } else {
                 // Check if any incidents existed on that day
@@ -121,7 +127,7 @@ class DashboardController extends Controller
 
         // 7c. 30-Day Trend (4 weeks)
         $monthlyLabels = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu Ini'];
-        $monthlyData = [
+        $monthlyData = $totalSites === 0 ? [0.0, 0.0, 0.0, 0.0] : [
             round(min(100.0, max(95.0, $avgUptime - 0.3)), 1),
             round(min(100.0, max(95.0, $avgUptime + 0.2)), 1),
             round(min(100.0, max(95.0, $avgUptime + 0.1)), 1),
@@ -139,7 +145,7 @@ class DashboardController extends Controller
         for ($i = 2; $i >= 0; $i--) {
             $m = Carbon::now()->subMonths($i);
             $quarterLabels[] = $monthNames[$m->month];
-            $quarterData[] = $i === 0 ? $avgUptime : round(min(100.0, max(95.0, $avgUptime + ($i === 2 ? -0.4 : 0.2))), 1);
+            $quarterData[] = $totalSites === 0 ? 0.0 : ($i === 0 ? $avgUptime : round(min(100.0, max(95.0, $avgUptime + ($i === 2 ? -0.4 : 0.2))), 1));
         }
 
         // 8. Latest Sites Status with Real Latency from DetectionLogs

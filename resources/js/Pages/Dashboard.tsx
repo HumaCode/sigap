@@ -253,10 +253,14 @@ export default function Dashboard({ stats, chart_data, latest_sites, recent_inci
                 <div className="col-6 col-xl-3">
                     <div className="glass-card stat-card">
                         <div className="stat-icon icon-blue"><i className="bi bi-check-circle"></i></div>
-                        <div className="stat-value">{stats.avg_uptime}%</div>
+                        <div className="stat-value">{stats.total_sites > 0 ? `${stats.avg_uptime}%` : '0%'}</div>
                         <div className="stat-label">Rata-rata Uptime</div>
-                        <div className="stat-trend trend-up">
-                            <i className="bi bi-shield-check me-1"></i> SLA Ketersediaan Sistem
+                        <div className={`stat-trend ${stats.total_sites > 0 ? 'trend-up' : 'text-muted'}`}>
+                            {stats.total_sites > 0 ? (
+                                <><i className="bi bi-shield-check me-1"></i> SLA Ketersediaan Sistem</>
+                            ) : (
+                                <><i className="bi bi-info-circle me-1"></i> Belum ada situs</>
+                            )}
                         </div>
                         <i className="bi bi-check-circle stat-deco"></i>
                     </div>

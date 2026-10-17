@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardApiController;
+use App\Http\Controllers\Api\IncidentApiController;
 use App\Http\Controllers\Api\SiteApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,14 @@ Route::prefix('v1')->middleware('app.key')->group(function () {
             Route::get('/', [SiteApiController::class, 'index'])->name('api.v1.sites.index');
             Route::get('{id}', [SiteApiController::class, 'show'])->name('api.v1.sites.show');
             Route::post('{id}/check', [SiteApiController::class, 'check'])->name('api.v1.sites.check');
+        });
+
+        // Modul 4: Pusat Penanganan Insiden (War Room Live)
+        Route::prefix('incidents')->group(function () {
+            Route::get('/', [IncidentApiController::class, 'index'])->name('api.v1.incidents.index');
+            Route::get('{id}', [IncidentApiController::class, 'show'])->name('api.v1.incidents.show');
+            Route::patch('{id}/status', [IncidentApiController::class, 'updateStatus'])->name('api.v1.incidents.status');
+            Route::post('{id}/notes', [IncidentApiController::class, 'addNote'])->name('api.v1.incidents.notes');
         });
     });
 });

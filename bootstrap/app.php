@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'app.key' => \App\Http\Middleware\ValidateAppKey::class,
         ]);
 
+        $middleware->priority([
+            \App\Http\Middleware\ValidateAppKey::class,
+            \Illuminate\Auth\Middleware\Authenticate::class,
+        ]);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

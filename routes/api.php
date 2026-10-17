@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,5 +20,11 @@ Route::prefix('v1')->middleware('app.key')->group(function () {
             Route::post('logout', [AuthController::class, 'logout'])->name('api.v1.auth.logout');
             Route::get('me', [AuthController::class, 'me'])->name('api.v1.auth.me');
         });
+    });
+
+    // Protected Routes (Sanctum)
+    Route::middleware('auth:sanctum')->group(function () {
+        // Modul 2: Executive Dashboard
+        Route::get('dashboard/stats', [DashboardApiController::class, 'stats'])->name('api.v1.dashboard.stats');
     });
 });

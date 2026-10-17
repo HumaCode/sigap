@@ -27,17 +27,32 @@ class AiRemediationService
         $description = $incidentData['description'] ?? '';
         $type = $incidentData['type'] ?? 'security';
 
+        @set_time_limit(120);
+
         $primaryModel = !empty($selectedModel) ? $selectedModel : $this->model;
-        if ($primaryModel === 'combo-maut') {
-            $primaryModel = 'ag/gemini-3.8-flash';
+        if (empty($primaryModel)) {
+            $primaryModel = 'dattio';
         }
 
-        $candidateModels = array_values(array_unique(array_filter([
-            $primaryModel,
-            'ag/gemini-3.8-flash',
-            'ag/claude-sonnet-4-6',
-            'ag/gemini-3-flash',
-        ])));
+        // Get saved available models from 9router settings
+        $savedModels = \App\Models\Setting::getValue('ninerouter_available_models');
+        $availableModelIds = is_array($savedModels) ? array_filter(array_column($savedModels, 'id')) : [];
+
+        $candidateModels = [$primaryModel];
+
+        // If primary model fails, pick a fallback from actual available models
+        if (!empty($availableModelIds)) {
+            foreach ($availableModelIds as $mId) {
+                if ($mId !== $primaryModel) {
+                    $candidateModels[] = $mId;
+                    break; // Keep maximum 2 candidates to avoid request timeout
+                }
+            }
+        } else {
+            if ($primaryModel !== 'ag/gemini-3.8-flash') {
+                $candidateModels[] = 'ag/gemini-3.8-flash';
+            }
+        }
 
         $systemInstruction = "Anda adalah Pakar Cyber Security Senior & Lead Incident Responder resmi untuk SIGAP Web Pemkot Pekalongan.\n\n" .
             "ATURAN KETAT & PERILAKU ASISTEN:\n" .
@@ -88,6 +103,11 @@ class AiRemediationService
         }
 
         if (!empty($this->apiKey) && !str_contains($this->apiKey, '•••')) {
+            $normalizedEndpoint = rtrim(trim($this->endpoint), '/');
+            $chatUrl = \Illuminate\Support\Str::endsWith($normalizedEndpoint, '/v1')
+                ? "{$normalizedEndpoint}/chat/completions"
+                : "{$normalizedEndpoint}/v1/chat/completions";
+
             foreach ($candidateModels as $candidateModel) {
                 try {
                     $response = Http::withoutVerifying()
@@ -95,12 +115,13 @@ class AiRemediationService
                             'Authorization' => 'Bearer ' . $this->apiKey,
                             'Content-Type'  => 'application/json',
                         ])
-                        ->timeout(15)
-                        ->post(rtrim($this->endpoint, '/') . '/chat/completions', [
+                        ->timeout(45)
+                        ->post($chatUrl, [
                             'model'       => $candidateModel,
                             'messages'    => $messages,
                             'temperature' => 0.5,
                             'max_tokens'  => 1800,
+                            'stream'      => false,
                         ]);
 
                     if ($response->successful()) {
@@ -109,8 +130,14 @@ class AiRemediationService
 
                         // 1. Standard JSON response
                         $json = json_decode($rawBody, true);
-                        if (is_array($json) && isset($json['choices'][0]['message']['content'])) {
-                            $aiContent = $json['choices'][0]['message']['content'];
+                        if (is_array($json)) {
+                            if (!empty($json['choices'][0]['message']['content'])) {
+                                $aiContent = $json['choices'][0]['message']['content'];
+                            } elseif (!empty($json['choices'][0]['message']['reasoning_content'])) {
+                                $aiContent = $json['choices'][0]['message']['reasoning_content'];
+                            } elseif (!empty($json['choices'][0]['text'])) {
+                                $aiContent = $json['choices'][0]['text'];
+                            }
                         }
 
                         // 2. SSE stream chunks (data: {...})
@@ -125,6 +152,9 @@ class AiRemediationService
                                     $chunk = json_decode($dataStr, true);
                                     if (is_array($chunk)) {
                                         $delta = $chunk['choices'][0]['delta']['content'] ?? null;
+                                        if (empty($delta)) {
+                                            $delta = $chunk['choices'][0]['delta']['reasoning_content'] ?? null;
+                                        }
                                         if ($delta) {
                                             $streamContent .= $delta;
                                         }
@@ -146,7 +176,7 @@ class AiRemediationService
                         }
                     }
 
-                    Log::warning("AI call to {$candidateModel} failed: " . substr($response->body(), 0, 200));
+                    Log::warning("AI call to {$candidateModel} failed [status {$response->status()}]: " . substr($response->body(), 0, 300));
                 } catch (\Throwable $e) {
                     Log::warning("AI candidate {$candidateModel} exception: " . $e->getMessage());
                 }

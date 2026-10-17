@@ -359,7 +359,7 @@ export default function AiRemediationModal({ show, onClose, incident, onResolved
             description: incident.description,
         };
 
-        axios.post(route('incidents.ai-remediation'), postData)
+        axios.post(route('incidents.ai-remediation'), postData, { timeout: 90000 })
             .then((res) => {
                 job.completed = true;
                 job.result = res.data;
@@ -391,7 +391,8 @@ export default function AiRemediationModal({ show, onClose, incident, onResolved
 
                 setIsGenerating(false);
                 globalAiJobs.delete(incKey);
-                toast.error('Gagal', 'Terjadi kesalahan saat memicu AI Remediation.');
+                const errMsg = err.response?.data?.message || (err.code === 'ECONNABORTED' ? 'Permintaan AI melebihi batas waktu (timeout).' : 'Terjadi kesalahan saat memicu AI Remediation.');
+                toast.error('Gagal', errMsg);
 
                 job.listeners.forEach((listener) => listener(job));
             });

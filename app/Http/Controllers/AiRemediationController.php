@@ -21,98 +21,115 @@ class AiRemediationController extends Controller
     {
         Gate::authorize('view-incidents');
 
-        $request->validate([
-            'incident_id'   => 'required',
-            'extra_context' => 'nullable|string|max:1000',
-            'model'         => 'nullable|string',
-            'title'         => 'nullable|string',
-            'site_name'     => 'nullable|string',
-            'site_url'      => 'nullable|string',
-            'severity'      => 'nullable|string',
-            'type'          => 'nullable|string',
-            'description'   => 'nullable|string',
-        ]);
+        try {
+            $request->validate([
+                'incident_id'   => 'required',
+                'extra_context' => 'nullable|string|max:1000',
+                'model'         => 'nullable|string',
+                'title'         => 'nullable|string',
+                'site_name'     => 'nullable|string',
+                'site_url'      => 'nullable|string',
+                'severity'      => 'nullable|string',
+                'type'          => 'nullable|string',
+                'description'   => 'nullable|string',
+            ]);
 
-        $incidentId = $request->incident_id;
+            $incidentId = $request->incident_id;
 
-        // If numeric ID, fetch real incident
-        if (is_numeric($incidentId)) {
-            $incident = Incident::with(['site', 'conversations'])->find($incidentId);
-        } else {
-            // Virtual/Security audit item, find by payload first
-            $incident = Incident::with(['site', 'conversations'])
-                ->where('payload', $incidentId)
-                ->first();
+            // If numeric ID, fetch real incident
+            if (is_numeric($incidentId)) {
+                $incident = Incident::with(['site', 'conversations'])->find($incidentId);
+            } else {
+                // Virtual/Security audit item, find by payload first
+                $incident = Incident::with(['site', 'conversations'])
+                    ->where('payload', $incidentId)
+                    ->first();
 
-            // Next fallback: find by title and site
-            if (!$incident) {
-                $site = !empty($request->site_name) ? \App\Models\Site::where('name', $request->site_name)->first() : null;
-                $query = Incident::with(['site', 'conversations'])->where('title', $request->title ?: 'Security Audit AuditItem');
-                if ($site) {
-                    $query->where('site_id', $site->id);
+                // Next fallback: find by title and site
+                if (!$incident) {
+                    $site = !empty($request->site_name) ? \App\Models\Site::where('name', $request->site_name)->first() : null;
+                    $query = Incident::with(['site', 'conversations'])->where('title', $request->title ?: 'Security Audit AuditItem');
+                    if ($site) {
+                        $query->where('site_id', $site->id);
+                    }
+                    $incident = $query->first();
+
+                    if ($incident) {
+                        $incident->update(['payload' => $incidentId]);
+                    }
                 }
-                $incident = $query->first();
-
-                if ($incident) {
-                    $incident->update(['payload' => $incidentId]);
+                
+                // If still not found, create new incident record
+                if (!$incident) {
+                    $site = !empty($request->site_name) ? \App\Models\Site::where('name', $request->site_name)->first() : null;
+                    $fallbackSiteId = \App\Models\Site::value('id');
+                    $incident = Incident::create([
+                        'site_id'     => $site ? $site->id : $fallbackSiteId,
+                        'title'       => $request->title ?: 'Audit Keamanan Situs',
+                        'type'        => $request->type ?: 'security_audit',
+                        'severity'    => $request->severity ?: 'high',
+                        'status'      => 'investigating',
+                        'description' => $request->description ?: 'Temuan audit keamanan situs.',
+                        'payload'     => $incidentId,
+                        'detected_at' => now(),
+                    ]);
                 }
             }
-            
-            // If still not found, create new incident record
-            if (!$incident) {
-                $site = !empty($request->site_name) ? \App\Models\Site::where('name', $request->site_name)->first() : null;
-                $incident = Incident::create([
-                    'site_id'     => $site ? $site->id : 1,
-                    'title'       => $request->title ?: 'Audit Keamanan Situs',
-                    'type'        => $request->type ?: 'security_audit',
-                    'severity'    => $request->severity ?: 'high',
-                    'status'      => 'investigating',
-                    'description' => $request->description ?: 'Temuan audit keamanan situs.',
-                    'payload'     => $incidentId,
-                    'detected_at' => now(),
+
+            $incidentData = [
+                'title'       => $incident ? $incident->title : ($request->title ?: 'Audit Keamanan Situs'),
+                'site_name'   => $incident && $incident->site ? $incident->site->name : ($request->site_name ?: 'Situs Terpantau'),
+                'site_url'    => $incident && $incident->site ? $incident->site->url : ($request->site_url ?: ''),
+                'severity'    => $incident ? $incident->severity : ($request->severity ?: 'high'),
+                'description' => $incident ? $incident->description : ($request->description ?: ''),
+                'type'        => $incident ? $incident->type : ($request->type ?: 'security_audit'),
+            ];
+
+            // Format history for service
+            $history = $incident ? $incident->conversations->map(fn($c) => [
+                'user_message' => $c->user_message,
+                'ai_response'  => $c->ai_response,
+            ])->toArray() : [];
+
+            $result = $this->aiService->generateRemediationPlan($incidentData, $request->extra_context, $request->model, $history);
+
+            // Save conversation record into DB if incident exists
+            if ($incident && !empty($result['content'])) {
+                $userMsg = $request->extra_context ?: ($incident->conversations->count() === 0 ? 'Minta rekomendasi perbaikan awal' : 'Pertanyaan lanjutan');
+                $aiContent = trim($result['content']);
+                if (empty($aiContent)) {
+                    $aiContent = 'Tidak ada konten respon yang diterima dari model AI.';
+                }
+
+                \App\Models\IncidentConversation::create([
+                    'incident_id'  => $incident->id,
+                    'user_message' => $userMsg,
+                    'ai_response'  => $aiContent,
+                    'model_used'   => $result['model'] ?? ($request->model ?: 'dattio'),
+                    'provider'     => $result['provider'] ?? '9router AI Engine',
                 ]);
             }
-        }
 
-        $incidentData = [
-            'title'       => $incident ? $incident->title : ($request->title ?: 'Audit Keamanan Situs'),
-            'site_name'   => $incident && $incident->site ? $incident->site->name : ($request->site_name ?: 'Situs Terpantau'),
-            'site_url'    => $incident && $incident->site ? $incident->site->url : ($request->site_url ?: ''),
-            'severity'    => $incident ? $incident->severity : ($request->severity ?: 'high'),
-            'description' => $incident ? $incident->description : ($request->description ?: ''),
-            'type'        => $incident ? $incident->type : ($request->type ?: 'security_audit'),
-        ];
+            // Return updated conversation list
+            $conversations = $incident ? $incident->conversations()->orderBy('created_at', 'asc')->get() : [];
 
-        // Format history for service
-        $history = $incident ? $incident->conversations->map(fn($c) => [
-            'user_message' => $c->user_message,
-            'ai_response'  => $c->ai_response,
-        ])->toArray() : [];
-
-        $result = $this->aiService->generateRemediationPlan($incidentData, $request->extra_context, $request->model, $history);
-
-        // Save conversation record into DB if incident exists
-        if ($incident && !empty($result['content'])) {
-            $userMsg = $request->extra_context ?: ($incident->conversations->count() === 0 ? 'Minta rekomendasi perbaikan awal' : 'Pertanyaan lanjutan');
-            
-            \App\Models\IncidentConversation::create([
-                'incident_id'  => $incident->id,
-                'user_message' => $userMsg,
-                'ai_response'  => $result['content'],
-                'model_used'   => $result['model'] ?? ($request->model ?: 'ag/gemini-3.8-flash'),
-                'provider'     => $result['provider'] ?? '9router AI Engine',
+            return response()->json([
+                'success'       => true,
+                'data'          => $result,
+                'incident_id'   => $incident ? $incident->id : $incidentId,
+                'conversations' => $conversations,
             ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AI Remediation generate error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace'     => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memproses rekomendasi AI: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Return updated conversation list
-        $conversations = $incident ? $incident->conversations()->orderBy('created_at', 'asc')->get() : [];
-
-        return response()->json([
-            'success'       => true,
-            'data'          => $result,
-            'incident_id'   => $incident ? $incident->id : $incidentId,
-            'conversations' => $conversations,
-        ]);
     }
 
     public function history(Request $request, $incident): JsonResponse

@@ -74,7 +74,7 @@ export default function NineRouterTab({ data, onSave, isSaving }: NineRouterTabP
                     }
                 }
 
-                toast.success('Koneksi Berhasil', `Berhasil memuat ${res.data.count || res.data.models?.length} model dari 9Router.`);
+                toast.success('Koneksi Berhasil & Pengaturan Tersinkron', `Berhasil memuat ${res.data.count || res.data.models?.length} model dari 9Router. Konfigurasi endpoint & API Key otomatis disinkronkan ke sistem.`);
             } else {
                 setTestResult({
                     success: false,

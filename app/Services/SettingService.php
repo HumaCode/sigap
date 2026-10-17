@@ -219,12 +219,19 @@ class SettingService implements SettingServiceInterface
                     ];
                 }
 
-                // Auto-save the fetched available models into settings
+                // Auto-save the endpoint, API key, and fetched available models into settings
+                Setting::setValue('ninerouter_endpoint', $normalizedEndpoint, 'ninerouter', false);
+                Setting::setValue('ninerouter_api_key', trim($apiKey), 'ninerouter', true);
                 Setting::setValue('ninerouter_available_models', $formattedModels, 'ninerouter', false);
+
+                $currentModel = Setting::getValue('ninerouter_model');
+                if (empty($currentModel) && !empty($formattedModels[0]['id'])) {
+                    Setting::setValue('ninerouter_model', $formattedModels[0]['id'], 'ninerouter', false);
+                }
 
                 return [
                     'success' => true,
-                    'message' => 'Koneksi ke 9Router API berhasil! Berhasil memuat ' . count($formattedModels) . ' model.',
+                    'message' => 'Koneksi ke 9Router API berhasil dan pengaturan otomatis disinkronkan! Berhasil memuat ' . count($formattedModels) . ' model.',
                     'count' => count($formattedModels),
                     'models' => $formattedModels,
                 ];

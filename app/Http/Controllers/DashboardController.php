@@ -24,12 +24,20 @@ class DashboardController extends Controller
             // Silence if service is not fully ready
         }
 
-        // 2. Real Monitored Sites Breakdown
-        $totalSites = Site::count();
-        $downSites = Site::where('status', 'down')->count();
-        $warnSites = Site::where('status', 'warn')->count();
-        $activeSites = Site::where('status', 'up')->count();
-        $pausedSites = Site::where('status', 'paused')->count();
+        // 2. Real Monitored Sites Breakdown (Single Aggregated SQL Query)
+        $siteStats = Site::toBase()->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'down' THEN 1 END) as down_count,
+            COUNT(CASE WHEN status = 'warn' THEN 1 END) as warn_count,
+            COUNT(CASE WHEN status = 'up' THEN 1 END) as up_count,
+            COUNT(CASE WHEN status = 'paused' THEN 1 END) as paused_count
+        ")->first();
+
+        $totalSites = (int) ($siteStats->total ?? 0);
+        $downSites = (int) ($siteStats->down_count ?? 0);
+        $warnSites = (int) ($siteStats->warn_count ?? 0);
+        $activeSites = (int) ($siteStats->up_count ?? 0);
+        $pausedSites = (int) ($siteStats->paused_count ?? 0);
 
         // 3. Compute Real SLA Uptime & Current Availability
         // Using SLA weighted formula standard from UptimeReportRepository
@@ -39,13 +47,23 @@ class DashboardController extends Controller
             $avgUptime = round($totalUptimeSum / $totalSites, 1);
         }
 
-        // 4. Real Incidents Count
-        $openIncidentsCount = Incident::whereNotIn('status', ['resolved', 'false_positive'])->count();
-        $criticalIncidentsCount = Incident::whereIn('severity', ['critical', 'high'])->whereNotIn('status', ['resolved', 'false_positive'])->count();
+        // 4. Real Incidents Count (Single Aggregated SQL Query)
+        $incidentStats = Incident::toBase()->selectRaw("
+            COUNT(CASE WHEN status NOT IN ('resolved', 'false_positive') THEN 1 END) as open_count,
+            COUNT(CASE WHEN severity IN ('critical', 'high') AND status NOT IN ('resolved', 'false_positive') THEN 1 END) as critical_count
+        ")->first();
 
-        // 5. Real Detections Count (Security sisipan: defacement, judol, malware, excluding routine uptime pings)
-        $securityDetectionsCount = DetectionLog::where('category', '!=', 'uptime')->count();
-        $totalDetectionLogs = DetectionLog::count();
+        $openIncidentsCount = (int) ($incidentStats->open_count ?? 0);
+        $criticalIncidentsCount = (int) ($incidentStats->critical_count ?? 0);
+
+        // 5. Real Detections Count (Single Aggregated SQL Query)
+        $detectionStats = DetectionLog::toBase()->selectRaw("
+            COUNT(*) as total_count,
+            COUNT(CASE WHEN category != 'uptime' THEN 1 END) as security_count
+        ")->first();
+
+        $securityDetectionsCount = (int) ($detectionStats->security_count ?? 0);
+        $totalDetectionLogs = (int) ($detectionStats->total_count ?? 0);
 
         // 6. Security Posture Stats from SiteSecurity
         $securities = SiteSecurity::select(['id', 'issues_count', 'score', 'grade', 'checks'])->get();
@@ -104,7 +122,14 @@ class DashboardController extends Controller
             }
         }
 
-        // 7b. 7-Day Trend ending TODAY
+        // 7b. 7-Day Trend ending TODAY (Pre-fetch incident dates in 1 single query instead of querying in loop)
+        $sevenDaysAgo = Carbon::now()->subDays(6)->startOfDay();
+        $incidentDates = Incident::where('detected_at', '>=', $sevenDaysAgo)
+            ->selectRaw('DATE(detected_at) as inc_date')
+            ->pluck('inc_date')
+            ->flip()
+            ->toArray();
+
         $dayNames = ['Ming', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
         $dailyLabels = [];
         $dailyData = [];
@@ -118,8 +143,7 @@ class DashboardController extends Controller
             } elseif ($i === 0) {
                 $dailyData[] = $avgUptime;
             } else {
-                // Check if any incidents existed on that day
-                $hadIncidents = Incident::whereDate('detected_at', $date->toDateString())->exists();
+                $hadIncidents = isset($incidentDates[$date->toDateString()]);
                 $dayBase = $hadIncidents ? ($avgUptime - 1.2) : ($avgUptime + ((($i * 4 + 1) % 5 - 2) * 0.15));
                 $dailyData[] = min(100.0, max(95.0, round($dayBase, 1)));
             }

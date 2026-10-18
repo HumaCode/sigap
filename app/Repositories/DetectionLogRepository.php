@@ -58,11 +58,17 @@ class DetectionLogRepository implements DetectionLogRepositoryInterface
         $totalSites = Site::count();
         $totalScanned = $totalSites > 0 ? ($totalSites * 125 + 47) : 0;
 
+        $stats = (clone $baseQuery)->selectRaw("
+            COUNT(CASE WHEN category != 'uptime' THEN 1 END) as total_detections,
+            COUNT(CASE WHEN category = 'obat' THEN 1 END) as drugs_category,
+            COUNT(CASE WHEN category = 'judol' THEN 1 END) as gambling_category
+        ")->first();
+
         return [
             'total_scanned' => $totalScanned,
-            'total_detections' => (clone $baseQuery)->where('category', '!=', 'uptime')->count(),
-            'drugs_category' => (clone $baseQuery)->where('category', 'obat')->count(),
-            'gambling_category' => (clone $baseQuery)->where('category', 'judol')->count(),
+            'total_detections' => (int) ($stats->total_detections ?? 0),
+            'drugs_category' => (int) ($stats->drugs_category ?? 0),
+            'gambling_category' => (int) ($stats->gambling_category ?? 0),
         ];
     }
 

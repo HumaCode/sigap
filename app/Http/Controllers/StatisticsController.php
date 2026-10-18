@@ -14,26 +14,43 @@ class StatisticsController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Basic Inventory Stats
-        $totalSites = Site::count();
-        $downSites = Site::where('status', 'down')->count();
-        $warnSites = Site::where('status', 'warn')->count();
-        $activeSites = Site::where('status', 'up')->count();
-        $pausedSites = Site::where('status', 'paused')->count();
+        // 1. Basic Inventory Stats (Single Aggregated SQL Query)
+        $siteStats = Site::toBase()->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'down' THEN 1 END) as down_count,
+            COUNT(CASE WHEN status = 'warn' THEN 1 END) as warn_count,
+            COUNT(CASE WHEN status = 'up' THEN 1 END) as up_count,
+            COUNT(CASE WHEN status = 'paused' THEN 1 END) as paused_count
+        ")->first();
 
-        // 2. Incident Metrics
-        $activeIncidents = Incident::whereNotIn('status', ['resolved', 'false_positive'])->count();
-        $criticalIncidents = Incident::whereIn('severity', ['critical', 'high'])
-            ->whereNotIn('status', ['resolved', 'false_positive'])
-            ->count();
-        $resolvedIncidents = Incident::where('status', 'resolved')->count();
-        $totalIncidents = Incident::count();
+        $totalSites = (int) ($siteStats->total ?? 0);
+        $downSites = (int) ($siteStats->down_count ?? 0);
+        $warnSites = (int) ($siteStats->warn_count ?? 0);
+        $activeSites = (int) ($siteStats->up_count ?? 0);
+        $pausedSites = (int) ($siteStats->paused_count ?? 0);
+
+        // 2. Incident Metrics (Single Aggregated SQL Query)
+        $incidentStats = Incident::toBase()->selectRaw("
+            COUNT(CASE WHEN status NOT IN ('resolved', 'false_positive') THEN 1 END) as active,
+            COUNT(CASE WHEN severity IN ('critical', 'high') AND status NOT IN ('resolved', 'false_positive') THEN 1 END) as critical_active,
+            COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved,
+            COUNT(*) as total,
+            COUNT(CASE WHEN severity = 'critical' THEN 1 END) as sev_critical,
+            COUNT(CASE WHEN severity = 'high' THEN 1 END) as sev_high,
+            COUNT(CASE WHEN severity = 'medium' THEN 1 END) as sev_medium,
+            COUNT(CASE WHEN severity = 'low' THEN 1 END) as sev_low
+        ")->first();
+
+        $activeIncidents = (int) ($incidentStats->active ?? 0);
+        $criticalIncidents = (int) ($incidentStats->critical_active ?? 0);
+        $resolvedIncidents = (int) ($incidentStats->resolved ?? 0);
+        $totalIncidents = (int) ($incidentStats->total ?? 0);
 
         $incidentsBySeverity = [
-            'critical' => Incident::where('severity', 'critical')->count(),
-            'high'     => Incident::where('severity', 'high')->count(),
-            'medium'   => Incident::where('severity', 'medium')->count(),
-            'low'      => Incident::where('severity', 'low')->count(),
+            'critical' => (int) ($incidentStats->sev_critical ?? 0),
+            'high'     => (int) ($incidentStats->sev_high ?? 0),
+            'medium'   => (int) ($incidentStats->sev_medium ?? 0),
+            'low'      => (int) ($incidentStats->sev_low ?? 0),
         ];
 
         // 3. DEFCON & Security Telemetry
@@ -59,9 +76,19 @@ class StatisticsController extends Controller
             $defconColor = '#10b981';
         }
 
-        // 4. SLA Uptime Calculations
+        // 4. SLA Uptime Calculations (Optimized: Eager load 30d logs counts to prevent N+1 queries)
         if ($totalSites > 0) {
-            $sites = Site::all();
+            $sites = Site::withCount([
+                'detectionLogs as uptime_total_checks_30d' => function ($q) {
+                    $q->where('category', 'uptime')
+                      ->where('created_at', '>=', now()->subDays(30));
+                },
+                'detectionLogs as uptime_successful_checks_30d' => function ($q) {
+                    $q->where('category', 'uptime')
+                      ->where('status', 'resolved')
+                      ->where('created_at', '>=', now()->subDays(30));
+                }
+            ])->get();
             $avgUptime = round($sites->avg('uptime_percentage'), 2);
         } else {
             $avgUptime = 0.0;

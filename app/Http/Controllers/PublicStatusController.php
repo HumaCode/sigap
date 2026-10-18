@@ -37,8 +37,19 @@ class PublicStatusController extends Controller
             }
         }
 
-        // 2. Fetch Active Sites
+        // 2. Fetch Active Sites (Eager load 30d uptime counts to prevent N+1 queries)
         $sites = Site::where('is_active', true)
+            ->withCount([
+                'detectionLogs as uptime_total_checks_30d' => function ($q) {
+                    $q->where('category', 'uptime')
+                      ->where('created_at', '>=', now()->subDays(30));
+                },
+                'detectionLogs as uptime_successful_checks_30d' => function ($q) {
+                    $q->where('category', 'uptime')
+                      ->where('status', 'resolved')
+                      ->where('created_at', '>=', now()->subDays(30));
+                }
+            ])
             ->select('id', 'name', 'url', 'category', 'status', 'requests_per_minute', 'ssl_status', 'ssl_days_left', 'domain_name', 'domain_days_left')
             ->orderBy('name')
             ->get();

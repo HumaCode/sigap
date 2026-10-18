@@ -31,20 +31,35 @@ class SiteApiController extends Controller
         $filter = strtolower(trim($request->input('filter', 'all')));
         $perPage = min(100, max(1, (int) $request->input('per_page', 15)));
 
-        // 1. Calculate filter counts for mobile chips (All, Operational, Outage, SSL, Warning)
+        // 1. Calculate filter counts for mobile chips (Single Aggregated SQL Query)
+        $statsRow = Site::toBase()->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'up' THEN 1 END) as operational,
+            COUNT(CASE WHEN status = 'down' THEN 1 END) as outage,
+            COUNT(CASE WHEN status = 'warn' THEN 1 END) as warn,
+            COUNT(CASE WHEN ssl_days_left <= 14 OR (ssl_status IS NOT NULL AND ssl_status != 'valid') THEN 1 END) as ssl
+        ")->first();
+
         $counts = [
-            'all' => Site::count(),
-            'operational' => Site::where('status', 'up')->count(),
-            'outage' => Site::where('status', 'down')->count(),
-            'warn' => Site::where('status', 'warn')->count(),
-            'ssl' => Site::where(function ($q) {
-                $q->where('ssl_days_left', '<=', 14)
-                  ->orWhere('ssl_status', '!=', 'valid');
-            })->count(),
+            'all'         => (int) ($statsRow->total ?? 0),
+            'operational' => (int) ($statsRow->operational ?? 0),
+            'outage'      => (int) ($statsRow->outage ?? 0),
+            'warn'        => (int) ($statsRow->warn ?? 0),
+            'ssl'         => (int) ($statsRow->ssl ?? 0),
         ];
 
-        // 2. Query with search and filter
-        $query = Site::query();
+        // 2. Query with search and filter (Eager load 30d uptime counts to prevent N+1 queries)
+        $query = Site::query()->withCount([
+            'detectionLogs as uptime_total_checks_30d' => function ($q) {
+                $q->where('category', 'uptime')
+                  ->where('created_at', '>=', now()->subDays(30));
+            },
+            'detectionLogs as uptime_successful_checks_30d' => function ($q) {
+                $q->where('category', 'uptime')
+                  ->where('status', 'resolved')
+                  ->where('created_at', '>=', now()->subDays(30));
+            }
+        ]);
 
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {

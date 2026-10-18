@@ -10,6 +10,7 @@ class SiteRepository implements SiteRepositoryInterface
     public function getAllPaginated($perPage = 10, $search = '', $filter = 'all')
     {
         $query = Site::query()->withCount([
+            'incidents',
             'detectionLogs as uptime_total_checks_30d' => function ($q) {
                 $q->where('category', 'uptime')
                   ->where('created_at', '>=', now()->subDays(30));

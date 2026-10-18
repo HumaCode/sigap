@@ -27,12 +27,20 @@ class SiteController extends Controller
             $request->input('filter', 'all')
         );
 
+        $statsRow = Site::toBase()->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'up' THEN 1 END) as up_count,
+            COUNT(CASE WHEN status = 'down' THEN 1 END) as down_count,
+            COUNT(CASE WHEN status = 'warn' THEN 1 END) as warn_count,
+            COUNT(CASE WHEN status = 'paused' THEN 1 END) as paused_count
+        ")->first();
+
         $stats = [
-            'total' => Site::count(),
-            'up' => Site::where('status', 'up')->count(),
-            'down' => Site::where('status', 'down')->count(),
-            'warn' => Site::where('status', 'warn')->count(),
-            'paused' => Site::where('status', 'paused')->count(),
+            'total'  => (int) ($statsRow->total ?? 0),
+            'up'     => (int) ($statsRow->up_count ?? 0),
+            'down'   => (int) ($statsRow->down_count ?? 0),
+            'warn'   => (int) ($statsRow->warn_count ?? 0),
+            'paused' => (int) ($statsRow->paused_count ?? 0),
         ];
 
         $user = $request->user();

@@ -95,6 +95,24 @@ class SettingController extends Controller
             ];
         });
 
+        // Activity Stats (Single Aggregated SQL Query using index)
+        $todayStart = today()->startOfDay();
+        $actStatsRow = \App\Models\Activity::toBase()->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN created_at >= ? THEN 1 END) as today_count,
+            COUNT(CASE WHEN event = 'created' THEN 1 END) as created_count,
+            COUNT(CASE WHEN event = 'updated' THEN 1 END) as updated_count,
+            COUNT(CASE WHEN event = 'deleted' THEN 1 END) as deleted_count
+        ", [$todayStart])->first();
+
+        $activityStats = [
+            'total'   => (int) ($actStatsRow->total ?? 0),
+            'today'   => (int) ($actStatsRow->today_count ?? 0),
+            'created' => (int) ($actStatsRow->created_count ?? 0),
+            'updated' => (int) ($actStatsRow->updated_count ?? 0),
+            'deleted' => (int) ($actStatsRow->deleted_count ?? 0),
+        ];
+
         return Inertia::render('Pengaturan/Index', [
             'settings' => $settings,
             'activityLogs' => $activityLogs,
@@ -104,13 +122,7 @@ class SettingController extends Controller
                 'log_event' => $request->input('log_event', 'all'),
                 'log_module' => $request->input('log_module', 'all'),
             ],
-            'activityStats' => [
-                'total' => \App\Models\Activity::count(),
-                'today' => \App\Models\Activity::whereDate('created_at', today())->count(),
-                'created' => \App\Models\Activity::where('event', 'created')->count(),
-                'updated' => \App\Models\Activity::where('event', 'updated')->count(),
-                'deleted' => \App\Models\Activity::where('event', 'deleted')->count(),
-            ],
+            'activityStats' => $activityStats,
             'availableModules' => $availableModules,
         ]);
     }

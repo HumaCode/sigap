@@ -187,7 +187,17 @@ class ScorecardService
      */
     public function getLeaderboard(array $filters = []): array
     {
-        $query = Site::with(['security', 'incidents']);
+        $query = Site::with(['security', 'incidents'])->withCount([
+            'detectionLogs as uptime_total_checks_30d' => function ($q) {
+                $q->where('category', 'uptime')
+                  ->where('created_at', '>=', now()->subDays(30));
+            },
+            'detectionLogs as uptime_successful_checks_30d' => function ($q) {
+                $q->where('category', 'uptime')
+                  ->where('status', 'resolved')
+                  ->where('created_at', '>=', now()->subDays(30));
+            }
+        ]);
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];

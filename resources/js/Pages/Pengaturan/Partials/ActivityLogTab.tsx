@@ -160,13 +160,6 @@ export default function ActivityLogTab({
                 onSuccess: () => {
                     setIsArchiving(false);
                     setShowArchiveConfirm(false);
-                    const scopeLabels: Record<string, string> = {
-                        activity: 'Log Aktivitas',
-                        detection: 'Detection Log',
-                        incident: 'Insiden',
-                        all: 'Semua Log & Insiden',
-                    };
-                    toast.success('Arsip Selesai', `Arsip ${scopeLabels[archiveScope] || 'log'} periode ${archiveMonth} berhasil dibuat dan data terkait di database telah dibersihkan.`);
                 },
                 onError: (errs) => {
                     setIsArchiving(false);

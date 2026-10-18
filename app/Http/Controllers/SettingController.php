@@ -297,7 +297,14 @@ class SettingController extends Controller
             if ($result['deleted_detections'] > 0) $delParts[] = number_format($result['deleted_detections']) . " log deteksi";
             if ($result['deleted_incidents'] > 0) $delParts[] = number_format($result['deleted_incidents']) . " insiden";
 
-            $msg = "Arsip {$scope} periode {$result['period']} berhasil dibuat (PDF & ZIP tersimpan). " .
+            $scopeLabel = match ($scope) {
+                'activity' => 'Log Aktivitas',
+                'detection' => 'Detection Log',
+                'incident' => 'Insiden',
+                default => 'Semua Log & Insiden',
+            };
+
+            $msg = "Arsip {$scopeLabel} periode {$result['period']} berhasil dibuat (PDF & ZIP tersimpan). " .
                 (empty($delParts) ? "Data di database tetap utuh." : implode(', ', $delParts) . " telah dibersihkan.");
 
             if ($request->wantsJson()) {

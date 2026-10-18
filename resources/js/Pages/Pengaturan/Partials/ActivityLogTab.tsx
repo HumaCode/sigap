@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BaseModal from '@/Components/BaseModal';
 import ConfirmModal from '@/Components/ConfirmModal';
 import { toast } from '@/Components/DynamicToast';
@@ -53,6 +53,14 @@ export default function ActivityLogTab({
     const [logLevel, setLogLevel] = useState(data.log_level || 'info');
     const [autoPrune, setAutoPrune] = useState(Boolean(data.auto_prune));
     const [autoBackupEnabled, setAutoBackupEnabled] = useState(data.auto_backup_enabled !== false);
+
+    // Sinkronisasi state saat data props diperbarui dari server
+    useEffect(() => {
+        setAutoBackupEnabled(data.auto_backup_enabled !== false);
+        setRetentionDays(data.retention_days || 30);
+        setLogLevel(data.log_level || 'info');
+        setAutoPrune(Boolean(data.auto_prune));
+    }, [data.auto_backup_enabled, data.retention_days, data.log_level, data.auto_prune]);
 
     // Archive state
     const [isArchiving, setIsArchiving] = useState(false);

@@ -50,6 +50,7 @@ class UpdateSettingsRequest extends FormRequest
             'settings.retention_days' => 'nullable|integer|min:1|max:365',
             'settings.log_level' => 'nullable|string|in:debug,info,warning,error',
             'settings.auto_prune' => 'nullable|boolean',
+            'settings.auto_backup_enabled' => 'nullable|boolean',
             // General rules
             'settings.app_name' => 'nullable|string|max:100',
             'settings.pic_contact_email' => 'nullable|email|max:150',

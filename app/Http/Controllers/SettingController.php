@@ -125,9 +125,8 @@ class SettingController extends Controller
 
         $this->settingService->saveSettings($group, $data);
 
-        // Otomatis bersihkan seluruh cache aplikasi (seperti php artisan optimize:clear)
+        // Bersihkan cache aplikasi agar perubahan segera aktif
         try {
-            Artisan::call('optimize:clear');
             Cache::flush();
         } catch (\Throwable $e) {
             Log::warning('Gagal membersihkan cache saat update pengaturan: ' . $e->getMessage());

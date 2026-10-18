@@ -34,8 +34,10 @@ class SettingService implements SettingServiceInterface
         // 3. Activity Log Settings
         $logRetentionDays = (int) (Setting::getValue('log_retention_days') ?: 30);
         $logLevel = Setting::getValue('log_level') ?: 'info';
-        $logAutoPrune = (bool) Setting::getValue('log_auto_prune', true);
-        $logAutoBackup = (bool) Setting::getValue('log_auto_backup_enabled', true);
+        $logAutoPruneVal = Setting::getValue('log_auto_prune');
+        $logAutoPrune = $logAutoPruneVal === null ? true : filter_var($logAutoPruneVal, FILTER_VALIDATE_BOOLEAN);
+        $logAutoBackupVal = Setting::getValue('log_auto_backup_enabled');
+        $logAutoBackup = $logAutoBackupVal === null ? true : filter_var($logAutoBackupVal, FILTER_VALIDATE_BOOLEAN);
 
         // 4. General Settings
         $appName = Setting::getValue('app_name') ?: config('app.name', 'SIGAP Web');
@@ -166,7 +168,7 @@ class SettingService implements SettingServiceInterface
                 Setting::setValue('log_retention_days', (int) ($data['retention_days'] ?? 30), 'activity_log', false);
                 Setting::setValue('log_level', $data['log_level'] ?? 'info', 'activity_log', false);
                 Setting::setValue('log_auto_prune', !empty($data['auto_prune']), 'activity_log', false);
-                if (isset($data['auto_backup_enabled'])) {
+                if (array_key_exists('auto_backup_enabled', $data)) {
                     Setting::setValue('log_auto_backup_enabled', !empty($data['auto_backup_enabled']), 'activity_log', false);
                 }
                 break;

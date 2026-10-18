@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
@@ -53,16 +53,56 @@ export default function DetectionLog({
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Always keep URL address bar clean (mask query parameters like ?filter=judol&search=&status=all)
-    useEffect(() => {
+    const searchQueryRef = useRef(filters?.search || '');
+    const filterRef = useRef(filters?.filter || 'all');
+    const statusRef = useRef(filters?.status || 'all');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/detection-logs) tanpa query string
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState(
-                {}, 
-                document.title, 
-                window.location.pathname
-            );
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props logs atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
     }, [logs, filters]);
+
+    // Sinkronisasi state internal saat props berubah
+    useEffect(() => {
+        if (filters?.search !== undefined) {
+            setSearchTerm(filters.search || '');
+            searchQueryRef.current = filters.search || '';
+        }
+        if (filters?.filter !== undefined) {
+            setActiveFilter(filters.filter || 'all');
+            filterRef.current = filters.filter || 'all';
+        }
+        if (filters?.status !== undefined) {
+            setStatusFilter(filters.status || 'all');
+            statusRef.current = filters.status || 'all';
+        }
+    }, [filters?.search, filters?.filter, filters?.status]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -72,38 +112,90 @@ export default function DetectionLog({
         router.get(url, params, {
             preserveState: true,
             preserveScroll: true,
+            replace: true,
+            onSuccess: () => {
+                cleanBrowserUrl();
+            },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsFiltering(false);
                     setIsRefreshing(false);
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
                 }, remaining);
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
                 setIsRefreshing(false);
             }
         });
     };
 
+    // Debounced Search Effect (menunggu ketikan berhenti 350ms sebelum request)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            if (searchTerm !== searchQueryRef.current) {
+                searchQueryRef.current = searchTerm;
+                const msg = searchTerm.trim() ? `Mencari log "${searchTerm.trim()}"...` : 'Memuat data log deteksi...';
+                executeFilter(
+                    route('logs.detection'),
+                    { search: searchTerm.trim(), filter: filterRef.current, status: statusRef.current, page: 1 },
+                    msg
+                );
+            }
+        }, 350);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm]);
+
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
+            e.preventDefault();
+            searchQueryRef.current = searchTerm;
             const msg = searchTerm.trim() ? `Mencari log "${searchTerm.trim()}"...` : 'Memuat data log deteksi...';
-            executeFilter(route('logs.detection'), { search: searchTerm, filter: activeFilter, status: statusFilter }, msg);
+            executeFilter(
+                route('logs.detection'),
+                { search: searchTerm.trim(), filter: filterRef.current, status: statusRef.current, page: 1 },
+                msg
+            );
         }
     };
 
     const handleClearSearch = () => {
+        searchQueryRef.current = '';
         setSearchTerm('');
-        executeFilter(route('logs.detection'), { search: '', filter: activeFilter, status: statusFilter }, 'Memuat semua data log deteksi...');
+        executeFilter(
+            route('logs.detection'),
+            { search: '', filter: filterRef.current, status: statusRef.current, page: 1 },
+            'Memuat semua data log deteksi...'
+        );
+    };
+
+    const handleReset = () => {
+        searchQueryRef.current = '';
+        filterRef.current = 'all';
+        statusRef.current = 'all';
+        setSearchTerm('');
+        setActiveFilter('all');
+        setStatusFilter('all');
+        executeFilter(
+            route('logs.detection'),
+            { search: '', filter: 'all', status: 'all', page: 1 },
+            'Mereset filter log deteksi...'
+        );
     };
 
     const handleFilterChange = (filter: string) => {
         setActiveFilter(filter);
+        filterRef.current = filter;
         const categoryMap: Record<string, string> = {
             'all': 'semua deteksi keamanan',
             'judol': 'deteksi Judi Online',
@@ -113,12 +205,17 @@ export default function DetectionLog({
             'uptime': 'log Uptime HTTP',
         };
         const msg = `Memuat ${categoryMap[filter] || filter}...`;
-        executeFilter(route('logs.detection'), { search: searchTerm, filter, status: statusFilter }, msg);
+        executeFilter(
+            route('logs.detection'),
+            { search: searchQueryRef.current, filter, status: statusRef.current, page: 1 },
+            msg
+        );
     };
 
     const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setStatusFilter(val);
+        statusRef.current = val;
         const statusTextMap: Record<string, string> = {
             'all': 'semua status log',
             'new': 'status Baru (Ditemukan)',
@@ -126,7 +223,11 @@ export default function DetectionLog({
             'blocked': 'status Diblokir',
             'false_positive': 'status Bukan Spam',
         };
-        executeFilter(route('logs.detection'), { search: searchTerm, filter: activeFilter, status: val }, `Memuat ${statusTextMap[val] || val}...`);
+        executeFilter(
+            route('logs.detection'),
+            { search: searchQueryRef.current, filter: filterRef.current, status: val, page: 1 },
+            `Memuat ${statusTextMap[val] || val}...`
+        );
     };
 
     const handleUpdateStatus = (id: string, status: string) => {
@@ -140,16 +241,15 @@ export default function DetectionLog({
         router.patch(route('logs.detection.status', id), { status }, {
             preserveScroll: true,
             onSuccess: () => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
                 let actionText = 'diperbarui';
                 if (status === 'blocked') actionText = 'diblokir';
                 if (status === 'false_positive') actionText = 'ditandai sebagai bukan spam';
                 toast.success('Berhasil', `Status log deteksi berhasil ${actionText}.`);
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
                 toast.error('Gagal', 'Terjadi kesalahan saat memperbarui status.');
             }
@@ -162,7 +262,11 @@ export default function DetectionLog({
 
     const handleRefresh = () => {
         setIsRefreshing(true);
-        executeFilter(route('logs.detection'), { search: searchTerm, filter: activeFilter, status: statusFilter }, 'Menyegarkan data log deteksi...');
+        executeFilter(
+            route('logs.detection'),
+            { search: searchQueryRef.current, filter: filterRef.current, status: statusRef.current },
+            'Menyegarkan data log deteksi...'
+        );
     };
 
     const getCatBadge = (category: string) => {
@@ -222,6 +326,7 @@ export default function DetectionLog({
                     onSearchChange={setSearchTerm}
                     onSearchKeyDown={handleSearch}
                     onClearSearch={handleClearSearch}
+                    onReset={handleReset}
                     activeFilter={activeFilter}
                     onFilterChange={handleFilterChange}
                     statusFilter={statusFilter}
@@ -244,7 +349,7 @@ export default function DetectionLog({
                     onPageChange={(page) => {
                         executeFilter(
                             route('logs.detection'),
-                            { search: searchTerm, filter: activeFilter, status: statusFilter, page },
+                            { search: searchQueryRef.current, filter: filterRef.current, status: statusRef.current, page },
                             `Memuat halaman ${page}...`
                         );
                     }}

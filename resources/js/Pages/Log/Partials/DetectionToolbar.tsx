@@ -5,6 +5,7 @@ interface DetectionToolbarProps {
     onSearchChange: (val: string) => void;
     onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
     onClearSearch: () => void;
+    onReset: () => void;
     activeFilter: string;
     onFilterChange: (filter: string) => void;
     statusFilter: string;
@@ -20,6 +21,7 @@ export default function DetectionToolbar({
     onSearchChange,
     onSearchKeyDown,
     onClearSearch,
+    onReset,
     activeFilter,
     onFilterChange,
     statusFilter,
@@ -116,26 +118,31 @@ export default function DetectionToolbar({
                         value={searchTerm}
                         onChange={e => onSearchChange(e.target.value)}
                         onKeyDown={onSearchKeyDown}
-                        style={{ paddingRight: searchTerm ? '2rem' : undefined }}
+                        style={{ padding: '0.55rem 2.4rem 0.55rem 2.3rem' }}
                     />
                     {searchTerm && (
                         <button
                             type="button"
                             onClick={onClearSearch}
+                            className="btn btn-sm btn-link position-absolute text-muted p-0"
                             style={{ 
-                                position: 'absolute', 
-                                right: '0.65rem', 
+                                right: '0.75rem', 
                                 top: '50%', 
                                 transform: 'translateY(-50%)', 
-                                background: 'none', 
+                                textDecoration: 'none', 
+                                background: 'transparent', 
                                 border: 'none', 
-                                color: 'var(--ink-faint)', 
                                 cursor: 'pointer', 
-                                padding: '0.2rem' 
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '22px',
+                                height: '22px'
                             }}
-                            title="Hapus pencarian"
+                            title="Bersihkan pencarian"
+                            aria-label="Bersihkan pencarian"
                         >
-                            <i className="bi bi-x-circle-fill"></i>
+                            <i className="bi bi-x-circle-fill" style={{ fontSize: '0.95rem' }}></i>
                         </button>
                     )}
                 </div>
@@ -145,6 +152,26 @@ export default function DetectionToolbar({
                 <div className={`filter-chip ${activeFilter === 'hidden' ? 'active' : ''}`} onClick={() => onFilterChange('hidden')}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--blue-1)', display: 'inline-block' }}></span>Teks Tersembunyi</div>
                 <div className={`filter-chip ${activeFilter === 'newpage' ? 'active' : ''}`} onClick={() => onFilterChange('newpage')}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--teal-1)', display: 'inline-block' }}></span>Halaman Baru</div>
                 <div className={`filter-chip ${activeFilter === 'uptime' ? 'active' : ''}`} onClick={() => onFilterChange('uptime')}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>Log Uptime HTTP</div>
+
+                {/* Reset Filter Button */}
+                <button
+                    type="button"
+                    onClick={onReset}
+                    className="btn btn-sm btn-light ms-auto d-inline-flex align-items-center gap-1.5"
+                    style={{
+                        borderRadius: '10px',
+                        border: '1px solid var(--line)',
+                        padding: '0.45rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        background: '#ffffff',
+                        color: 'var(--ink)'
+                    }}
+                    title="Reset Semua Filter"
+                >
+                    <i className="bi bi-arrow-clockwise"></i>
+                    <span>Reset</span>
+                </button>
             </div>
         </div>
     );

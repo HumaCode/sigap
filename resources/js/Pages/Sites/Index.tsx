@@ -97,14 +97,19 @@ export default function Index(props: any) {
         return () => clearInterval(interval);
     }, [sites]);
 
-    // Always keep URL address bar clean (mask query parameters)
+    // Synchronize search and filter when props change
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState({}, document.title, window.location.pathname);
+        if (filters.search !== undefined) {
+            setSearch(filters.search || '');
+            searchQueryRef.current = filters.search || '';
         }
-    }, [sites]);
+        if (filters.filter !== undefined) {
+            setFilter(filters.filter || 'all');
+            filterRef.current = filters.filter || 'all';
+        }
+    }, [filters.search, filters.filter]);
 
-    // Router Filter Execution helper with URL cleaning
+    // Router Filter Execution helper
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
         setIsFiltering(true);
@@ -114,15 +119,7 @@ export default function Index(props: any) {
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            onSuccess: () => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
-            },
             onFinish: () => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, 450 - elapsed);
                 setTimeout(() => {
@@ -136,10 +133,10 @@ export default function Index(props: any) {
     };
 
     const handlePageChange = (page: number) => {
-        executeFilter(route('sites.index'), { search, filter, page }, `Memuat halaman ${page}...`);
+        executeFilter(route('sites.index'), { search: search.trim(), filter: filterRef.current || 'all', page }, `Memuat halaman ${page}...`);
     };
 
-    // Debounced Search Effect (menunggu ketikan selesai 400ms sebelum request)
+    // Debounced Search Effect (menunggu ketikan selesai 350ms sebelum request)
     useEffect(() => {
         if (!isMounted.current) {
             isMounted.current = true;
@@ -150,9 +147,9 @@ export default function Index(props: any) {
             if (search !== searchQueryRef.current) {
                 searchQueryRef.current = search;
                 const msg = search.trim() ? `Mencari situs "${search.trim()}"...` : 'Memuat data situs...';
-                executeFilter(route('sites.index'), { search, filter: filterRef.current }, msg);
+                executeFilter(route('sites.index'), { search: search.trim(), filter: filterRef.current || 'all', page: 1 }, msg);
             }
-        }, 400);
+        }, 350);
 
         return () => clearTimeout(delayDebounce);
     }, [search]);
@@ -164,25 +161,22 @@ export default function Index(props: any) {
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (search !== searchQueryRef.current) {
-                searchQueryRef.current = search;
-                const msg = search.trim() ? `Mencari situs "${search.trim()}"...` : 'Memuat data situs...';
-                executeFilter(route('sites.index'), { search, filter: filterRef.current }, msg);
-            }
+            searchQueryRef.current = search;
+            const msg = search.trim() ? `Mencari situs "${search.trim()}"...` : 'Memuat data situs...';
+            executeFilter(route('sites.index'), { search: search.trim(), filter: filterRef.current || 'all', page: 1 }, msg);
         }
     };
 
     const handleClearSearch = () => {
         searchQueryRef.current = '';
         setSearch('');
-        const currentQuery = filters.search ? String(filters.search) : '';
-        if (currentQuery !== '') {
-            executeFilter(route('sites.index'), { search: '', filter: filterRef.current }, 'Memuat semua situs...');
-        }
+        executeFilter(route('sites.index'), { search: '', filter: filterRef.current || 'all', page: 1 }, 'Memuat semua situs...');
     };
 
     const handleFilter = (f: string) => {
-        setFilter(f);
+        const nextFilter = f || 'all';
+        setFilter(nextFilter);
+        filterRef.current = nextFilter;
         const statusMap: Record<string, string> = {
             'all': 'Semua Situs',
             'up': 'Situs Aktif (Online)',
@@ -190,14 +184,15 @@ export default function Index(props: any) {
             'warn': 'Situs Performa Lambat',
             'paused': 'Situs Nonaktif'
         };
-        executeFilter(route('sites.index'), { search, filter: f }, `Memuat ${statusMap[f] || f}...`);
+        executeFilter(route('sites.index'), { search: search.trim(), filter: nextFilter, page: 1 }, `Memuat ${statusMap[nextFilter] || nextFilter}...`);
     };
 
     const handleReset = () => {
         searchQueryRef.current = '';
         setSearch('');
         setFilter('all');
-        executeFilter(route('sites.index'), {}, 'Mereset filter situs...');
+        filterRef.current = 'all';
+        executeFilter(route('sites.index'), { search: '', filter: 'all', page: 1 }, 'Mereset filter situs...');
     };
 
     const handleExportCsv = () => {

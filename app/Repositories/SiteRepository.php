@@ -34,14 +34,17 @@ class SiteRepository implements SiteRepositoryInterface
             });
         }
 
-        if ($filter !== 'all' && $filter) {
+        if (in_array($filter, ['up', 'down', 'warn', 'paused'])) {
             if ($filter === 'paused') {
-                $query->where('is_active', false);
+                $query->where(function ($q) {
+                    $q->where('is_active', false)->orWhere('status', 'paused');
+                });
             } else {
                 $query->where('status', $filter)->where('is_active', true);
             }
         }
-        return $query->latest()->paginate($perPage);
+
+        return $query->latest()->paginate($perPage)->withQueryString();
     }
     
     public function create(array $data) { return Site::create($data); }

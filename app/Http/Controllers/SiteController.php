@@ -47,7 +47,10 @@ class SiteController extends Controller
 
         return inertia('Sites/Index', [
             'sites' => new PaginateResource($sites, SiteResource::class),
-            'filters' => $request->only(['search', 'filter']),
+            'filters' => [
+                'search' => (string) $request->input('search', ''),
+                'filter' => (string) $request->input('filter', 'all'),
+            ],
             'stats' => $stats,
             'can' => [
                 'create' => $user?->can('create', Site::class) ?? false,

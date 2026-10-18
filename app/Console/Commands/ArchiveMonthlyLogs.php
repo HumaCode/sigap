@@ -12,7 +12,7 @@ class ArchiveMonthlyLogs extends Command
      *
      * @var string
      */
-    protected $signature = 'logs:archive-monthly {--month= : Periode bulan yang ingin diarsipkan (format YYYY-MM, contoh: 2026-09)} {--period= : Alias untuk --month} {--no-purge : Hanya backup tanpa membersihkan log dari database}';
+    protected $signature = 'logs:archive-monthly {--month= : Periode bulan yang ingin diarsipkan (format YYYY-MM, contoh: 2026-09)} {--period= : Alias untuk --month} {--scope=all : Cakupan data: all, activity, detection, incident} {--no-purge : Hanya backup tanpa membersihkan log dari database}';
 
     /**
      * The console command description.
@@ -33,15 +33,17 @@ class ArchiveMonthlyLogs extends Command
     {
         $month = $this->option('month') ?: $this->option('period') ?: now()->subMonth()->format('Y-m');
         $purge = !$this->option('no-purge');
+        $scope = $this->option('scope') ?: 'all';
 
-        $this->info("Memulai proses arsip dan rekap log untuk periode: {$month}...");
+        $this->info("Memulai proses arsip dan rekap log ({$scope}) untuk periode: {$month}...");
 
         try {
-            $result = $this->archiveService->archivePeriod($month, null, $purge);
+            $result = $this->archiveService->archivePeriod($month, null, $purge, $scope);
 
-            $this->info("✔ Arsip berhasil dibuat!");
+            $this->info("✔ Arsip ({$result['scope']}) berhasil dibuat!");
             $this->line("- Log Aktivitas Terarsip : " . number_format($result['activity_count']) . " baris");
             $this->line("- Log Deteksi Terarsip   : " . number_format($result['detection_count']) . " baris");
+            $this->line("- Insiden Terarsip       : " . number_format($result['incident_count']) . " baris");
             $this->line("- File Laporan PDF       : " . $result['pdf_file'] . " (" . round($result['pdf_size'] / 1024, 1) . " KB)");
             $this->line("- File Data Mentah ZIP   : " . $result['zip_file'] . " (" . round($result['zip_size'] / 1024, 1) . " KB)");
 
@@ -49,6 +51,7 @@ class ArchiveMonthlyLogs extends Command
                 $this->info("✔ Pembersihan database selesai:");
                 $this->line("- Data Activity Log terhapus  : " . number_format($result['deleted_activities']) . " baris");
                 $this->line("- Data Detection Log terhapus : " . number_format($result['deleted_detections']) . " baris");
+                $this->line("- Data Insiden terhapus       : " . number_format($result['deleted_incidents']) . " baris");
             } else {
                 $this->warn("Data log di database tidak dihapus (mode --no-purge).");
             }

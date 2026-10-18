@@ -130,11 +130,12 @@
         <div class="header-sub">SIGAP &mdash; Sistem Informasi Gangguan & Analisis Performa Layanan Web OPD</div>
     </div>
 
-    <div class="report-title">LAPORAN REKAPITULASI PEMANTAUAN & AUDIT SISTEM</div>
+    <div class="report-title">{{ strtoupper($scopeTitle ?? 'LAPORAN REKAPITULASI PEMANTAUAN & AUDIT SISTEM') }}</div>
     <div class="report-meta">
         <strong>Periode:</strong> {{ $periodLabel }} &nbsp;|&nbsp; 
         <strong>Digenerate:</strong> {{ $generatedAt }} &nbsp;|&nbsp; 
-        <strong>Status Arsip:</strong> Terarsip & Dibersihkan Otomatis
+        <strong>Cakupan Arsip:</strong> {{ strtoupper($scope ?? 'ALL') }} &nbsp;|&nbsp;
+        <strong>Status:</strong> Terarsip & Dibersihkan
     </div>
 
     <!-- Summary Box Grid -->
@@ -150,11 +151,11 @@
             </td>
             <td>
                 <div class="stat-val">{{ number_format($totalIncidents) }}</div>
-                <div class="stat-lbl">Insiden Terdeteksi</div>
+                <div class="stat-lbl">Insiden Terarsip</div>
             </td>
             <td>
                 <div class="stat-val">{{ number_format($totalLogsArchived) }}</div>
-                <div class="stat-lbl">Data Log Terarsip</div>
+                <div class="stat-lbl">Total Data Terarsip</div>
             </td>
         </tr>
     </table>
@@ -232,7 +233,7 @@
     </table>
 
     <!-- Ringkasan Audit Log -->
-    <h3>3. Statistik Log Audit & Telemetri</h3>
+    <h3>3. Statistik Log Audit & Telemetri Yang Diarsipkan</h3>
     <table class="data-table">
         <thead>
             <tr>
@@ -242,16 +243,27 @@
             </tr>
         </thead>
         <tbody>
+            @if(!empty($includeDetection))
             <tr>
                 <td><strong>Log Deteksi & Pemeriksaan Otomatis (Detection Logs)</strong></td>
                 <td style="text-align: right;">{{ number_format($detectionCount) }} baris</td>
                 <td style="text-align: center;"><span class="badge badge-success">Pembersihan Selesai</span></td>
             </tr>
+            @endif
+            @if(!empty($includeActivity))
             <tr>
                 <td><strong>Log Audit Aktivitas Pengguna & Sistem (Activity Logs)</strong></td>
                 <td style="text-align: right;">{{ number_format($activityCount) }} baris</td>
                 <td style="text-align: center;"><span class="badge badge-success">Pembersihan Selesai</span></td>
             </tr>
+            @endif
+            @if(!empty($includeIncident))
+            <tr>
+                <td><strong>Rekaman Riwayat Insiden Siber & Downtime (Incidents)</strong></td>
+                <td style="text-align: right;">{{ number_format($incidentCount) }} insiden</td>
+                <td style="text-align: center;"><span class="badge badge-success">Pembersihan Selesai</span></td>
+            </tr>
+            @endif
         </tbody>
     </table>
 

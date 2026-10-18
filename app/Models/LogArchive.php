@@ -15,8 +15,10 @@ class LogArchive extends Model
     protected $fillable = [
         'period',
         'title',
+        'scope',
         'activity_log_count',
         'detection_log_count',
+        'incident_count',
         'pdf_path',
         'pdf_size',
         'csv_path',
@@ -29,6 +31,7 @@ class LogArchive extends Model
     protected $casts = [
         'activity_log_count' => 'integer',
         'detection_log_count' => 'integer',
+        'incident_count' => 'integer',
         'pdf_size' => 'integer',
         'csv_size' => 'integer',
         'created_at' => 'datetime',

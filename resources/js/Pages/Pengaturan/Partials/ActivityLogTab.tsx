@@ -55,6 +55,7 @@ export default function ActivityLogTab({
     // Archive state
     const [isArchiving, setIsArchiving] = useState(false);
     const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+    const [archiveScope, setArchiveScope] = useState<'all' | 'activity' | 'detection' | 'incident'>('all');
     const [archiveMonth, setArchiveMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
     // Filter states
@@ -152,13 +153,20 @@ export default function ActivityLogTab({
             {
                 month: archiveMonth,
                 purge: true,
+                scope: archiveScope,
             },
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     setIsArchiving(false);
                     setShowArchiveConfirm(false);
-                    toast.success('Arsip Selesai', 'Arsip bulanan berhasil dibuat dan log lama di database telah dibersihkan.');
+                    const scopeLabels: Record<string, string> = {
+                        activity: 'Log Aktivitas',
+                        detection: 'Detection Log',
+                        incident: 'Insiden',
+                        all: 'Semua Log & Insiden',
+                    };
+                    toast.success('Arsip Selesai', `Arsip ${scopeLabels[archiveScope] || 'log'} periode ${archiveMonth} berhasil dibuat dan data terkait di database telah dibersihkan.`);
                 },
                 onError: (errs) => {
                     setIsArchiving(false);
@@ -170,6 +178,52 @@ export default function ActivityLogTab({
                 },
             }
         );
+    };
+
+    const getArchiveModalContent = () => {
+        switch (archiveScope) {
+            case 'activity':
+                return {
+                    title: `Arsipkan & Bersihkan Log Aktivitas Periode ${archiveMonth}?`,
+                    message: `Sistem akan mengekspor seluruh rekaman Jejak Audit (Activity Log) periode ${archiveMonth} ke dalam file Laporan PDF & ZIP (.CSV), kemudian menghapus data log aktivitas tersebut dari database. Tabel deteksi dan insiden TIDAK akan terpengaruh.`,
+                    scopeBadge: 'Log Aktivitas Saja',
+                    itemDetails: 'Hanya tabel activity_log yang akan diekspor dan dibersihkan.',
+                    variant: 'warning' as const,
+                    icon: 'bi bi-fingerprint',
+                    confirmText: isArchiving ? "Memproses..." : "Ya, Arsipkan Log Aktivitas",
+                };
+            case 'detection':
+                return {
+                    title: `Arsipkan & Bersihkan Detection Log Periode ${archiveMonth}?`,
+                    message: `Sistem akan mengekspor seluruh rekaman Deteksi Keamanan & Uptime periode ${archiveMonth} ke dalam file Laporan PDF & ZIP (.CSV), kemudian menghapus data deteksi tersebut dari database agar server tetap cepat. Log aktivitas dan insiden TIDAK akan terpengaruh.`,
+                    scopeBadge: 'Detection Log Saja',
+                    itemDetails: 'Hanya tabel detection_logs yang akan diekspor dan dibersihkan.',
+                    variant: 'warning' as const,
+                    icon: 'bi bi-shield-check',
+                    confirmText: isArchiving ? "Memproses..." : "Ya, Arsipkan Detection Log",
+                };
+            case 'incident':
+                return {
+                    title: `Arsipkan & Bersihkan Insiden Periode ${archiveMonth}?`,
+                    message: `Sistem akan mengekspor seluruh rekaman Insiden Keamanan & Downtime periode ${archiveMonth} ke dalam file Laporan PDF & ZIP (.CSV), kemudian menghapus rekaman insiden tersebut dari database. Log aktivitas dan deteksi TIDAK akan terpengaruh.`,
+                    scopeBadge: 'Insiden Saja',
+                    itemDetails: 'Hanya tabel incidents & percakapan mitigasi yang akan diekspor dan dibersihkan.',
+                    variant: 'warning' as const,
+                    icon: 'bi bi-exclamation-triangle-fill',
+                    confirmText: isArchiving ? "Memproses..." : "Ya, Arsipkan Insiden",
+                };
+            case 'all':
+            default:
+                return {
+                    title: `Arsipkan & Bersihkan SEMUA Data Periode ${archiveMonth}?`,
+                    message: `Sistem akan mengekspor seluruh Log Aktivitas, Detection Log, dan Insiden periode ${archiveMonth} ke dalam file Laporan Eksekutif PDF & ZIP Data Mentah (.CSV), kemudian menghapus data dari KETIGA tabel tersebut di database MySQL.`,
+                    scopeBadge: 'Semua (Activity, Detection, & Incident)',
+                    itemDetails: 'Ketiga tabel (activity_log, detection_logs, incidents) akan diekspor dan dibersihkan.',
+                    variant: 'danger' as const,
+                    icon: 'bi bi-archive-fill',
+                    confirmText: isArchiving ? "Memproses Arsip Semua..." : "Ya, Bersihkan Semua",
+                };
+        }
     };
 
     // Helper badges & colors
@@ -392,30 +446,130 @@ export default function ActivityLogTab({
                         </p>
                     </div>
 
-                    <div className="d-flex align-items-center gap-2">
-                        <input
-                            type="month"
-                            className="settings-input py-1 px-2"
-                            style={{ width: 'auto', fontSize: '0.85rem' }}
-                            value={archiveMonth}
-                            onChange={(e) => setArchiveMonth(e.target.value)}
-                        />
-                        <button
-                            type="button"
-                            className="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 fw-semibold"
-                            style={{
-                                borderRadius: '8px',
-                                border: '1px solid var(--teal-1, #0ea5a3)',
-                                color: 'var(--teal-1, #0ea5a3)',
-                                background: 'rgba(14, 165, 163, 0.05)',
-                                fontSize: '0.82rem',
-                            }}
-                            onClick={() => setShowArchiveConfirm(true)}
-                            disabled={isArchiving}
+                    <div className="d-flex flex-wrap align-items-center gap-2">
+                        {/* Month Picker */}
+                        <div className="d-flex align-items-center gap-1.5 me-md-1">
+                            <span className="text-muted fw-semibold" style={{ fontSize: '0.8rem' }}>Periode:</span>
+                            <input
+                                type="month"
+                                className="settings-input py-1 px-2.5"
+                                style={{ width: 'auto', fontSize: '0.84rem', fontWeight: 600 }}
+                                value={archiveMonth}
+                                onChange={(e) => setArchiveMonth(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Button 1: Activity Log */}
+                        <Tooltip
+                            title="Arsip Log Aktivitas"
+                            description="Hanya backup & bersihkan rekaman log aktivitas pengguna"
+                            variant="dark"
+                            position="top"
                         >
-                            <i className="bi bi-archive-fill"></i>
-                            Buat Arsip & Bersihkan Database
-                        </button>
+                            <button
+                                type="button"
+                                className="btn btn-sm d-inline-flex align-items-center gap-1.5 px-2.5 py-1.5 fw-semibold"
+                                style={{
+                                    borderRadius: '8px',
+                                    border: '1px solid #cbd5e1',
+                                    color: '#334155',
+                                    background: '#f8fafc',
+                                    fontSize: '0.8rem',
+                                }}
+                                onClick={() => {
+                                    setArchiveScope('activity');
+                                    setShowArchiveConfirm(true);
+                                }}
+                                disabled={isArchiving}
+                            >
+                                <i className="bi bi-fingerprint"></i>
+                                <span>Log Aktivitas</span>
+                            </button>
+                        </Tooltip>
+
+                        {/* Button 2: Detection Log */}
+                        <Tooltip
+                            title="Arsip Detection Log"
+                            description="Hanya backup & bersihkan log pemeriksaan berkala & uptime"
+                            variant="blue"
+                            position="top"
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-sm d-inline-flex align-items-center gap-1.5 px-2.5 py-1.5 fw-semibold"
+                                style={{
+                                    borderRadius: '8px',
+                                    border: '1px solid #bae6fd',
+                                    color: '#0284c7',
+                                    background: '#f0f9ff',
+                                    fontSize: '0.8rem',
+                                }}
+                                onClick={() => {
+                                    setArchiveScope('detection');
+                                    setShowArchiveConfirm(true);
+                                }}
+                                disabled={isArchiving}
+                            >
+                                <i className="bi bi-shield-check"></i>
+                                <span>Detection Log</span>
+                            </button>
+                        </Tooltip>
+
+                        {/* Button 3: Incident */}
+                        <Tooltip
+                            title="Arsip Insiden"
+                            description="Hanya backup & bersihkan rekaman insiden dan percakapan mitigasi"
+                            variant="amber"
+                            position="top"
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-sm d-inline-flex align-items-center gap-1.5 px-2.5 py-1.5 fw-semibold"
+                                style={{
+                                    borderRadius: '8px',
+                                    border: '1px solid #fde68a',
+                                    color: '#d97706',
+                                    background: '#fffbeb',
+                                    fontSize: '0.8rem',
+                                }}
+                                onClick={() => {
+                                    setArchiveScope('incident');
+                                    setShowArchiveConfirm(true);
+                                }}
+                                disabled={isArchiving}
+                            >
+                                <i className="bi bi-exclamation-triangle-fill"></i>
+                                <span>Insiden</span>
+                            </button>
+                        </Tooltip>
+
+                        {/* Button 4: All */}
+                        <Tooltip
+                            title="Arsip & Bersihkan Semua"
+                            description="Backup dan bersihkan Log Aktivitas, Detection Log, dan Insiden sekaligus"
+                            variant="teal"
+                            position="top"
+                        >
+                            <button
+                                type="button"
+                                className="btn btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-1.5 fw-semibold text-white"
+                                style={{
+                                    borderRadius: '8px',
+                                    background: 'var(--teal-1, #0ea5a3)',
+                                    border: 'none',
+                                    fontSize: '0.8rem',
+                                    boxShadow: '0 2px 6px rgba(14, 165, 163, 0.25)',
+                                }}
+                                onClick={() => {
+                                    setArchiveScope('all');
+                                    setShowArchiveConfirm(true);
+                                }}
+                                disabled={isArchiving}
+                            >
+                                <i className="bi bi-archive-fill"></i>
+                                <span>Backup Semua</span>
+                            </button>
+                        </Tooltip>
                     </div>
                 </div>
 
@@ -430,8 +584,8 @@ export default function ActivityLogTab({
                             <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
                                 <thead style={{ background: '#f8fafc' }}>
                                     <tr>
-                                        <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Periode Bulan</th>
-                                        <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Log Terarsip</th>
+                                        <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Periode & Cakupan</th>
+                                        <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Data Terarsip</th>
                                         <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Tanggal Pembuatan</th>
                                         <th className="py-2 px-3 text-secondary text-end" style={{ fontWeight: 600 }}>Unduh Berkas</th>
                                     </tr>
@@ -440,17 +594,37 @@ export default function ActivityLogTab({
                                     {logArchives.map((arch) => (
                                         <tr key={arch.id}>
                                             <td className="py-2 px-3">
-                                                <div className="fw-bold text-dark">{arch.period}</div>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <span className="fw-bold text-dark">{arch.period}</span>
+                                                    {arch.scope === 'activity' && <span className="badge bg-secondary" style={{ fontSize: '0.68rem' }}>Log Aktivitas</span>}
+                                                    {arch.scope === 'detection' && <span className="badge bg-info text-dark" style={{ fontSize: '0.68rem' }}>Deteksi</span>}
+                                                    {arch.scope === 'incident' && <span className="badge bg-warning text-dark" style={{ fontSize: '0.68rem' }}>Insiden</span>}
+                                                    {(!arch.scope || arch.scope === 'all') && <span className="badge text-white" style={{ background: 'var(--teal-1, #0ea5a3)', fontSize: '0.68rem' }}>Semua</span>}
+                                                </div>
                                                 <div className="text-muted" style={{ fontSize: '0.75rem' }}>{arch.title}</div>
                                             </td>
                                             <td className="py-2 px-3">
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <span className="badge rounded-pill" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>
-                                                        {arch.activity_log_count.toLocaleString()} Aktivitas
-                                                    </span>
-                                                    <span className="badge rounded-pill" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-                                                        {arch.detection_log_count.toLocaleString()} Deteksi
-                                                    </span>
+                                                <div className="d-flex align-items-center gap-1.5 flex-wrap">
+                                                    {arch.activity_log_count > 0 && (
+                                                        <span className="badge rounded-pill" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>
+                                                            {arch.activity_log_count.toLocaleString()} Aktivitas
+                                                        </span>
+                                                    )}
+                                                    {arch.detection_log_count > 0 && (
+                                                        <span className="badge rounded-pill" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                                                            {arch.detection_log_count.toLocaleString()} Deteksi
+                                                        </span>
+                                                    )}
+                                                    {(arch.incident_count ?? 0) > 0 && (
+                                                        <span className="badge rounded-pill" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}>
+                                                            {(arch.incident_count ?? 0).toLocaleString()} Insiden
+                                                        </span>
+                                                    )}
+                                                    {arch.activity_log_count === 0 && arch.detection_log_count === 0 && (arch.incident_count ?? 0) === 0 && (
+                                                        <span className="badge rounded-pill bg-light text-muted border">
+                                                            0 Data
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="py-2 px-3 text-muted">
@@ -928,17 +1102,22 @@ export default function ActivityLogTab({
             />
 
             {/* Modal Konfirmasi Arsip & Bersihkan Log */}
-            <ConfirmModal
-                show={showArchiveConfirm}
-                onCancel={() => setShowArchiveConfirm(false)}
-                onConfirm={handleTriggerArchive}
-                title={`Arsipkan & Bersihkan Log Periode ${archiveMonth}?`}
-                message={`Sistem akan mengekspor seluruh rekaman log periode ${archiveMonth} ke dalam file Laporan PDF Eksekutif dan ZIP Data Mentah (.CSV), kemudian menghapus data tersebut dari database MySQL agar server tetap optimal. Berkas arsip dapat diunduh kapan saja.`}
-                confirmText={isArchiving ? "Memproses Arsip..." : "Ya, Buat Arsip & Bersihkan"}
-                cancelText="Batal"
-                variant="warning"
-                isProcessing={isArchiving}
-            />
+            {showArchiveConfirm && (
+                <ConfirmModal
+                    show={showArchiveConfirm}
+                    onCancel={() => setShowArchiveConfirm(false)}
+                    onConfirm={handleTriggerArchive}
+                    title={getArchiveModalContent().title}
+                    message={getArchiveModalContent().message}
+                    itemName={`Periode: ${archiveMonth} • ${getArchiveModalContent().scopeBadge}`}
+                    itemDetails={getArchiveModalContent().itemDetails}
+                    confirmText={getArchiveModalContent().confirmText}
+                    cancelText="Batal"
+                    variant={getArchiveModalContent().variant}
+                    icon={getArchiveModalContent().icon}
+                    isProcessing={isArchiving}
+                />
+            )}
 
             {/* Modal Konfirmasi Unduh Berkas Arsip */}
             {downloadConfirm && (

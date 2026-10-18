@@ -77,13 +77,15 @@ class SettingController extends Controller
             ->pluck('log_name');
 
         // Log Archives
-        $logArchives = \App\Models\LogArchive::latest()->take(12)->get()->map(function ($a) {
+        $logArchives = \App\Models\LogArchive::latest()->take(15)->get()->map(function ($a) {
             return [
                 'id' => $a->id,
                 'period' => $a->period,
                 'title' => $a->title,
+                'scope' => $a->scope ?? 'all',
                 'activity_log_count' => $a->activity_log_count,
                 'detection_log_count' => $a->detection_log_count,
+                'incident_count' => $a->incident_count ?? 0,
                 'pdf_url' => route('settings.log-archives.download-pdf', $a->id),
                 'pdf_size' => $a->formatted_pdf_size,
                 'csv_url' => route('settings.log-archives.download-csv', $a->id),
@@ -285,13 +287,18 @@ class SettingController extends Controller
 
         $month = $request->input('month', now()->format('Y-m'));
         $purge = $request->boolean('purge', true);
+        $scope = $request->input('scope', 'all');
 
         try {
-            $result = $archiveService->archivePeriod($month, $request->user()->id, $purge);
+            $result = $archiveService->archivePeriod($month, $request->user()->id, $purge, $scope);
 
-            $msg = "Arsip log periode {$result['period']} berhasil dibuat (PDF & ZIP tersimpan). " .
-                number_format($result['deleted_activities']) . " log aktivitas & " .
-                number_format($result['deleted_detections']) . " log deteksi telah dibersihkan.";
+            $delParts = [];
+            if ($result['deleted_activities'] > 0) $delParts[] = number_format($result['deleted_activities']) . " log aktivitas";
+            if ($result['deleted_detections'] > 0) $delParts[] = number_format($result['deleted_detections']) . " log deteksi";
+            if ($result['deleted_incidents'] > 0) $delParts[] = number_format($result['deleted_incidents']) . " insiden";
+
+            $msg = "Arsip {$scope} periode {$result['period']} berhasil dibuat (PDF & ZIP tersimpan). " .
+                (empty($delParts) ? "Data di database tetap utuh." : implode(', ', $delParts) . " telah dibersihkan.");
 
             if ($request->wantsJson()) {
                 return response()->json([

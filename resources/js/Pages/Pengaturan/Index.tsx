@@ -74,8 +74,10 @@ export interface LogArchiveItem {
     id: string;
     period: string;
     title: string;
+    scope?: 'all' | 'activity' | 'detection' | 'incident';
     activity_log_count: number;
     detection_log_count: number;
+    incident_count?: number;
     pdf_url: string;
     pdf_size: string;
     csv_url: string;

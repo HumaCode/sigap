@@ -37,6 +37,12 @@ services:
         condition: service_healthy
     networks:
       - sigap-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/up || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # ==========================================================
   # 2. Scheduler Container (Cron Jobs / Periodic Tasks)
@@ -77,6 +83,12 @@ services:
     networks:
       - sigap-network
     command: php artisan schedule:work
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'schedule:work' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   # ==========================================================
   # 3. Queue Worker Container (Background Async Jobs)
@@ -117,6 +129,12 @@ services:
     networks:
       - sigap-network
     command: php artisan queue:work --tries=3 --sleep=3
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'queue:work' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   # ==========================================================
   # 4. Database MySQL Container

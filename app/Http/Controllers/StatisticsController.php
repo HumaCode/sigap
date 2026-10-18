@@ -60,10 +60,11 @@ class StatisticsController extends Controller
         }
 
         // 4. SLA Uptime Calculations
-        $avgUptime = 100.0;
         if ($totalSites > 0) {
-            $totalUptimeSum = ($downSites * 92.4) + ($warnSites * 98.2) + (($activeSites + $pausedSites) * 99.9);
-            $avgUptime = round($totalUptimeSum / $totalSites, 2);
+            $sites = Site::all();
+            $avgUptime = round($sites->avg('uptime_percentage'), 2);
+        } else {
+            $avgUptime = 0.0;
         }
 
         // 5. Radar Blips (Active sites)
@@ -139,7 +140,7 @@ class StatisticsController extends Controller
             $dailyLabels[] = $date->format('d M');
 
             if ($totalSites === 0) {
-                $dailyData[] = 100.0;
+                $dailyData[] = 0.0;
             } else {
                 $incidentCount = $downIncidentsByDate[$dateKey] ?? 0;
                 if ($incidentCount > 0) {

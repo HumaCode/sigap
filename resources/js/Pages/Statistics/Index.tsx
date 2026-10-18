@@ -629,12 +629,34 @@ export default function StatisticsIndex({
                                         Fluktuasi persentase uptime rata-rata seluruh sistem
                                     </span>
                                 </div>
-                                <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1" style={{ fontSize: '0.7rem', fontWeight: 700 }}>
-                                    <i className="bi bi-graph-up me-1"></i>SLA Tercapai
-                                </span>
+                                {inventory.total > 0 ? (
+                                    inventory.avg_uptime >= 99.5 ? (
+                                        <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1" style={{ fontSize: '0.7rem', fontWeight: 700 }}>
+                                            <i className="bi bi-graph-up me-1"></i>SLA Tercapai ({inventory.avg_uptime}%)
+                                        </span>
+                                    ) : (
+                                        <span className="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-2 py-1" style={{ fontSize: '0.7rem', fontWeight: 700 }}>
+                                            <i className="bi bi-exclamation-triangle me-1"></i>SLA Turun ({inventory.avg_uptime}%)
+                                        </span>
+                                    )
+                                ) : (
+                                    <span className="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                                        <i className="bi bi-info-circle me-1"></i>Belum Ada Situs
+                                    </span>
+                                )}
                             </div>
 
-                            <div ref={chartUptimeRef} />
+                            {inventory.total > 0 ? (
+                                <div ref={chartUptimeRef} />
+                            ) : (
+                                <div className="p-4 text-center d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '260px' }}>
+                                    <i className="bi bi-hdd-network text-muted mb-2" style={{ fontSize: '2.4rem', opacity: 0.4 }}></i>
+                                    <div className="fw-semibold text-dark mb-1" style={{ fontSize: '0.9rem' }}>Belum Ada Data Pemantauan Situs</div>
+                                    <div className="text-muted" style={{ fontSize: '0.78rem', maxWidth: '360px' }}>
+                                        Grafik ketersediaan (SLA) akan mulai terisi otomatis setelah Anda mendaftarkan situs web di menu Manajemen Situs.
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

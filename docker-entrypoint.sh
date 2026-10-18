@@ -52,8 +52,8 @@ done
 # Run migrations and cache clear for the main app container only
 if [ $# -eq 0 ]; then
     echo "Running migrations..."
-    php artisan migrate --force
-    php artisan optimize:clear
+    php artisan migrate --force || true
+    php artisan optimize:clear || true
 fi
 
 # Auto-compile Vite assets for production if they don't exist

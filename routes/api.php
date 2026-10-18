@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\IncidentApiController;
 use App\Http\Controllers\Api\InspectApiController;
+use App\Http\Controllers\Api\LogArchiveApiController;
 use App\Http\Controllers\Api\SiteApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +50,14 @@ Route::prefix('v1')->middleware('app.key')->group(function () {
         Route::prefix('inspect')->group(function () {
             Route::get('/', [InspectApiController::class, 'index'])->name('api.v1.inspect.index');
             Route::get('{id}', [InspectApiController::class, 'show'])->name('api.v1.inspect.show');
+        });
+
+        // Modul 6: Arsip & Laporan Eksekutif Bulanan (Read-Only Mobile)
+        Route::prefix('log-archives')->group(function () {
+            Route::get('/', [LogArchiveApiController::class, 'index'])->name('api.v1.log-archives.index');
+            Route::get('{id}', [LogArchiveApiController::class, 'show'])->name('api.v1.log-archives.show');
+            Route::get('{id}/pdf', [LogArchiveApiController::class, 'downloadPdf'])->name('api.v1.log-archives.pdf');
+            Route::get('{id}/csv', [LogArchiveApiController::class, 'downloadCsv'])->name('api.v1.log-archives.csv');
         });
     });
 });

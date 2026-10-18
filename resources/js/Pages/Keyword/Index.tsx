@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
@@ -60,16 +60,51 @@ export default function KeywordIndex({
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
 
-    // Always keep URL address bar clean (mask query parameters like ?filter=judol&search=)
-    useEffect(() => {
+    const searchQueryRef = useRef(safeFilters?.search || '');
+    const filterRef = useRef(safeFilters?.filter || 'all');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/keywords) tanpa query string
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState(
-                {}, 
-                document.title, 
-                window.location.pathname
-            );
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props keywords atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
     }, [keywords, filters]);
+
+    // Sinkronisasi state internal saat props berubah
+    useEffect(() => {
+        if (safeFilters?.search !== undefined) {
+            setSearchTerm(safeFilters.search || '');
+            searchQueryRef.current = safeFilters.search || '';
+        }
+        if (safeFilters?.filter !== undefined) {
+            setActiveFilter(safeFilters.filter || 'all');
+            filterRef.current = safeFilters.filter || 'all';
+        }
+    }, [safeFilters?.search, safeFilters?.filter]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -79,28 +114,38 @@ export default function KeywordIndex({
         router.get(url, params, {
             preserveState: true,
             preserveScroll: true,
+            replace: true,
+            onSuccess: () => {
+                cleanBrowserUrl();
+            },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsFiltering(false);
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
                 }, remaining);
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
             }
         });
     };
 
-    // Debounced Search
+    // Debounced Search (menunggu ketikan berhenti 350ms sebelum request)
     useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
         const timeout = setTimeout(() => {
-            if (searchTerm !== (safeFilters?.search || '')) {
+            if (searchTerm !== searchQueryRef.current) {
+                searchQueryRef.current = searchTerm;
                 const msg = searchTerm.trim() ? `Mencari kata kunci "${searchTerm.trim()}"...` : 'Memuat kamus kata kunci...';
-                executeFilter(route('keywords.index'), { search: searchTerm, filter: activeFilter }, msg);
+                executeFilter(route('keywords.index'), { search: searchTerm.trim(), filter: filterRef.current, page: 1 }, msg);
             }
         }, 350);
         return () => clearTimeout(timeout);
@@ -108,6 +153,7 @@ export default function KeywordIndex({
 
     const handleFilterChange = (filter: string) => {
         setActiveFilter(filter);
+        filterRef.current = filter;
         const catMap: Record<string, string> = {
             'all': 'semua kata kunci',
             'judol': 'kategori Judi Online',
@@ -116,12 +162,21 @@ export default function KeywordIndex({
             'newpage': 'kategori Halaman Baru',
             'phising': 'kategori Phising',
         };
-        executeFilter(route('keywords.index'), { search: searchTerm, filter }, `Memuat ${catMap[filter] || filter}...`);
+        executeFilter(route('keywords.index'), { search: searchQueryRef.current, filter, page: 1 }, `Memuat ${catMap[filter] || filter}...`);
     };
 
     const handleClearSearch = () => {
+        searchQueryRef.current = '';
         setSearchTerm('');
-        executeFilter(route('keywords.index'), { search: '', filter: activeFilter }, 'Memuat semua data kata kunci...');
+        executeFilter(route('keywords.index'), { search: '', filter: filterRef.current, page: 1 }, 'Memuat semua data kata kunci...');
+    };
+
+    const handleReset = () => {
+        searchQueryRef.current = '';
+        filterRef.current = 'all';
+        setSearchTerm('');
+        setActiveFilter('all');
+        executeFilter(route('keywords.index'), { search: '', filter: 'all', page: 1 }, 'Mereset filter kata kunci...');
     };
 
     const handleAdd = () => {
@@ -159,6 +214,7 @@ export default function KeywordIndex({
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     onClearSearch={handleClearSearch}
+                    onReset={handleReset}
                     activeFilter={activeFilter}
                     onFilterChange={handleFilterChange}
                     canCreate={can?.create}
@@ -177,7 +233,7 @@ export default function KeywordIndex({
                     onPageChange={(page) => {
                         executeFilter(
                             route('keywords.index'),
-                            { search: searchTerm, filter: activeFilter, page },
+                            { search: searchQueryRef.current, filter: filterRef.current, page },
                             `Memuat halaman ${page}...`
                         );
                     }}

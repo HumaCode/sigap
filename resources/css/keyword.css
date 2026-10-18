@@ -14,11 +14,11 @@
 .toolbar{ padding:1.1rem 1.3rem; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; border-bottom: 1px solid var(--line); }
 .search-local{ position:relative; flex:1; min-width:200px; max-width:300px; }
 .search-local input{
-  border-radius:12px; border:1.5px solid var(--line); padding:0.6rem 1rem 0.6rem 2.4rem;
+  border-radius:12px; border:1.5px solid var(--line); padding:0.6rem 2.4rem 0.6rem 2.4rem;
   font-size:0.85rem; width:100%; background:rgba(255,255,255,0.6); font-family:'Poppins',sans-serif;
 }
 .search-local input:focus{ outline:none; border-color:var(--teal-1); box-shadow:0 0 0 4px rgba(14,165,163,0.12); background:#fff; }
-.search-local i{ position:absolute; left:0.85rem; top:50%; transform:translateY(-50%); color:var(--ink-faint); }
+.search-local > i.bi-search{ position:absolute; left:0.85rem; top:50%; transform:translateY(-50%); color:var(--ink-faint); pointer-events:none; }
 .filter-chip{
   font-size:0.78rem; padding:0.48rem 0.9rem; border-radius:12px; border:1.5px solid var(--line);
   background:rgba(255,255,255,0.55); color:var(--ink-soft); font-weight:500;

@@ -12,7 +12,7 @@ class ArchiveMonthlyLogs extends Command
      *
      * @var string
      */
-    protected $signature = 'logs:archive-monthly {--month= : Periode bulan yang ingin diarsipkan (format YYYY-MM, contoh: 2026-09)} {--no-purge : Hanya backup tanpa membersihkan log dari database}';
+    protected $signature = 'logs:archive-monthly {--month= : Periode bulan yang ingin diarsipkan (format YYYY-MM, contoh: 2026-09)} {--period= : Alias untuk --month} {--no-purge : Hanya backup tanpa membersihkan log dari database}';
 
     /**
      * The console command description.
@@ -31,7 +31,7 @@ class ArchiveMonthlyLogs extends Command
      */
     public function handle(): int
     {
-        $month = $this->option('month') ?: now()->subMonth()->format('Y-m');
+        $month = $this->option('month') ?: $this->option('period') ?: now()->subMonth()->format('Y-m');
         $purge = !$this->option('no-purge');
 
         $this->info("Memulai proses arsip dan rekap log untuk periode: {$month}...");

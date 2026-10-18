@@ -73,16 +73,56 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
     const [isLoading, setIsLoading] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Memuat data pengguna...');
 
-    // URL parameter masking (hide queries like ?role=admin&search=&status=all from address bar)
-    useEffect(() => {
+    const searchQueryRef = useRef(safeFilters.search || '');
+    const roleRef = useRef(safeFilters.role || 'all');
+    const statusRef = useRef(safeFilters.status || 'all');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/users) tanpa query string
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState(
-                {},
-                document.title,
-                window.location.pathname
-            );
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props users atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
     }, [users, filters]);
+
+    // Sinkronisasi state internal saat props berubah
+    useEffect(() => {
+        if (safeFilters.search !== undefined) {
+            setSearchTerm(safeFilters.search || '');
+            searchQueryRef.current = safeFilters.search || '';
+        }
+        if (safeFilters.role !== undefined) {
+            setSelectedRole(safeFilters.role || 'all');
+            roleRef.current = safeFilters.role || 'all';
+        }
+        if (safeFilters.status !== undefined) {
+            setSelectedStatus(safeFilters.status || 'all');
+            statusRef.current = safeFilters.status || 'all';
+        }
+    }, [safeFilters.search, safeFilters.role, safeFilters.status]);
 
     // Flash notifications (cegah pemanggilan ganda dengan ref)
     const lastFlashRef = useRef<string | null>(null);
@@ -112,37 +152,70 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
             preserveScroll: true,
             replace: true,
             onSuccess: () => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                cleanBrowserUrl();
             },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsLoading(false);
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
                 }, remaining);
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsLoading(false);
             }
         });
     };
 
+    // Debounced search (menunggu ketikan berhenti 350ms sebelum request)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            if (searchTerm !== searchQueryRef.current) {
+                searchQueryRef.current = searchTerm;
+                const msg = searchTerm.trim() 
+                    ? `Mencari pengguna "${searchTerm.trim()}"...` 
+                    : 'Memuat data pengguna...';
+                executeFilter(
+                    { search: searchTerm.trim(), role: roleRef.current, status: statusRef.current, page: 1 },
+                    msg
+                );
+            }
+        }, 350);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm]);
+
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
+            e.preventDefault();
+            searchQueryRef.current = searchTerm;
             const msg = searchTerm.trim() 
                 ? `Mencari pengguna "${searchTerm.trim()}"...` 
                 : 'Memuat data pengguna...';
-            executeFilter({ search: searchTerm, role: selectedRole, status: selectedStatus }, msg);
+            executeFilter({ search: searchTerm.trim(), role: roleRef.current, status: statusRef.current, page: 1 }, msg);
         }
+    };
+
+    const handleClearSearch = () => {
+        searchQueryRef.current = '';
+        setSearchTerm('');
+        executeFilter(
+            { search: '', role: roleRef.current, status: statusRef.current, page: 1 },
+            'Memuat semua data pengguna...'
+        );
     };
 
     const handleRoleChange = (role: string) => {
         setSelectedRole(role);
+        roleRef.current = role;
         const roleLabels: Record<string, string> = {
             'all': 'Semua Peran',
             'dev': 'Developer',
@@ -150,24 +223,35 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
             'user': 'Pengguna'
         };
         executeFilter(
-            { search: searchTerm, role, status: selectedStatus },
+            { search: searchQueryRef.current, role, status: statusRef.current, page: 1 },
             `Memfilter pengguna ${roleLabels[role] || role}...`
         );
     };
 
     const handleStatusChange = (status: string) => {
         setSelectedStatus(status);
+        statusRef.current = status;
         executeFilter(
-            { search: searchTerm, role: selectedRole, status },
+            { search: searchQueryRef.current, role: roleRef.current, status, page: 1 },
             status === 'active' ? 'Memuat pengguna aktif...' : (status === 'inactive' ? 'Memuat pengguna nonaktif...' : 'Memuat semua pengguna...')
         );
     };
 
     const handleReset = () => {
+        searchQueryRef.current = '';
+        roleRef.current = 'all';
+        statusRef.current = 'all';
         setSearchTerm('');
         setSelectedRole('all');
         setSelectedStatus('all');
-        executeFilter({}, 'Mereset filter pengguna...');
+        executeFilter({ search: '', role: 'all', status: 'all', page: 1 }, 'Mereset filter pengguna...');
+    };
+
+    const handlePageChange = (page: number) => {
+        executeFilter(
+            { search: searchQueryRef.current, role: roleRef.current, status: statusRef.current, page },
+            `Memuat halaman ${page}...`
+        );
     };
 
     const handleOpenCreateModal = () => {
@@ -193,9 +277,7 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
             preserveScroll: true,
             replace: true,
             onSuccess: (page: any) => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                cleanBrowserUrl();
                 if (page?.props?.flash?.error) {
                     return;
                 }
@@ -204,12 +286,11 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
                 }
             },
             onFinish: () => {
+                cleanBrowserUrl();
                 setIsLoading(false);
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
             },
             onError: (errs) => {
+                cleanBrowserUrl();
                 setIsLoading(false);
                 const firstErr = Object.values(errs)[0];
                 toast.error('Gagal', typeof firstErr === 'string' ? firstErr : 'Tidak dapat mengubah status pengguna.');
@@ -268,6 +349,7 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 onSearchKeyDown={handleSearchKeyDown}
+                onClearSearch={handleClearSearch}
                 selectedRole={selectedRole}
                 onRoleChange={handleRoleChange}
                 selectedStatus={selectedStatus}
@@ -283,6 +365,7 @@ export default function Index({ users, filters, stats, roles, can }: UsersProps)
                 onEdit={handleEditUser}
                 onDelete={handleDeleteUser}
                 onToggleStatus={handleToggleStatus}
+                onPageChange={handlePageChange}
             />
 
             {/* Create & Edit Modal Partial */}

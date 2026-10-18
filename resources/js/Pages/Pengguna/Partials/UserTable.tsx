@@ -23,9 +23,10 @@ interface UserTableProps {
     onEdit: (user: UserItem) => void;
     onDelete: (user: UserItem) => void;
     onToggleStatus: (user: UserItem) => void;
+    onPageChange?: (page: number) => void;
 }
 
-export default function UserTable({ users, onEdit, onDelete, onToggleStatus }: UserTableProps) {
+export default function UserTable({ users, onEdit, onDelete, onToggleStatus, onPageChange }: UserTableProps) {
     const data = users.data || [];
 
     const getAvatarClass = (roleName: string) => {
@@ -196,7 +197,7 @@ export default function UserTable({ users, onEdit, onDelete, onToggleStatus }: U
             {/* Pagination footer */}
             {users.meta && users.meta.total > 0 && (
                 <div className="px-4 py-3 border-top" style={{ borderColor: 'var(--line)' }}>
-                    <Pagination meta={users.meta} />
+                    <Pagination meta={users.meta} onPageChange={onPageChange} />
                 </div>
             )}
         </div>

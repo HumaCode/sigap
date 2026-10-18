@@ -66,6 +66,21 @@ export default function ActivityLogTab({
     const [detailLog, setDetailLog] = useState<ActivityLogItem | null>(null);
     const [showConfirmClear, setShowConfirmClear] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
+    const [downloadConfirm, setDownloadConfirm] = useState<{
+        show: boolean;
+        type: 'pdf' | 'csv';
+        title: string;
+        url: string;
+        period: string;
+        size: string;
+    } | null>(null);
+
+    const handleConfirmDownload = () => {
+        if (!downloadConfirm) return;
+        const targetUrl = downloadConfirm.url;
+        setDownloadConfirm(null);
+        window.location.href = targetUrl;
+    };
 
     const handleSubmitSettings = (e: React.FormEvent) => {
         e.preventDefault();
@@ -450,14 +465,22 @@ export default function ActivityLogTab({
                                                         variant="red"
                                                         position="top"
                                                     >
-                                                        <a
-                                                            href={arch.pdf_url}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDownloadConfirm({
+                                                                show: true,
+                                                                type: 'pdf',
+                                                                title: 'Unduh Laporan Eksekutif PDF?',
+                                                                url: arch.pdf_url,
+                                                                period: arch.period,
+                                                                size: arch.pdf_size,
+                                                            })}
                                                             className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
                                                             style={{ fontSize: '0.78rem', borderRadius: '6px' }}
                                                         >
                                                             <i className="bi bi-file-earmark-pdf-fill"></i>
                                                             <span>Laporan PDF ({arch.pdf_size})</span>
-                                                        </a>
+                                                        </button>
                                                     </Tooltip>
 
                                                     <Tooltip
@@ -466,14 +489,22 @@ export default function ActivityLogTab({
                                                         variant="blue"
                                                         position="top"
                                                     >
-                                                        <a
-                                                            href={arch.csv_url}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDownloadConfirm({
+                                                                show: true,
+                                                                type: 'csv',
+                                                                title: 'Unduh Data Mentah ZIP?',
+                                                                url: arch.csv_url,
+                                                                period: arch.period,
+                                                                size: arch.csv_size,
+                                                            })}
                                                             className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
                                                             style={{ fontSize: '0.78rem', borderRadius: '6px' }}
                                                         >
                                                             <i className="bi bi-file-earmark-zip-fill"></i>
                                                             <span>Data ZIP ({arch.csv_size})</span>
-                                                        </a>
+                                                        </button>
                                                     </Tooltip>
                                                 </div>
                                             </td>
@@ -908,6 +939,23 @@ export default function ActivityLogTab({
                 variant="warning"
                 isProcessing={isArchiving}
             />
+
+            {/* Modal Konfirmasi Unduh Berkas Arsip */}
+            {downloadConfirm && (
+                <ConfirmModal
+                    show={downloadConfirm.show}
+                    onCancel={() => setDownloadConfirm(null)}
+                    onConfirm={handleConfirmDownload}
+                    title={downloadConfirm.title}
+                    message={`Apakah Anda ingin mengunduh berkas arsip log periode ${downloadConfirm.period} ke perangkat komputer Anda?`}
+                    itemName={downloadConfirm.type === 'pdf' ? `Laporan_Eksekutif_${downloadConfirm.period}.pdf` : `Arsip_Data_Mentah_${downloadConfirm.period}.zip`}
+                    itemDetails={`Ukuran berkas: ${downloadConfirm.size} • Periode: ${downloadConfirm.period}`}
+                    icon={downloadConfirm.type === 'pdf' ? 'bi bi-file-earmark-pdf-fill' : 'bi bi-file-earmark-zip-fill'}
+                    variant="primary"
+                    confirmText="Ya, Unduh Berkas"
+                    cancelText="Batal"
+                />
+            )}
         </div>
     );
 }

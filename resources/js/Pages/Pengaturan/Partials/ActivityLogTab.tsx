@@ -5,6 +5,7 @@ import ConfirmModal from '@/Components/ConfirmModal';
 import { toast } from '@/Components/DynamicToast';
 import EmptyState from '@/Components/EmptyState';
 import Pagination from '@/Components/Pagination';
+import Tooltip from '@/Components/Tooltip';
 import type { ActivityLogItem, LogArchiveItem } from '../Index';
 
 interface ActivityLogTabProps {
@@ -442,25 +443,38 @@ export default function ActivityLogTab({
                                                 {arch.created_at}
                                             </td>
                                             <td className="py-2 px-3 text-end">
-                                                <div className="d-inline-flex gap-2">
-                                                    <a
-                                                        href={arch.pdf_url}
-                                                        className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
-                                                        style={{ fontSize: '0.78rem', borderRadius: '6px' }}
-                                                        title="Unduh Laporan Eksekutif PDF"
+                                                <div className="d-inline-flex gap-2 justify-content-end">
+                                                    <Tooltip
+                                                        title="Laporan Eksekutif PDF"
+                                                        description="Unduh berkas rekapitulasi eksekutif siap cetak"
+                                                        variant="red"
+                                                        position="top"
                                                     >
-                                                        <i className="bi bi-file-earmark-pdf-fill"></i>
-                                                        <span>Laporan PDF ({arch.pdf_size})</span>
-                                                    </a>
-                                                    <a
-                                                        href={arch.csv_url}
-                                                        className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
-                                                        style={{ fontSize: '0.78rem', borderRadius: '6px' }}
-                                                        title="Unduh Raw Data Lengkap (ZIP/CSV)"
+                                                        <a
+                                                            href={arch.pdf_url}
+                                                            className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
+                                                            style={{ fontSize: '0.78rem', borderRadius: '6px' }}
+                                                        >
+                                                            <i className="bi bi-file-earmark-pdf-fill"></i>
+                                                            <span>Laporan PDF ({arch.pdf_size})</span>
+                                                        </a>
+                                                    </Tooltip>
+
+                                                    <Tooltip
+                                                        title="Raw Data ZIP"
+                                                        description="Unduh data mentah lengkap (.CSV) terkompresi ZIP"
+                                                        variant="blue"
+                                                        position="top"
                                                     >
-                                                        <i className="bi bi-file-earmark-zip-fill"></i>
-                                                        <span>Data ZIP ({arch.csv_size})</span>
-                                                    </a>
+                                                        <a
+                                                            href={arch.csv_url}
+                                                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                                                            style={{ fontSize: '0.78rem', borderRadius: '6px' }}
+                                                        >
+                                                            <i className="bi bi-file-earmark-zip-fill"></i>
+                                                            <span>Data ZIP ({arch.csv_size})</span>
+                                                        </a>
+                                                    </Tooltip>
                                                 </div>
                                             </td>
                                         </tr>
@@ -705,14 +719,20 @@ export default function ActivityLogTab({
 
                                             {/* Tombol Detail */}
                                             <td style={{ textAlign: 'center' }}>
-                                                <button
-                                                    type="button"
-                                                    className="btn-detail-log"
-                                                    onClick={() => setDetailLog(log)}
-                                                    title="Lihat detail perubahan atribut"
+                                                <Tooltip
+                                                    title="Lihat Detail Log"
+                                                    description="Tampilkan rincian perubahan atribut entitas"
+                                                    variant="teal"
+                                                    position="left"
                                                 >
-                                                    <i className="bi bi-eye"></i> Detail
-                                                </button>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-detail-log"
+                                                        onClick={() => setDetailLog(log)}
+                                                    >
+                                                        <i className="bi bi-eye"></i> Detail
+                                                    </button>
+                                                </Tooltip>
                                             </td>
                                         </tr>
                                     ))}

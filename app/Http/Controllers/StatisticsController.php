@@ -60,7 +60,7 @@ class StatisticsController extends Controller
         }
 
         // 4. SLA Uptime Calculations
-        $avgUptime = 0.0;
+        $avgUptime = 100.0;
         if ($totalSites > 0) {
             $totalUptimeSum = ($downSites * 92.4) + ($warnSites * 98.2) + (($activeSites + $pausedSites) * 99.9);
             $avgUptime = round($totalUptimeSum / $totalSites, 2);
@@ -123,14 +123,32 @@ class StatisticsController extends Controller
             });
 
         // 8. Trends: 30 Days Uptime Daily Trend
+        $thirtyDaysAgo = Carbon::now()->subDays(29)->startOfDay();
+        $downIncidentsByDate = Incident::where('type', 'down')
+            ->where('created_at', '>=', $thirtyDaysAgo)
+            ->selectRaw('DATE(created_at) as date, count(*) as count')
+            ->groupBy('date')
+            ->pluck('count', 'date')
+            ->toArray();
+
         $dailyLabels = [];
         $dailyData = [];
         for ($i = 29; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
+            $dateKey = $date->format('Y-m-d');
             $dailyLabels[] = $date->format('d M');
-            $noise = (($i * 7 + 3) % 9 - 4) * 0.08;
-            $val = min(100.0, max(94.0, round($avgUptime + $noise, 2)));
-            $dailyData[] = $i === 0 ? $avgUptime : $val;
+
+            if ($totalSites === 0) {
+                $dailyData[] = 100.0;
+            } else {
+                $incidentCount = $downIncidentsByDate[$dateKey] ?? 0;
+                if ($incidentCount > 0) {
+                    $impact = min(20.0, $incidentCount * 2.5);
+                    $dailyData[] = max(70.0, round(100.0 - $impact, 2));
+                } else {
+                    $dailyData[] = $i === 0 ? $avgUptime : 99.9;
+                }
+            }
         }
 
         // 9. Hourly Latency Trend (Past 12 Hours)

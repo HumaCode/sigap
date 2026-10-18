@@ -104,6 +104,9 @@ export default function StatisticsIndex({
                     opacity: 0.15,
                 },
             },
+            dataLabels: {
+                enabled: false,
+            },
             colors: ['#0ea5a3'],
             stroke: { curve: 'smooth', width: 3 },
             fill: {
@@ -135,11 +138,11 @@ export default function StatisticsIndex({
                 axisTicks: { show: false },
             },
             yaxis: {
-                min: 94,
+                min: (min: number) => (min < 90 ? Math.max(0, Math.floor(min - 5)) : 90),
                 max: 100,
-                tickAmount: 3,
+                tickAmount: 4,
                 labels: {
-                    formatter: (val: number) => `${val.toFixed(1)}%`,
+                    formatter: (val: number) => `${val.toFixed(0)}%`,
                     style: { colors: '#7c93a3', fontSize: '11px' },
                 },
             },

@@ -253,8 +253,22 @@ class SettingController extends Controller
         }
 
         try {
-            Artisan::call('optimize:clear');
-            Cache::flush();
+            // Bersihkan views, cache store, dan data secara aman
+            try { Artisan::call('view:clear'); } catch (\Throwable $e) {}
+            try { Artisan::call('cache:clear'); } catch (\Throwable $e) {}
+            try { Cache::flush(); } catch (\Throwable $e) {}
+
+            // Hapus berkas bootstrap cache secara aman tanpa mengunci worker php artisan serve di Windows
+            $bootstrapFiles = [
+                base_path('bootstrap/cache/config.php'),
+                base_path('bootstrap/cache/routes-v7.php'),
+                base_path('bootstrap/cache/events.php'),
+            ];
+            foreach ($bootstrapFiles as $file) {
+                if (file_exists($file)) {
+                    @unlink($file);
+                }
+            }
 
             activity('setting')
                 ->causedBy($request->user())

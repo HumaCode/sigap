@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -19,6 +21,7 @@ class PasswordResetLinkController extends Controller
     {
         return Inertia::render('Auth/ForgotPassword', [
             'status' => session('status'),
+            'turnstileSiteKey' => (string) (\App\Models\Setting::getValue('turnstile_site_key') ?: config('services.turnstile.site_key', '')),
         ]);
     }
 
@@ -29,6 +32,8 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $this->verifyTurnstile($request);
+
         $request->validate([
             'email' => 'required|email',
         ]);
@@ -48,4 +53,64 @@ class PasswordResetLinkController extends Controller
             'email' => [trans($status)],
         ]);
     }
+
+    /**
+     * Verify Cloudflare Turnstile token if configured.
+     *
+     * @throws ValidationException
+     */
+    protected function verifyTurnstile(Request $request): void
+    {
+        if (app()->environment('testing')) {
+            return;
+        }
+
+        $secretKey = \App\Models\Setting::getValue('turnstile_secret_key') ?: config('services.turnstile.secret_key');
+
+        if (empty($secretKey)) {
+            return;
+        }
+
+        $token = $request->input('cf_turnstile_response')
+            ?: $request->input('cf-turnstile-response')
+            ?: $request->input('turnstile');
+
+        if (empty($token)) {
+            throw ValidationException::withMessages([
+                'turnstile' => 'Harap selesaikan verifikasi Cloudflare Turnstile terlebih dahulu.',
+            ]);
+        }
+
+        try {
+            $response = Http::asForm()
+                ->timeout(10)
+                ->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                    'secret' => $secretKey,
+                    'response' => $token,
+                    'remoteip' => $request->ip(),
+                ]);
+
+            if (! $response->successful() || ! ($response->json('success') === true)) {
+                $errorCodes = $response->json('error-codes') ?? [];
+                Log::warning('Cloudflare Turnstile verification failed on forgot-password', [
+                    'ip' => $request->ip(),
+                    'error_codes' => $errorCodes,
+                    'response_body' => $response->json(),
+                ]);
+
+                throw ValidationException::withMessages([
+                    'turnstile' => 'Verifikasi keamanan Cloudflare Turnstile tidak valid atau telah kedaluwarsa. Silakan centang kembali.',
+                ]);
+            }
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('Cloudflare Turnstile connection error on forgot-password: ' . $e->getMessage());
+
+            throw ValidationException::withMessages([
+                'turnstile' => 'Gagal menghubungi server verifikasi Cloudflare Turnstile. Silakan coba sesaat lagi.',
+            ]);
+        }
+    }
 }
+

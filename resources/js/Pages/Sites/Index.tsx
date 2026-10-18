@@ -109,13 +109,45 @@ export default function Index(props: any) {
         }
     }, [filters.search, filters.filter]);
 
-    // Router Filter Execution helper
+    // Clean initial URL if only default redundant parameters exist (?filter=all&page=1&search=)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.search) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const f = urlParams.get('filter');
+            const s = urlParams.get('search');
+            const p = urlParams.get('page');
+
+            const hasOnlyDefaults = 
+                (!f || f === 'all') &&
+                (!s || s.trim() === '') &&
+                (!p || p === '1');
+
+            if (hasOnlyDefaults) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+    }, []);
+
+    // Router Filter Execution helper with Clean URL logic
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
         setIsFiltering(true);
         const startTime = Date.now();
 
-        router.get(url, params, {
+        // Bersihkan parameter default agar URL browser tetap bersih (Clean URL)
+        // Omit search jika kosong, omit filter jika 'all', omit page jika 1
+        const cleanParams: Record<string, any> = {};
+        if (params.search && typeof params.search === 'string' && params.search.trim() !== '') {
+            cleanParams.search = params.search.trim();
+        }
+        if (params.filter && params.filter !== 'all') {
+            cleanParams.filter = params.filter;
+        }
+        if (params.page && Number(params.page) > 1) {
+            cleanParams.page = Number(params.page);
+        }
+
+        router.get(url, cleanParams, {
             preserveState: true,
             preserveScroll: true,
             replace: true,

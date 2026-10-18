@@ -12,7 +12,7 @@ class ArchiveMonthlyLogs extends Command
      *
      * @var string
      */
-    protected $signature = 'logs:archive-monthly {--month= : Periode bulan yang ingin diarsipkan (format YYYY-MM, contoh: 2026-09)} {--period= : Alias untuk --month} {--scope=all : Cakupan data: all, activity, detection, incident} {--no-purge : Hanya backup tanpa membersihkan log dari database}';
+    protected $signature = 'logs:archive-monthly {--month= : Periode bulan yang ingin diarsipkan (format YYYY-MM, contoh: 2026-09)} {--period= : Alias untuk --month} {--scope=all : Cakupan data: all, activity, detection, incident} {--no-purge : Hanya backup tanpa membersihkan log dari database} {--force : Paksa eksekusi meskipun backup otomatis dinonaktifkan}';
 
     /**
      * The console command description.
@@ -31,6 +31,17 @@ class ArchiveMonthlyLogs extends Command
      */
     public function handle(): int
     {
+        $hasExplicitMonth = !empty($this->option('month')) || !empty($this->option('period'));
+        $force = (bool) $this->option('force');
+        $autoBackupEnabled = (bool) \App\Models\Setting::getValue('log_auto_backup_enabled', true);
+
+        // Jika dipanggil otomatis (tanpa parameter bulan spesifik) dan fitur dinonaktifkan
+        if (!$hasExplicitMonth && !$force && !$autoBackupEnabled) {
+            $this->warn("Fitur backup otomatis bulanan sedang DINONAKTIFKAN di Pengaturan Sistem.");
+            $this->line("Eksekusi dilewati. Aktifkan di web atau gunakan opsi --force jika ingin tetap menjalankan.");
+            return 0;
+        }
+
         $month = $this->option('month') ?: $this->option('period') ?: now()->subMonth()->format('Y-m');
         $purge = !$this->option('no-purge');
         $scope = $this->option('scope') ?: 'all';

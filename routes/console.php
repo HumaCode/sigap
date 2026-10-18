@@ -48,5 +48,8 @@ Schedule::command('logs:prune')
 Schedule::command('logs:archive-monthly')
     ->monthlyOn(1, '01:00')
     ->withoutOverlapping(30)
+    ->when(function () {
+        return (bool) \App\Models\Setting::getValue('log_auto_backup_enabled', true);
+    })
     ->runInBackground();
 

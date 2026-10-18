@@ -13,6 +13,7 @@ interface ActivityLogTabProps {
         retention_days: number;
         log_level: string;
         auto_prune: boolean;
+        auto_backup_enabled?: boolean;
     };
     onSave: (settings: Record<string, any>) => void;
     isSaving: boolean;
@@ -51,6 +52,7 @@ export default function ActivityLogTab({
     const [retentionDays, setRetentionDays] = useState(data.retention_days || 30);
     const [logLevel, setLogLevel] = useState(data.log_level || 'info');
     const [autoPrune, setAutoPrune] = useState(Boolean(data.auto_prune));
+    const [autoBackupEnabled, setAutoBackupEnabled] = useState(data.auto_backup_enabled !== false);
 
     // Archive state
     const [isArchiving, setIsArchiving] = useState(false);
@@ -89,6 +91,17 @@ export default function ActivityLogTab({
             retention_days: Number(retentionDays),
             log_level: logLevel,
             auto_prune: autoPrune,
+            auto_backup_enabled: autoBackupEnabled,
+        });
+    };
+
+    const handleToggleAutoBackup = (newVal: boolean) => {
+        setAutoBackupEnabled(newVal);
+        onSave({
+            retention_days: Number(retentionDays),
+            log_level: logLevel,
+            auto_prune: autoPrune,
+            auto_backup_enabled: newVal,
         });
     };
 
@@ -381,8 +394,8 @@ export default function ActivityLogTab({
                         </div>
 
                         {/* Auto Prune Switch */}
-                        <div className="col-12">
-                            <div className="p-3 rounded-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <div className="col-12 col-md-6">
+                            <div className="p-3 rounded-3 h-100" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                 <div className="form-check form-switch">
                                     <input
                                         className="form-check-input"
@@ -394,11 +407,39 @@ export default function ActivityLogTab({
                                         style={{ width: '2.5rem', height: '1.25rem', cursor: 'pointer' }}
                                     />
                                     <label className="form-check-label ms-2 fw-semibold" htmlFor="autoPruneSwitch" style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
-                                        Pembersihan Otomatis Terjadwal (Daily Auto-Prune)
+                                        Pembersihan Harian (Daily Auto-Prune)
                                     </label>
                                 </div>
                                 <div className="text-muted ms-4 ps-2 mt-1" style={{ fontSize: '0.8rem' }}>
-                                    Jalankan task scheduler harian untuk membuang riwayat log kedaluwarsa secara otomatis demi menjaga performa database tetap prima.
+                                    Membuang riwayat log kadaluwarsa setiap hari pukul 00:30 WIB sesuai batas masa retensi.
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Monthly Auto Archive Switch */}
+                        <div className="col-12 col-md-6">
+                            <div className="p-3 rounded-3 h-100" style={{ background: autoBackupEnabled ? 'rgba(16, 185, 129, 0.05)' : '#f8fafc', border: `1px solid ${autoBackupEnabled ? '#a7f3d0' : '#e2e8f0'}` }}>
+                                <div className="form-check form-switch">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id="autoBackupSwitchCard1"
+                                        checked={autoBackupEnabled}
+                                        onChange={(e) => setAutoBackupEnabled(e.target.checked)}
+                                        style={{ width: '2.5rem', height: '1.25rem', cursor: 'pointer' }}
+                                    />
+                                    <label className="form-check-label ms-2 fw-semibold d-flex align-items-center gap-1.5" htmlFor="autoBackupSwitchCard1" style={{ fontSize: '0.9rem', cursor: 'pointer', color: autoBackupEnabled ? '#065f46' : '#334155' }}>
+                                        <span>Backup Otomatis Bulanan</span>
+                                        <span className={`badge ${autoBackupEnabled ? 'bg-success' : 'bg-secondary'}`} style={{ fontSize: '0.68rem' }}>
+                                            {autoBackupEnabled ? 'Aktif' : 'Nonaktif'}
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="text-muted ms-4 ps-2 mt-1" style={{ fontSize: '0.8rem' }}>
+                                    {autoBackupEnabled
+                                        ? 'Otomatis membuat PDF & ZIP setiap tgl 1 pukul 01:00 WIB lalu membersihkan database.'
+                                        : 'Otomasi dimatikan. Data log & insiden hanya dibackup jika dilakukan manual oleh admin.'}
                                 </div>
                             </div>
                         </div>
@@ -563,6 +604,76 @@ export default function ActivityLogTab({
                                 <span>Backup Semua</span>
                             </button>
                         </Tooltip>
+                    </div>
+                </div>
+
+                {/* Banner Status & Saklar Otomasi Backup Bulanan */}
+                <div
+                    className="p-3 my-3 rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-3"
+                    style={{
+                        background: autoBackupEnabled ? 'rgba(16, 185, 129, 0.05)' : '#f8fafc',
+                        border: `1px solid ${autoBackupEnabled ? '#a7f3d0' : '#e2e8f0'}`,
+                        transition: 'all 0.2s ease',
+                    }}
+                >
+                    <div className="d-flex align-items-center gap-3">
+                        <div className="form-check form-switch m-0">
+                            <input
+                                className="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                id="autoBackupSwitchBanner"
+                                checked={autoBackupEnabled}
+                                onChange={(e) => handleToggleAutoBackup(e.target.checked)}
+                                disabled={isSaving}
+                                style={{ width: '2.8rem', height: '1.4rem', cursor: isSaving ? 'not-allowed' : 'pointer' }}
+                            />
+                        </div>
+                        <div>
+                            <label
+                                className="form-check-label fw-bold d-flex align-items-center gap-2 mb-0"
+                                htmlFor="autoBackupSwitchBanner"
+                                style={{ cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '0.92rem', color: autoBackupEnabled ? '#065f46' : '#334155' }}
+                            >
+                                <span>Status Otomasi Backup Bulanan</span>
+                                {autoBackupEnabled ? (
+                                    <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2.5 py-1" style={{ fontSize: '0.72rem' }}>
+                                        <i className="bi bi-check-circle-fill me-1"></i> AKTIF (Jadwal: Setiap Tgl 1, 01:00 WIB)
+                                    </span>
+                                ) : (
+                                    <span className="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1" style={{ fontSize: '0.72rem' }}>
+                                        <i className="bi bi-slash-circle me-1"></i> NONAKTIF (Hanya Manual)
+                                    </span>
+                                )}
+                            </label>
+                            <div className="text-muted mt-0.5" style={{ fontSize: '0.8rem' }}>
+                                {autoBackupEnabled
+                                    ? 'Task scheduler sistem aktif: Setiap tanggal 1 pukul 01:00 WIB sistem akan mengekspor seluruh log & insiden lalu membersihkan database.'
+                                    : 'Backup otomatis sedang dimatikan. Data log dan insiden tidak akan dibackup atau dihapus oleh sistem kecuali Anda menekan tombol backup manual di atas.'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button
+                            type="button"
+                            className={`btn btn-sm fw-semibold d-inline-flex align-items-center gap-1.5 px-3 py-1.5 ${autoBackupEnabled ? 'btn-outline-danger' : 'btn-success text-white'}`}
+                            onClick={() => handleToggleAutoBackup(!autoBackupEnabled)}
+                            disabled={isSaving}
+                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                        >
+                            {autoBackupEnabled ? (
+                                <>
+                                    <i className="bi bi-pause-circle"></i>
+                                    <span>Nonaktifkan Otomasi</span>
+                                </>
+                            ) : (
+                                <>
+                                    <i className="bi bi-play-circle-fill"></i>
+                                    <span>Aktifkan Otomasi</span>
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
 

@@ -38,6 +38,7 @@ interface SettingsData {
         retention_days: number;
         log_level: string;
         auto_prune: boolean;
+        auto_backup_enabled?: boolean;
     };
     general: {
         app_name: string;

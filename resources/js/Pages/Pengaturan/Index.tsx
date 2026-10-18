@@ -70,6 +70,20 @@ export interface ActivityLogItem {
     created_at_human: string;
 }
 
+export interface LogArchiveItem {
+    id: string;
+    period: string;
+    title: string;
+    activity_log_count: number;
+    detection_log_count: number;
+    pdf_url: string;
+    pdf_size: string;
+    csv_url: string;
+    csv_size: string;
+    created_at: string;
+    notes?: string;
+}
+
 interface SettingsIndexProps extends PageProps {
     settings: SettingsData;
     activityLogs?: {
@@ -77,6 +91,7 @@ interface SettingsIndexProps extends PageProps {
         links: any[];
         meta: any;
     };
+    logArchives?: LogArchiveItem[];
     activityFilters?: {
         log_search?: string;
         log_event?: string;
@@ -95,6 +110,7 @@ interface SettingsIndexProps extends PageProps {
 export default function Index({
     settings,
     activityLogs,
+    logArchives = [],
     activityFilters,
     activityStats,
     availableModules = [],
@@ -267,6 +283,7 @@ export default function Index({
                         onSave={(data) => handleSaveGroup('activity_log', data)}
                         isSaving={isSaving}
                         activityLogs={activityLogs}
+                        logArchives={logArchives}
                         activityFilters={activityFilters}
                         activityStats={activityStats}
                         availableModules={availableModules}

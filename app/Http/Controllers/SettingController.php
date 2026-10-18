@@ -76,9 +76,27 @@ class SettingController extends Controller
             ->whereNotNull('log_name')
             ->pluck('log_name');
 
+        // Log Archives
+        $logArchives = \App\Models\LogArchive::latest()->take(12)->get()->map(function ($a) {
+            return [
+                'id' => $a->id,
+                'period' => $a->period,
+                'title' => $a->title,
+                'activity_log_count' => $a->activity_log_count,
+                'detection_log_count' => $a->detection_log_count,
+                'pdf_url' => route('settings.log-archives.download-pdf', $a->id),
+                'pdf_size' => $a->formatted_pdf_size,
+                'csv_url' => route('settings.log-archives.download-csv', $a->id),
+                'csv_size' => $a->formatted_csv_size,
+                'created_at' => $a->created_at->format('d M Y, H:i'),
+                'notes' => $a->notes,
+            ];
+        });
+
         return Inertia::render('Pengaturan/Index', [
             'settings' => $settings,
             'activityLogs' => $activityLogs,
+            'logArchives' => $logArchives,
             'activityFilters' => [
                 'log_search' => $request->input('log_search', ''),
                 'log_event' => $request->input('log_event', 'all'),
@@ -251,5 +269,80 @@ class SettingController extends Controller
 
             return redirect()->back()->with('error', 'Gagal membersihkan cache: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Generate log archive manually (PDF + Raw CSV ZIP) and purge from database.
+     */
+    public function generateLogArchive(Request $request, \App\Services\LogArchiveService $archiveService): RedirectResponse|JsonResponse
+    {
+        if (!$request->user() || !$request->user()->hasAnyRole(['dev', 'admin'])) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            }
+            abort(403, 'Akses ditolak.');
+        }
+
+        $month = $request->input('month', now()->format('Y-m'));
+        $purge = $request->boolean('purge', true);
+
+        try {
+            $result = $archiveService->archivePeriod($month, $request->user()->id, $purge);
+
+            $msg = "Arsip log periode {$result['period']} berhasil dibuat (PDF & ZIP tersimpan). " .
+                number_format($result['deleted_activities']) . " log aktivitas & " .
+                number_format($result['deleted_detections']) . " log deteksi telah dibersihkan.";
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'data' => $result,
+                ]);
+            }
+
+            return redirect()->back()->with('success', $msg);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Gagal membuat arsip log: ' . $e->getMessage());
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal membuat arsip log: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Gagal membuat arsip log: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download PDF Executive Summary for a log archive.
+     */
+    public function downloadArchivePdf(\App\Models\LogArchive $archive)
+    {
+        $fullPath = storage_path('app/' . $archive->pdf_path);
+        if (!file_exists($fullPath)) {
+            abort(404, 'File PDF laporan arsip tidak ditemukan di server.');
+        }
+
+        return response()->download($fullPath, basename($fullPath), [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
+    /**
+     * Download Raw CSV ZIP for a log archive.
+     */
+    public function downloadArchiveCsv(\App\Models\LogArchive $archive)
+    {
+        $fullPath = storage_path('app/' . $archive->csv_path);
+        if (!file_exists($fullPath)) {
+            abort(404, 'File arsip data mentah (ZIP) tidak ditemukan di server.');
+        }
+
+        return response()->download($fullPath, basename($fullPath), [
+            'Content-Type' => 'application/zip',
+        ]);
     }
 }

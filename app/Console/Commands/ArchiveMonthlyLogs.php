@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Services\LogArchiveService;
+use Illuminate\Console\Command;
+
+class ArchiveMonthlyLogs extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'logs:archive-monthly {--month= : Periode bulan yang ingin diarsipkan (format YYYY-MM, contoh: 2026-09)} {--no-purge : Hanya backup tanpa membersihkan log dari database}';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Otomatis membuat arsip PDF eksekutif & raw ZIP dari data log bulanan, kemudian membersihkan tabel database';
+
+    public function __construct(protected LogArchiveService $archiveService)
+    {
+        parent::__construct();
+    }
+
+    /**
+     * Execute the console command.
+     */
+    public function handle(): int
+    {
+        $month = $this->option('month') ?: now()->subMonth()->format('Y-m');
+        $purge = !$this->option('no-purge');
+
+        $this->info("Memulai proses arsip dan rekap log untuk periode: {$month}...");
+
+        try {
+            $result = $this->archiveService->archivePeriod($month, null, $purge);
+
+            $this->info("✔ Arsip berhasil dibuat!");
+            $this->line("- Log Aktivitas Terarsip : " . number_format($result['activity_count']) . " baris");
+            $this->line("- Log Deteksi Terarsip   : " . number_format($result['detection_count']) . " baris");
+            $this->line("- File Laporan PDF       : " . $result['pdf_file'] . " (" . round($result['pdf_size'] / 1024, 1) . " KB)");
+            $this->line("- File Data Mentah ZIP   : " . $result['zip_file'] . " (" . round($result['zip_size'] / 1024, 1) . " KB)");
+
+            if ($result['purged']) {
+                $this->info("✔ Pembersihan database selesai:");
+                $this->line("- Data Activity Log terhapus  : " . number_format($result['deleted_activities']) . " baris");
+                $this->line("- Data Detection Log terhapus : " . number_format($result['deleted_detections']) . " baris");
+            } else {
+                $this->warn("Data log di database tidak dihapus (mode --no-purge).");
+            }
+
+            return 0;
+        } catch (\Throwable $e) {
+            $this->error("Gagal menjalankan arsip log bulanan: " . $e->getMessage());
+            return 1;
+        }
+    }
+}

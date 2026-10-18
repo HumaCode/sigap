@@ -44,3 +44,9 @@ Schedule::command('logs:prune')
     ->withoutOverlapping(15)
     ->runInBackground();
 
+// 5.1 Otomatis Arsip Log Bulanan (PDF & ZIP Raw) & Pembersihan Database (Setiap Tanggal 1 Pukul 01:00 WIB)
+Schedule::command('logs:archive-monthly')
+    ->monthlyOn(1, '01:00')
+    ->withoutOverlapping(30)
+    ->runInBackground();
+

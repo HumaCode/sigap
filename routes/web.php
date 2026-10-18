@@ -174,6 +174,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/settings/sso/test', [\App\Http\Controllers\SettingController::class, 'testSso'])->name('settings.sso.test');
     Route::post('/settings/clear-cache', [\App\Http\Controllers\SettingController::class, 'clearSystemCache'])->name('settings.clear-cache');
     Route::delete('/settings/activity-logs', [\App\Http\Controllers\SettingController::class, 'clearActivityLogs'])->name('settings.activity-logs.clear');
+    Route::post('/settings/log-archives/generate', [\App\Http\Controllers\SettingController::class, 'generateLogArchive'])->name('settings.log-archives.generate');
+    Route::get('/settings/log-archives/{archive}/download-pdf', [\App\Http\Controllers\SettingController::class, 'downloadArchivePdf'])->name('settings.log-archives.download-pdf');
+    Route::get('/settings/log-archives/{archive}/download-csv', [\App\Http\Controllers\SettingController::class, 'downloadArchiveCsv'])->name('settings.log-archives.download-csv');
 });
 
 require __DIR__.'/auth.php';

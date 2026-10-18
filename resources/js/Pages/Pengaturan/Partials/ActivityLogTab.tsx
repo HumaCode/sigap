@@ -5,7 +5,7 @@ import ConfirmModal from '@/Components/ConfirmModal';
 import { toast } from '@/Components/DynamicToast';
 import EmptyState from '@/Components/EmptyState';
 import Pagination from '@/Components/Pagination';
-import type { ActivityLogItem } from '../Index';
+import type { ActivityLogItem, LogArchiveItem } from '../Index';
 
 interface ActivityLogTabProps {
     data: {
@@ -20,6 +20,7 @@ interface ActivityLogTabProps {
         links: any[];
         meta: any;
     };
+    logArchives?: LogArchiveItem[];
     activityFilters?: {
         log_search?: string;
         log_event?: string;
@@ -40,6 +41,7 @@ export default function ActivityLogTab({
     onSave,
     isSaving,
     activityLogs,
+    logArchives = [],
     activityFilters,
     activityStats = { total: 0, today: 0, created: 0, updated: 0, deleted: 0 },
     availableModules = [],
@@ -48,6 +50,11 @@ export default function ActivityLogTab({
     const [retentionDays, setRetentionDays] = useState(data.retention_days || 30);
     const [logLevel, setLogLevel] = useState(data.log_level || 'info');
     const [autoPrune, setAutoPrune] = useState(Boolean(data.auto_prune));
+
+    // Archive state
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+    const [archiveMonth, setArchiveMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
     // Filter states
     const [searchTerm, setSearchTerm] = useState(activityFilters?.log_search || '');
@@ -120,6 +127,33 @@ export default function ActivityLogTab({
                 toast.error('Gagal', 'Terjadi kesalahan saat membersihkan log.');
             },
         });
+    };
+
+    const handleTriggerArchive = () => {
+        setIsArchiving(true);
+        router.post(
+            route('settings.log-archives.generate'),
+            {
+                month: archiveMonth,
+                purge: true,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsArchiving(false);
+                    setShowArchiveConfirm(false);
+                    toast.success('Arsip Selesai', 'Arsip bulanan berhasil dibuat dan log lama di database telah dibersihkan.');
+                },
+                onError: (errs) => {
+                    setIsArchiving(false);
+                    const firstErr = Object.values(errs)[0];
+                    toast.error('Gagal Membuat Arsip', typeof firstErr === 'string' ? firstErr : 'Terjadi kesalahan sistem.');
+                },
+                onFinish: () => {
+                    setIsArchiving(false);
+                },
+            }
+        );
     };
 
     // Helper badges & colors
@@ -328,6 +362,123 @@ export default function ActivityLogTab({
                     </div>
                 </div>
             </form>
+
+            {/* Bagian 1.5: Otomasi Arsip & Backup Log Bulanan (PDF & ZIP Raw) */}
+            <div className="settings-card mt-4 mb-4">
+                <div className="settings-card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div>
+                        <h4 className="settings-card-title d-flex align-items-center gap-2">
+                            <i className="bi bi-file-earmark-pdf text-danger" style={{ fontSize: '1.2rem' }}></i>
+                            Otomasi Arsip & Backup Log Bulanan (PDF & ZIP Raw)
+                        </h4>
+                        <p className="settings-card-subtitle">
+                            Sistem otomatis membuat laporan eksekutif PDF & kompresi ZIP raw data setiap tanggal 1 pukul 01:00 WIB, kemudian membersihkan tabel database agar performa server tetap optimal.
+                        </p>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                        <input
+                            type="month"
+                            className="settings-input py-1 px-2"
+                            style={{ width: 'auto', fontSize: '0.85rem' }}
+                            value={archiveMonth}
+                            onChange={(e) => setArchiveMonth(e.target.value)}
+                        />
+                        <button
+                            type="button"
+                            className="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 fw-semibold"
+                            style={{
+                                borderRadius: '8px',
+                                border: '1px solid var(--teal-1, #0ea5a3)',
+                                color: 'var(--teal-1, #0ea5a3)',
+                                background: 'rgba(14, 165, 163, 0.05)',
+                                fontSize: '0.82rem',
+                            }}
+                            onClick={() => setShowArchiveConfirm(true)}
+                            disabled={isArchiving}
+                        >
+                            <i className="bi bi-archive-fill"></i>
+                            Buat Arsip & Bersihkan Database
+                        </button>
+                    </div>
+                </div>
+
+                {/* Tabel Riwayat File Arsip Bulanan */}
+                <div className="mt-3">
+                    <h6 className="fw-semibold text-muted text-uppercase mb-3" style={{ fontSize: '0.78rem', letterSpacing: '0.5px' }}>
+                        Daftar Berkas Arsip & Laporan Eksekutif Tersimpan
+                    </h6>
+
+                    {logArchives && logArchives.length > 0 ? (
+                        <div className="table-responsive rounded-3 border" style={{ borderColor: '#e2e8f0' }}>
+                            <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                                <thead style={{ background: '#f8fafc' }}>
+                                    <tr>
+                                        <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Periode Bulan</th>
+                                        <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Log Terarsip</th>
+                                        <th className="py-2 px-3 text-secondary" style={{ fontWeight: 600 }}>Tanggal Pembuatan</th>
+                                        <th className="py-2 px-3 text-secondary text-end" style={{ fontWeight: 600 }}>Unduh Berkas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {logArchives.map((arch) => (
+                                        <tr key={arch.id}>
+                                            <td className="py-2 px-3">
+                                                <div className="fw-bold text-dark">{arch.period}</div>
+                                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>{arch.title}</div>
+                                            </td>
+                                            <td className="py-2 px-3">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <span className="badge rounded-pill" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>
+                                                        {arch.activity_log_count.toLocaleString()} Aktivitas
+                                                    </span>
+                                                    <span className="badge rounded-pill" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                                                        {arch.detection_log_count.toLocaleString()} Deteksi
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-2 px-3 text-muted">
+                                                <i className="bi bi-calendar3 me-1"></i>
+                                                {arch.created_at}
+                                            </td>
+                                            <td className="py-2 px-3 text-end">
+                                                <div className="d-inline-flex gap-2">
+                                                    <a
+                                                        href={arch.pdf_url}
+                                                        className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
+                                                        style={{ fontSize: '0.78rem', borderRadius: '6px' }}
+                                                        title="Unduh Laporan Eksekutif PDF"
+                                                    >
+                                                        <i className="bi bi-file-earmark-pdf-fill"></i>
+                                                        <span>Laporan PDF ({arch.pdf_size})</span>
+                                                    </a>
+                                                    <a
+                                                        href={arch.csv_url}
+                                                        className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                                                        style={{ fontSize: '0.78rem', borderRadius: '6px' }}
+                                                        title="Unduh Raw Data Lengkap (ZIP/CSV)"
+                                                    >
+                                                        <i className="bi bi-file-earmark-zip-fill"></i>
+                                                        <span>Data ZIP ({arch.csv_size})</span>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="p-4 text-center rounded-3 border" style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
+                            <i className="bi bi-folder2-open text-muted d-block mb-2" style={{ fontSize: '1.8rem' }}></i>
+                            <div className="fw-semibold text-muted" style={{ fontSize: '0.85rem' }}>Belum ada berkas arsip bulanan</div>
+                            <div className="text-muted" style={{ fontSize: '0.78rem' }}>
+                                Sistem otomatis menerbitkan arsip setiap akhir bulan atau Anda dapat menekan tombol <strong>"Buat Arsip & Bersihkan Database"</strong> di atas.
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* Bagian 2: Ringkasan Metrik Log Aktivitas */}
             <div className="activity-stat-grid">
@@ -723,6 +874,19 @@ export default function ActivityLogTab({
                 cancelText="Batal"
                 variant="danger"
                 isProcessing={isClearing}
+            />
+
+            {/* Modal Konfirmasi Arsip & Bersihkan Log */}
+            <ConfirmModal
+                show={showArchiveConfirm}
+                onCancel={() => setShowArchiveConfirm(false)}
+                onConfirm={handleTriggerArchive}
+                title={`Arsipkan & Bersihkan Log Periode ${archiveMonth}?`}
+                message={`Sistem akan mengekspor seluruh rekaman log periode ${archiveMonth} ke dalam file Laporan PDF Eksekutif dan ZIP Data Mentah (.CSV), kemudian menghapus data tersebut dari database MySQL agar server tetap optimal. Berkas arsip dapat diunduh kapan saja.`}
+                confirmText={isArchiving ? "Memproses Arsip..." : "Ya, Buat Arsip & Bersihkan"}
+                cancelText="Batal"
+                variant="warning"
+                isProcessing={isArchiving}
             />
         </div>
     );

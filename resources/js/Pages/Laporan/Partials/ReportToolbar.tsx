@@ -10,6 +10,8 @@ interface ReportToolbarProps {
     onRangeChange: (range: string) => void;
     categoryFilter: string;
     onCategoryChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    onReset?: () => void;
+    hasActiveFilters?: boolean;
     canExport?: boolean;
     onExportPdf: () => void;
     onExportCsv?: () => void;
@@ -24,6 +26,8 @@ export default function ReportToolbar({
     onRangeChange,
     categoryFilter,
     onCategoryChange,
+    onReset,
+    hasActiveFilters,
     canExport = false,
     onExportPdf,
     onExportCsv,
@@ -31,10 +35,10 @@ export default function ReportToolbar({
     return (
         <div className="report-toolbar d-flex align-items-center gap-2 flex-wrap mb-3">
             {/* Search Box */}
-            <div className="search-local me-2" style={{ position: 'relative', minWidth: '220px', maxWidth: '300px' }}>
+            <div className="search-local me-2">
                 <i 
                     className="bi bi-search" 
-                    style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)' }}
+                    style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', pointerEvents: 'none' }}
                 ></i>
                 <input 
                     type="text" 
@@ -45,7 +49,7 @@ export default function ReportToolbar({
                     style={{ 
                         borderRadius: '12px', 
                         border: '1.5px solid var(--line)', 
-                        padding: '0.5rem 2.2rem 0.5rem 2.3rem', 
+                        padding: '0.55rem 2.4rem 0.55rem 2.3rem', 
                         fontSize: '0.84rem', 
                         width: '100%', 
                         background: 'rgba(255,255,255,0.7)', 
@@ -53,25 +57,15 @@ export default function ReportToolbar({
                     }}
                 />
                 {searchTerm && (
-                    <Tooltip title="Hapus Pencarian" description="Bersihkan kata kunci filter pencarian" variant="dark">
-                        <button
-                            type="button"
-                            onClick={onClearSearch}
-                            style={{ 
-                                position: 'absolute', 
-                                right: '0.65rem', 
-                                top: '50%', 
-                                transform: 'translateY(-50%)', 
-                                background: 'none', 
-                                border: 'none', 
-                                color: 'var(--ink-faint)', 
-                                cursor: 'pointer', 
-                                padding: '0.2rem' 
-                            }}
-                        >
-                            <i className="bi bi-x-circle-fill"></i>
-                        </button>
-                    </Tooltip>
+                    <button
+                        type="button"
+                        onClick={onClearSearch}
+                        className="clear-search-btn"
+                        title="Hapus pencarian"
+                        aria-label="Hapus pencarian"
+                    >
+                        <i className="bi bi-x-circle-fill"></i>
+                    </button>
                 )}
             </div>
 
@@ -96,6 +90,19 @@ export default function ReportToolbar({
                 <option value="SPBE">SPBE</option>
                 <option value="PPID">PPID</option>
             </select>
+
+            {/* Reset Button */}
+            {onReset && hasActiveFilters && (
+                <button
+                    type="button"
+                    className="btn-reset-filter"
+                    onClick={onReset}
+                    title="Reset semua filter dan pencarian laporan"
+                >
+                    <i className="bi bi-arrow-counterclockwise"></i>
+                    <span>Reset</span>
+                </button>
+            )}
             
             {/* Action Buttons */}
             {canExport && (

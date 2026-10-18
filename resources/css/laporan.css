@@ -10,6 +10,31 @@
   border-radius:12px; border:1.5px solid var(--line); padding:0.5rem 0.9rem; font-size:0.83rem;
   background:rgba(255,255,255,0.6); font-family:'Poppins',sans-serif; color:var(--ink-soft);
 }
+.report-toolbar .search-local{ position:relative; min-width:220px; max-width:320px; }
+.report-toolbar .search-local input:focus{ outline:none; border-color:var(--teal-1); box-shadow:0 0 0 4px rgba(14,165,163,0.12); background:#fff; }
+.report-toolbar .search-local .clear-search-btn{
+  position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);
+  background:transparent; border:none; color:var(--ink-faint);
+  cursor:pointer; padding:0; display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; border-radius:50%; z-index:2; transition:all .15s ease;
+}
+.report-toolbar .search-local .clear-search-btn:hover{
+  color:var(--ink-dark); background:rgba(0,0,0,0.06);
+}
+.report-toolbar .search-local .clear-search-btn i{
+  position:static !important; left:auto !important; top:auto !important; transform:none !important;
+  font-size:0.95rem; line-height:1; color:inherit;
+}
+.report-toolbar .btn-reset-filter{
+  font-size:0.8rem; padding:0.5rem 0.85rem; border-radius:12px;
+  border:1.5px solid rgba(239, 68, 68, 0.25); background:rgba(254, 242, 242, 0.8);
+  color:#dc2626; font-weight:600; display:flex; align-items:center; gap:0.4rem;
+  cursor:pointer; transition:all .15s ease;
+}
+.report-toolbar .btn-reset-filter:hover{
+  background:#fee2e2; color:#b91c1c; transform:translateY(-1px);
+}
+
 .btn-export{
   margin-left:auto; background:linear-gradient(120deg,var(--teal-1),var(--blue-1)); border:none; border-radius:12px;
   color:#fff; font-weight:600; font-size:0.85rem; padding:0.55rem 1.05rem; display:flex; align-items:center; gap:0.5rem;

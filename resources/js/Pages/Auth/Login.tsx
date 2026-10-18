@@ -1,24 +1,50 @@
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { FormEventHandler, useState, KeyboardEvent, useRef } from 'react';
+import { FormEventHandler, useState, KeyboardEvent, useRef, useEffect } from 'react';
 import PopupLoader from '@/Components/PopupLoader';
 import axios from 'axios';
+
+declare global {
+    interface Window {
+        turnstile?: {
+            render: (
+                container: string | HTMLElement,
+                options: {
+                    sitekey: string;
+                    theme?: 'light' | 'dark' | 'auto';
+                    size?: 'normal' | 'compact' | 'flexible';
+                    callback?: (token: string) => void;
+                    'expired-callback'?: () => void;
+                    'error-callback'?: () => void;
+                    [key: string]: any;
+                }
+            ) => string;
+            reset: (widgetId?: string) => void;
+            remove: (widgetId?: string) => void;
+            getResponse: (widgetId?: string) => string;
+        };
+        onloadTurnstileCallback?: () => void;
+    }
+}
 
 export default function Login({
     status,
     canResetPassword,
     ssoEnabled = true,
+    turnstileSiteKey,
 }: {
     status?: string;
     canResetPassword: boolean;
     ssoEnabled?: boolean;
+    turnstileSiteKey?: string;
 }) {
     const { props: pageProps } = usePage<PageProps>();
     const { data, setData, post, processing, errors, reset, setError, clearErrors } = useForm({
         login: '',
         password: '',
         remember: false as boolean,
+        turnstile: '',
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +60,93 @@ export default function Login({
 
     const loginInputRef = useRef<HTMLInputElement>(null);
     const passwordInputRef = useRef<HTMLInputElement>(null);
+
+    const [turnstileToken, setTurnstileToken] = useState<string>('');
+    const turnstileContainerRef = useRef<HTMLDivElement>(null);
+    const turnstileWidgetIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!turnstileSiteKey) return;
+
+        let isMounted = true;
+
+        const renderTurnstile = () => {
+            if (!isMounted || !turnstileContainerRef.current || !window.turnstile) return;
+
+            if (turnstileWidgetIdRef.current) {
+                try {
+                    window.turnstile.remove(turnstileWidgetIdRef.current);
+                } catch (e) {
+                    // ignore
+                }
+                turnstileWidgetIdRef.current = null;
+            }
+
+            try {
+                const widgetId = window.turnstile.render(turnstileContainerRef.current, {
+                    sitekey: turnstileSiteKey,
+                    theme: 'light',
+                    callback: (token: string) => {
+                        if (!isMounted) return;
+                        setTurnstileToken(token);
+                        setData('turnstile', token);
+                        clearErrors('turnstile');
+                    },
+                    'expired-callback': () => {
+                        if (!isMounted) return;
+                        setTurnstileToken('');
+                        setData('turnstile', '');
+                    },
+                    'error-callback': () => {
+                        if (!isMounted) return;
+                        setTurnstileToken('');
+                        setData('turnstile', '');
+                        setError('turnstile', 'Gagal memuat Cloudflare Turnstile. Silakan muat ulang halaman.');
+                    },
+                });
+                turnstileWidgetIdRef.current = widgetId;
+            } catch (err) {
+                console.error('Turnstile render error:', err);
+            }
+        };
+
+        if (window.turnstile) {
+            renderTurnstile();
+        } else {
+            window.onloadTurnstileCallback = () => {
+                if (isMounted) {
+                    renderTurnstile();
+                }
+            };
+
+            const existingScript = document.getElementById('cf-turnstile-script');
+            if (!existingScript) {
+                const script = document.createElement('script');
+                script.id = 'cf-turnstile-script';
+                script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback&render=explicit';
+                script.async = true;
+                script.defer = true;
+                script.onerror = () => {
+                    if (isMounted) {
+                        setError('turnstile', 'Koneksi ke Cloudflare Turnstile terhalang. Periksa koneksi internet Anda.');
+                    }
+                };
+                document.head.appendChild(script);
+            }
+        }
+
+        return () => {
+            isMounted = false;
+            if (turnstileWidgetIdRef.current && window.turnstile) {
+                try {
+                    window.turnstile.remove(turnstileWidgetIdRef.current);
+                } catch (e) {
+                    // ignore
+                }
+                turnstileWidgetIdRef.current = null;
+            }
+        };
+    }, [turnstileSiteKey]);
 
     const handleSsoLogin = () => {
         setLoaderStatus('loading');
@@ -63,6 +176,14 @@ export default function Login({
         if (!data.password) {
             setError('password', 'Silakan masukkan kata sandi Anda.');
             passwordInputRef.current?.focus();
+            setShakeTrigger(true);
+            setTimeout(() => setShakeTrigger(false), 500);
+            return;
+        }
+
+        // Validasi Turnstile jika aktif
+        if (turnstileSiteKey && !turnstileToken) {
+            setError('turnstile', 'Silakan selesaikan verifikasi Cloudflare Turnstile terlebih dahulu.');
             setShakeTrigger(true);
             setTimeout(() => setShakeTrigger(false), 500);
             return;
@@ -108,6 +229,8 @@ export default function Login({
                 login: data.login,
                 password: data.password,
                 remember: data.remember,
+                cf_turnstile_response: turnstileToken,
+                'cf-turnstile-response': turnstileToken,
             });
 
             isDone = true;
@@ -131,6 +254,16 @@ export default function Login({
             setShakeTrigger(true);
             setTimeout(() => setShakeTrigger(false), 500);
 
+            if (turnstileWidgetIdRef.current && window.turnstile) {
+                try {
+                    window.turnstile.reset(turnstileWidgetIdRef.current);
+                } catch (e) {
+                    // ignore
+                }
+                setTurnstileToken('');
+                setData('turnstile', '');
+            }
+
             if (err.response?.data?.errors) {
                 const serverErrors = err.response.data.errors;
                 if (serverErrors.login) {
@@ -138,6 +271,9 @@ export default function Login({
                 }
                 if (serverErrors.password) {
                     setError('password', serverErrors.password[0]);
+                }
+                if (serverErrors.turnstile) {
+                    setError('turnstile', serverErrors.turnstile[0]);
                 }
             } else if (err.response?.data?.message) {
                 setError('login', err.response.data.message);
@@ -330,6 +466,27 @@ export default function Login({
                         </a>
                     )}
                 </div>
+
+                {/* Cloudflare Turnstile Security Widget */}
+                {turnstileSiteKey && (
+                    <div className="turnstile-container-wrapper mb-3">
+                        <div className="d-flex justify-content-center">
+                            <div 
+                                ref={turnstileContainerRef} 
+                                className="cf-turnstile-box" 
+                                style={{ minHeight: '65px' }}
+                            />
+                        </div>
+                        {errors.turnstile && (
+                            <div className="field-error-badge mt-2">
+                                <div className="field-error-text">
+                                    <i className="bi bi-shield-x"></i>
+                                    <span>{errors.turnstile}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Submit Button */}
                 <button type="submit" className="btn btn-login w-100 mt-2" disabled={isSubmitting || processing}>

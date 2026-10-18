@@ -22,6 +22,7 @@ class AuthenticatedSessionController extends Controller
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
             'ssoEnabled' => (bool) \App\Models\Setting::getValue('sso_enabled', true),
+            'turnstileSiteKey' => (string) (\App\Models\Setting::getValue('turnstile_site_key') ?: config('services.turnstile.site_key', '')),
         ]);
     }
 

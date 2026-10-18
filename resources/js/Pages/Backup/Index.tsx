@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import PageHeader from '@/Components/PageHeader';
@@ -12,8 +12,6 @@ import CreateBackupModal from './Partials/CreateBackupModal';
 import RestoreModal from './Partials/RestoreModal';
 import DownloadProgressModal, { DownloadProgressState } from './Partials/DownloadProgressModal';
 import axios from 'axios';
-
-
 
 interface BackupIndexProps {
     backups: {
@@ -65,51 +63,159 @@ export default function BackupIndex({
         completed: false,
     });
 
+    const searchQueryRef = useRef(filters.search || '');
+    const siteIdRef = useRef(filters.site_id || '');
+    const typeRef = useRef(filters.type || '');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/backups) tanpa query string
+    const cleanBrowserUrl = () => {
+        if (typeof window !== 'undefined' && window.location.search) {
+            window.history.replaceState(window.history.state, '', window.location.pathname);
+        }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props backups atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
+    }, [backups, filters]);
+
+    // Sinkronisasi state internal saat props berubah
+    useEffect(() => {
+        if (filters.search !== undefined) {
+            setSearch(filters.search || '');
+            searchQueryRef.current = filters.search || '';
+        }
+        if (filters.site_id !== undefined) {
+            setSiteId(filters.site_id || '');
+            siteIdRef.current = filters.site_id || '';
+        }
+        if (filters.type !== undefined) {
+            setType(filters.type || '');
+            typeRef.current = filters.type || '';
+        }
+    }, [filters.search, filters.site_id, filters.type]);
 
     // Apply Filters
-    const applyFilters = (newFilters: { search?: string; site_id?: string; type?: string }) => {
-        router.get(route('backups.index'), {
-            search: newFilters.search !== undefined ? newFilters.search : search,
-            site_id: newFilters.site_id !== undefined ? newFilters.site_id : siteId,
-            type: newFilters.type !== undefined ? newFilters.type : type,
-        }, {
+    const executeFilter = (params: Record<string, any>) => {
+        router.get(route('backups.index'), params, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
+            onSuccess: () => {
+                cleanBrowserUrl();
+            },
+            onFinish: () => {
+                cleanBrowserUrl();
+            },
+            onError: () => {
+                cleanBrowserUrl();
+            },
         });
     };
 
-    const handleSearchChange = (val: string) => {
-        setSearch(val);
-        applyFilters({ search: val });
+    // Debounced search (350ms)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            if (search !== searchQueryRef.current) {
+                searchQueryRef.current = search;
+                executeFilter({
+                    search: search.trim(),
+                    site_id: siteIdRef.current,
+                    type: typeRef.current,
+                    page: 1,
+                });
+            }
+        }, 350);
+
+        return () => clearTimeout(delayDebounce);
+    }, [search]);
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchQueryRef.current = search;
+            executeFilter({
+                search: search.trim(),
+                site_id: siteIdRef.current,
+                type: typeRef.current,
+                page: 1,
+            });
+        }
+    };
+
+    const handleClearSearch = () => {
+        searchQueryRef.current = '';
+        setSearch('');
+        executeFilter({
+            search: '',
+            site_id: siteIdRef.current,
+            type: typeRef.current,
+            page: 1,
+        });
     };
 
     const handleSiteIdChange = (val: string) => {
         setSiteId(val);
-        applyFilters({ site_id: val });
+        siteIdRef.current = val;
+        executeFilter({
+            search: searchQueryRef.current,
+            site_id: val,
+            type: typeRef.current,
+            page: 1,
+        });
     };
 
     const handleTypeChange = (val: string) => {
         setType(val);
-        applyFilters({ type: val });
+        typeRef.current = val;
+        executeFilter({
+            search: searchQueryRef.current,
+            site_id: siteIdRef.current,
+            type: val,
+            page: 1,
+        });
     };
 
     const handleReset = () => {
+        searchQueryRef.current = '';
+        siteIdRef.current = '';
+        typeRef.current = '';
         setSearch('');
         setSiteId('');
         setType('');
-        applyFilters({ search: '', site_id: '', type: '' });
+        executeFilter({ search: '', site_id: '', type: '', page: 1 });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('backups.index'), {
-            search,
-            site_id: siteId,
-            type,
+        executeFilter({
+            search: searchQueryRef.current,
+            site_id: siteIdRef.current,
+            type: typeRef.current,
             page,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
         });
     };
 
@@ -222,17 +328,22 @@ export default function BackupIndex({
 
         setIsDeleting(true);
         router.delete(route('backups.destroy', backupToDelete.id), {
+            replace: true,
+            preserveScroll: true,
             onSuccess: () => {
+                cleanBrowserUrl();
                 toast.success('Berhasil Dihapus', `Arsip ${backupToDelete.filename} telah dihapus.`);
                 setShowDeleteModal(false);
                 setBackupToDelete(null);
                 setIsDeleting(false);
             },
             onError: () => {
+                cleanBrowserUrl();
                 toast.error('Gagal Menghapus', 'Gagal menghapus file arsip backup.');
                 setIsDeleting(false);
             },
             onFinish: () => {
+                cleanBrowserUrl();
                 setIsDeleting(false);
             }
         });
@@ -271,7 +382,9 @@ export default function BackupIndex({
                 {/* Toolbar */}
                 <BackupToolbar 
                     search={search}
-                    onSearchChange={handleSearchChange}
+                    onSearchChange={setSearch}
+                    onSearchKeyDown={handleSearchKeyDown}
+                    onClearSearch={handleClearSearch}
                     siteId={siteId}
                     onSiteIdChange={handleSiteIdChange}
                     type={type}

@@ -3,6 +3,8 @@ import React from 'react';
 interface BackupToolbarProps {
     search: string;
     onSearchChange: (val: string) => void;
+    onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    onClearSearch?: () => void;
     siteId: string;
     onSiteIdChange: (val: string) => void;
     type: string;
@@ -15,6 +17,8 @@ interface BackupToolbarProps {
 export default function BackupToolbar({
     search,
     onSearchChange,
+    onSearchKeyDown,
+    onClearSearch,
     siteId,
     onSiteIdChange,
     type,
@@ -34,25 +38,52 @@ export default function BackupToolbar({
             {/* Search & Filters */}
             <div className="d-flex align-items-center flex-wrap gap-2.5 flex-grow-1">
                 {/* Search */}
-                <div className="position-relative" style={{ minWidth: '220px', maxWidth: '320px', flex: 1 }}>
+                <div className="search-local position-relative" style={{ minWidth: '220px', maxWidth: '320px', flex: 1 }}>
                     <i 
-                        className="bi bi-search position-absolute top-50 translate-middle-y text-muted"
-                        style={{ left: '12px', fontSize: '0.85rem' }}
+                        className="bi bi-search position-absolute text-muted"
+                        style={{ left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', pointerEvents: 'none' }}
                     ></i>
                     <input 
                         type="text"
                         className="form-control"
                         style={{
-                            paddingLeft: '34px',
+                            padding: '0.55rem 2.4rem 0.55rem 2.3rem',
                             borderRadius: '12px',
-                            border: '1px solid #e2e8f0',
+                            border: '1.5px solid var(--line, #e2e8f0)',
                             fontSize: '0.85rem',
                             background: '#ffffff',
                         }}
                         placeholder="Cari file arsip atau nama situs..."
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
+                        onKeyDown={onSearchKeyDown}
                     />
+                    {search.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={onClearSearch ? onClearSearch : () => onSearchChange('')}
+                            className="btn btn-sm btn-link position-absolute text-muted p-0"
+                            style={{
+                                right: '0.75rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                textDecoration: 'none',
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '22px',
+                                height: '22px',
+                                color: 'var(--ink-faint, #64748b)',
+                            }}
+                            title="Bersihkan pencarian"
+                            aria-label="Bersihkan pencarian"
+                        >
+                            <i className="bi bi-x-circle-fill" style={{ fontSize: '0.95rem' }}></i>
+                        </button>
+                    )}
                 </div>
 
                 {/* Filter by Site */}

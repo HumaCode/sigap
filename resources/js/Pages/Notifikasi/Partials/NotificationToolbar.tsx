@@ -4,6 +4,7 @@ interface NotificationToolbarProps {
     searchTerm: string;
     onSearchChange: (value: string) => void;
     onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    onClearSearch?: () => void;
     selectedStatus: string;
     onStatusChange: (status: string) => void;
     selectedSeverity: string;
@@ -15,6 +16,7 @@ export default function NotificationToolbar({
     searchTerm,
     onSearchChange,
     onSearchKeyDown,
+    onClearSearch,
     selectedStatus,
     onStatusChange,
     selectedSeverity,
@@ -46,18 +48,19 @@ export default function NotificationToolbar({
                             transform: 'translateY(-50%)',
                             color: 'var(--ink-faint)',
                             fontSize: '0.85rem',
+                            pointerEvents: 'none',
                         }}
                     ></i>
                     <input
                         type="text"
-                        placeholder="Cari judul, konten, situs... (Enter)"
+                        placeholder="Cari judul, konten, situs..."
                         value={searchTerm}
                         onChange={(e) => onSearchChange(e.target.value)}
                         onKeyDown={onSearchKeyDown}
                         style={{
                             borderRadius: '12px',
                             border: '1.5px solid var(--line)',
-                            padding: '0.55rem 2.2rem 0.55rem 2.4rem',
+                            padding: '0.55rem 2.4rem 0.55rem 2.3rem',
                             fontSize: '0.85rem',
                             width: '100%',
                             background: 'rgba(255,255,255,0.75)',
@@ -67,22 +70,27 @@ export default function NotificationToolbar({
                     {searchTerm.length > 0 && (
                         <button
                             type="button"
-                            onClick={() => {
-                                onSearchChange('');
-                                onReset();
-                            }}
-                            className="position-absolute border-0 bg-transparent p-0"
+                            onClick={onClearSearch ? onClearSearch : () => onSearchChange('')}
+                            className="btn btn-sm btn-link position-absolute text-muted p-0"
                             style={{
                                 right: '0.75rem',
                                 top: '50%',
                                 transform: 'translateY(-50%)',
-                                color: 'var(--ink-faint)',
+                                textDecoration: 'none',
+                                background: 'transparent',
+                                border: 'none',
                                 cursor: 'pointer',
-                                fontSize: '0.85rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '22px',
+                                height: '22px',
+                                color: 'var(--ink-faint)',
                             }}
-                            title="Hapus pencarian"
+                            title="Bersihkan pencarian"
+                            aria-label="Bersihkan pencarian"
                         >
-                            <i className="bi bi-x-circle-fill"></i>
+                            <i className="bi bi-x-circle-fill" style={{ fontSize: '0.95rem' }}></i>
                         </button>
                     )}
                 </div>

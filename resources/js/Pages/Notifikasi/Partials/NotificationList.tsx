@@ -10,12 +10,14 @@ interface NotificationListProps {
     };
     onMarkAsRead: (notification: NotificationItemData) => void;
     onDelete: (notification: NotificationItemData) => void;
+    onPageChange?: (page: number) => void;
 }
 
 export default function NotificationList({
     notifications,
     onMarkAsRead,
     onDelete,
+    onPageChange,
 }: NotificationListProps) {
     const data = notifications.data || [];
 
@@ -47,7 +49,7 @@ export default function NotificationList({
             {/* Pagination footer */}
             {notifications.meta && notifications.meta.total > 0 && (
                 <div className="glass-card px-4 py-3 mt-3">
-                    <Pagination meta={notifications.meta} itemLabel="notifikasi" />
+                    <Pagination meta={notifications.meta} itemLabel="notifikasi" onPageChange={onPageChange} />
                 </div>
             )}
         </div>

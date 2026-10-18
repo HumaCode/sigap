@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
@@ -61,21 +61,74 @@ export default function Index({
     const [isLoading, setIsLoading] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Memuat notifikasi...');
 
-    // URL parameter masking (keep address bar clean as http://localhost:8000/notifications)
-    useEffect(() => {
+    const searchQueryRef = useRef(safeFilters.search || '');
+    const statusRef = useRef(safeFilters.status || 'all');
+    const severityRef = useRef(safeFilters.severity || 'all');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/notifications) tanpa query string
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props notifications atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
     }, [notifications, filters]);
 
-    // Flash Toast Notification
+    // Sinkronisasi state internal saat props berubah
     useEffect(() => {
-        if (pageProps.flash?.success) {
-            toast.success('Berhasil', pageProps.flash.success);
-        } else if (pageProps.flash?.error) {
-            toast.error('Peringatan', pageProps.flash.error);
+        if (safeFilters.search !== undefined) {
+            setSearchTerm(safeFilters.search || '');
+            searchQueryRef.current = safeFilters.search || '';
         }
-    }, [pageProps.flash]);
+        if (safeFilters.status !== undefined) {
+            setSelectedStatus(safeFilters.status || 'all');
+            statusRef.current = safeFilters.status || 'all';
+        }
+        if (safeFilters.severity !== undefined) {
+            setSelectedSeverity(safeFilters.severity || 'all');
+            severityRef.current = safeFilters.severity || 'all';
+        }
+    }, [safeFilters.search, safeFilters.status, safeFilters.severity]);
+
+    // Flash Toast Notification (cegah pemanggilan ganda dengan ref)
+    const lastFlashRef = useRef<string | null>(null);
+    useEffect(() => {
+        const success = pageProps.flash?.success;
+        const error = pageProps.flash?.error;
+        const key = `${success || ''}#${error || ''}`;
+
+        if (key === '#') return;
+        if (lastFlashRef.current === key) return;
+        lastFlashRef.current = key;
+
+        if (success) {
+            toast.success('Berhasil', success);
+        } else if (error) {
+            toast.error('Peringatan', error);
+        }
+    }, [pageProps.flash?.success, pageProps.flash?.error]);
 
     const executeFilter = (params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -87,53 +140,87 @@ export default function Index({
             preserveScroll: true,
             replace: true,
             onSuccess: () => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                cleanBrowserUrl();
             },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsLoading(false);
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
                 }, remaining);
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsLoading(false);
             },
         });
     };
 
+    // Debounced search (350ms)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            if (searchTerm !== searchQueryRef.current) {
+                searchQueryRef.current = searchTerm;
+                const msg = searchTerm.trim()
+                    ? `Mencari notifikasi "${searchTerm.trim()}"...`
+                    : 'Memuat data notifikasi...';
+                executeFilter(
+                    { search: searchTerm.trim(), status: statusRef.current, severity: severityRef.current, page: 1 },
+                    msg
+                );
+            }
+        }, 350);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm]);
+
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
+            e.preventDefault();
+            searchQueryRef.current = searchTerm;
             const msg = searchTerm.trim()
                 ? `Mencari notifikasi "${searchTerm.trim()}"...`
                 : 'Memuat data notifikasi...';
             executeFilter(
-                { search: searchTerm, status: selectedStatus, severity: selectedSeverity },
+                { search: searchTerm.trim(), status: statusRef.current, severity: severityRef.current, page: 1 },
                 msg
             );
         }
     };
 
+    const handleClearSearch = () => {
+        searchQueryRef.current = '';
+        setSearchTerm('');
+        executeFilter(
+            { search: '', status: statusRef.current, severity: severityRef.current, page: 1 },
+            'Memuat semua data notifikasi...'
+        );
+    };
+
     const handleStatusChange = (status: string) => {
         setSelectedStatus(status);
+        statusRef.current = status;
         const statusMap: Record<string, string> = {
             all: 'Semua Status',
             unread: 'Belum Dibaca',
             read: 'Telah Dibaca',
         };
         executeFilter(
-            { search: searchTerm, status, severity: selectedSeverity },
+            { search: searchQueryRef.current, status, severity: severityRef.current, page: 1 },
             `Memfilter notifikasi ${statusMap[status] || status}...`
         );
     };
 
     const handleSeverityChange = (severity: string) => {
         setSelectedSeverity(severity);
+        severityRef.current = severity;
         const severityMap: Record<string, string> = {
             all: 'Semua Tingkat',
             critical: 'Kritis',
@@ -141,7 +228,7 @@ export default function Index({
             info: 'Info',
         };
         executeFilter(
-            { search: searchTerm, status: selectedStatus, severity },
+            { search: searchQueryRef.current, status: statusRef.current, severity, page: 1 },
             `Memfilter alert ${severityMap[severity] || severity}...`
         );
     };
@@ -149,26 +236,40 @@ export default function Index({
     const handleStatCardFilter = (type: 'status' | 'severity', val: string) => {
         if (type === 'status') {
             setSelectedStatus(val);
+            statusRef.current = val;
             setSelectedSeverity('all');
+            severityRef.current = 'all';
             executeFilter(
-                { search: searchTerm, status: val, severity: 'all' },
+                { search: searchQueryRef.current, status: val, severity: 'all', page: 1 },
                 val === 'unread' ? 'Memuat notifikasi belum dibaca...' : 'Memuat semua notifikasi...'
             );
         } else {
             setSelectedSeverity(val);
+            severityRef.current = val;
             setSelectedStatus('all');
+            statusRef.current = 'all';
             executeFilter(
-                { search: searchTerm, status: 'all', severity: val },
+                { search: searchQueryRef.current, status: 'all', severity: val, page: 1 },
                 `Memuat alert berkategori ${val}...`
             );
         }
     };
 
     const handleReset = () => {
+        searchQueryRef.current = '';
+        statusRef.current = 'all';
+        severityRef.current = 'all';
         setSearchTerm('');
         setSelectedStatus('all');
         setSelectedSeverity('all');
-        executeFilter({}, 'Mereset filter notifikasi...');
+        executeFilter({ search: '', status: 'all', severity: 'all', page: 1 }, 'Mereset filter notifikasi...');
+    };
+
+    const handlePageChange = (page: number) => {
+        executeFilter(
+            { search: searchQueryRef.current, status: statusRef.current, severity: severityRef.current, page },
+            `Memuat halaman ${page}...`
+        );
     };
 
     const handleMarkAsRead = (item: NotificationItemData) => {
@@ -182,13 +283,15 @@ export default function Index({
                 preserveScroll: true,
                 replace: true,
                 onSuccess: (page: any) => {
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
+                    cleanBrowserUrl();
                     toast.success('Berhasil', 'Notifikasi telah ditandai sebagai sudah dibaca.');
                 },
-                onFinish: () => setIsLoading(false),
+                onFinish: () => {
+                    cleanBrowserUrl();
+                    setIsLoading(false);
+                },
                 onError: () => {
+                    cleanBrowserUrl();
                     setIsLoading(false);
                     toast.error('Gagal', 'Tidak dapat memperbarui status notifikasi.');
                 },
@@ -207,14 +310,16 @@ export default function Index({
                 preserveScroll: true,
                 replace: true,
                 onSuccess: (page: any) => {
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
+                    cleanBrowserUrl();
                     const msg = page?.props?.flash?.success || 'Seluruh notifikasi telah ditandai sebagai sudah dibaca.';
                     toast.success('Berhasil', msg);
                 },
-                onFinish: () => setIsLoading(false),
+                onFinish: () => {
+                    cleanBrowserUrl();
+                    setIsLoading(false);
+                },
                 onError: () => {
+                    cleanBrowserUrl();
                     setIsLoading(false);
                     toast.error('Gagal', 'Terjadi kesalahan sistem saat memperbarui notifikasi.');
                 },
@@ -235,18 +340,18 @@ export default function Index({
             preserveScroll: true,
             replace: true,
             onSuccess: () => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                cleanBrowserUrl();
                 toast.success('Berhasil', 'Notifikasi berhasil dihapus.');
                 setIsDeleting(false);
                 setShowDeleteModal(false);
                 setDeletingItem(null);
             },
             onFinish: () => {
+                cleanBrowserUrl();
                 setIsDeleting(false);
             },
             onError: (errs) => {
+                cleanBrowserUrl();
                 setIsDeleting(false);
                 const firstErr = Object.values(errs)[0];
                 toast.error('Gagal Menghapus', typeof firstErr === 'string' ? firstErr : 'Terjadi kesalahan sistem.');
@@ -261,18 +366,18 @@ export default function Index({
             preserveScroll: true,
             replace: true,
             onSuccess: (page: any) => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                cleanBrowserUrl();
                 const msg = page?.props?.flash?.success || 'Seluruh riwayat notifikasi telah dibersihkan.';
                 toast.success('Berhasil', msg);
                 setIsClearing(false);
                 setShowClearModal(false);
             },
             onFinish: () => {
+                cleanBrowserUrl();
                 setIsClearing(false);
             },
             onError: (errs) => {
+                cleanBrowserUrl();
                 setIsClearing(false);
                 const firstErr = Object.values(errs)[0];
                 toast.error('Gagal', typeof firstErr === 'string' ? firstErr : 'Terjadi kesalahan sistem.');
@@ -306,6 +411,7 @@ export default function Index({
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 onSearchKeyDown={handleSearchKeyDown}
+                onClearSearch={handleClearSearch}
                 selectedStatus={selectedStatus}
                 onStatusChange={handleStatusChange}
                 selectedSeverity={selectedSeverity}
@@ -318,6 +424,7 @@ export default function Index({
                 notifications={notifications}
                 onMarkAsRead={handleMarkAsRead}
                 onDelete={handleOpenDeleteModal}
+                onPageChange={handlePageChange}
             />
 
             {/* Modal Konfirmasi Hapus Notifikasi Tunggal */}

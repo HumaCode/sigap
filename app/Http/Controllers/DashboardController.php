@@ -148,16 +148,24 @@ class DashboardController extends Controller
             $quarterData[] = $totalSites === 0 ? 0.0 : ($i === 0 ? $avgUptime : round(min(100.0, max(95.0, $avgUptime + ($i === 2 ? -0.4 : 0.2))), 1));
         }
 
-        // 8. Latest Sites Status with Real Latency from DetectionLogs
-        $latestSites = Site::with(['detectionLogs' => function ($q) {
-            $q->where('category', 'uptime')->latest();
-        }])
-        ->orderByRaw("CASE WHEN status = 'down' THEN 1 WHEN status = 'warn' THEN 2 WHEN status = 'up' THEN 3 ELSE 4 END")
-        ->latest('updated_at')
-        ->take(6)
-        ->get()
-        ->map(function ($site) {
-            $lastLog = $site->detectionLogs->first();
+        // 8. Latest Sites Status with Real Latency from DetectionLogs (Optimized: only fetch latest log per site)
+        $rawLatestSites = Site::select(['id', 'name', 'url', 'category', 'status', 'requests_per_minute'])
+            ->orderByRaw("CASE WHEN status = 'down' THEN 1 WHEN status = 'warn' THEN 2 WHEN status = 'up' THEN 3 ELSE 4 END")
+            ->latest('updated_at')
+            ->take(6)
+            ->get();
+
+        $latestSiteIds = $rawLatestSites->pluck('id');
+        $latestSiteLogIds = DetectionLog::where('category', 'uptime')
+            ->whereIn('site_id', $latestSiteIds)
+            ->groupBy('site_id')
+            ->selectRaw('MAX(id) as max_id')
+            ->pluck('max_id');
+
+        $latestSiteLogs = DetectionLog::whereIn('id', $latestSiteLogIds)->get()->keyBy('site_id');
+
+        $latestSites = $rawLatestSites->map(function ($site) use ($latestSiteLogs) {
+            $lastLog = $latestSiteLogs->get($site->id);
             $responseTime = 'timeout';
 
             if ($site->status === 'up') {
@@ -258,12 +266,16 @@ class DashboardController extends Controller
             'id', 'name', 'url', 'category', 'status', 'ssh_host', 'updated_at', 'created_at', 'requests_per_minute'
         ])->withCount('detectionLogs')->orderBy('name')->get();
 
-        // 100% Real: Batch query latest uptime healthcheck log for all sites
-        $latestUptimeLogs = DetectionLog::where('category', 'uptime')
-            ->whereIn('site_id', $allSites->pluck('id'))
-            ->latest('id')
+        // 100% Real: Batch query only the single latest uptime healthcheck log per site (Max performance, zero memory bloat)
+        $siteIds = $allSites->pluck('id');
+        $latestUptimeLogIds = DetectionLog::where('category', 'uptime')
+            ->whereIn('site_id', $siteIds)
+            ->groupBy('site_id')
+            ->selectRaw('MAX(id) as max_id')
+            ->pluck('max_id');
+
+        $latestUptimeLogs = DetectionLog::whereIn('id', $latestUptimeLogIds)
             ->get()
-            ->unique('site_id')
             ->keyBy('site_id');
 
         $coreCategories = ['Portal Utama', 'Cloud', 'Security', 'Enterprise', 'Fintech', 'Analytics'];

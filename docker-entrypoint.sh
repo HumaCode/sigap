@@ -12,6 +12,9 @@ mkdir -p storage/framework/cache/data storage/framework/sessions storage/framewo
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
+# Ensure PHP has adequate memory limit for Octane and high concurrency
+echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/docker-php-memory-limit.ini 2>/dev/null || true
+
 # Run composer install if vendor directory is missing
 if [ ! -d vendor ] || [ ! -f vendor/autoload.php ]; then
     echo "Running composer install..."

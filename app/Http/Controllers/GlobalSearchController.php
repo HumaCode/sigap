@@ -67,8 +67,13 @@ class GlobalSearchController extends Controller
         }
 
         // 2. Sites Category
-        $sites = Site::where('name', 'like', "%{$q}%")
-            ->orWhere('url', 'like', "%{$q}%")
+        $qLower = strtolower($q);
+        $sites = Site::where(function ($sq) use ($qLower) {
+            $sq->whereRaw('LOWER(name) LIKE ?', ["%{$qLower}%"])
+               ->orWhereRaw('LOWER(url) LIKE ?', ["%{$qLower}%"])
+               ->orWhereRaw('LOWER(category) LIKE ?', ["%{$qLower}%"])
+               ->orWhereRaw('LOWER(COALESCE(domain_name, "")) LIKE ?', ["%{$qLower}%"]);
+        })
             ->take(5)
             ->get(['id', 'name', 'url', 'status', 'category'])
             ->map(function ($s) {

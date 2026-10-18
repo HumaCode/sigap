@@ -22,12 +22,18 @@ class SiteRepository implements SiteRepositoryInterface
             }
         ]);
 
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('url', 'like', "%{$search}%");
+        $search = trim((string) $search);
+        if ($search !== '') {
+            $searchLower = strtolower($search);
+            $query->where(function ($q) use ($search, $searchLower) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(url) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(category) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(COALESCE(pic_name, "")) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(COALESCE(domain_name, "")) LIKE ?', ["%{$searchLower}%"]);
             });
         }
+
         if ($filter !== 'all' && $filter) {
             if ($filter === 'paused') {
                 $query->where('is_active', false);

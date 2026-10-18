@@ -71,7 +71,7 @@ export default function SiteToolbar({
                     <i className="bi bi-search"></i>
                     <input 
                         type="text" 
-                        placeholder="Cari nama situs atau URL..." 
+                        placeholder="Cari nama situs, URL, kategori, atau PIC..." 
                         value={search}
                         onChange={onSearchChange}
                         onKeyDown={onSearchKeyDown}

@@ -109,56 +109,60 @@ export default function Index(props: any) {
         }
     }, [filters.search, filters.filter]);
 
-    // Clean initial URL if only default redundant parameters exist (?filter=all&page=1&search=)
-    useEffect(() => {
+    // Helper untuk menjaga URL browser SELALU bersih (/sites) tanpa query string apapun
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const f = urlParams.get('filter');
-            const s = urlParams.get('search');
-            const p = urlParams.get('page');
-
-            const hasOnlyDefaults = 
-                (!f || f === 'all') &&
-                (!s || s.trim() === '') &&
-                (!p || p === '1');
-
-            if (hasOnlyDefaults) {
-                window.history.replaceState({}, '', window.location.pathname);
-            }
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
     }, []);
 
-    // Router Filter Execution helper with Clean URL logic
+    // Jalankan juga saat props sites atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
+    }, [sites, filters]);
+
+    // Router Filter Execution helper
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
         setIsFiltering(true);
         const startTime = Date.now();
 
-        // Bersihkan parameter default agar URL browser tetap bersih (Clean URL)
-        // Omit search jika kosong, omit filter jika 'all', omit page jika 1
-        const cleanParams: Record<string, any> = {};
-        if (params.search && typeof params.search === 'string' && params.search.trim() !== '') {
-            cleanParams.search = params.search.trim();
-        }
-        if (params.filter && params.filter !== 'all') {
-            cleanParams.filter = params.filter;
-        }
-        if (params.page && Number(params.page) > 1) {
-            cleanParams.page = Number(params.page);
-        }
-
-        router.get(url, cleanParams, {
+        router.get(url, params, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
+            onSuccess: () => {
+                cleanBrowserUrl();
+            },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, 450 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsFiltering(false);
                 }, remaining);
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
             }
         });

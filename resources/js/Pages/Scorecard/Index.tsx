@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
@@ -47,12 +47,51 @@ export default function Index({ leaderboard, summary, categories = [], filters, 
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Memuat data rapor...');
 
-    // Clean address bar URL parameters
-    useEffect(() => {
+    const searchQueryRef = useRef(filters.search || '');
+    const categoryRef = useRef(filters.category || 'all');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/scorecard) tanpa query string
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props leaderboard atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
     }, [leaderboard, filters]);
+
+    // Sinkronisasi state internal saat props berubah
+    useEffect(() => {
+        if (filters.search !== undefined) {
+            setSearchTerm(filters.search || '');
+            searchQueryRef.current = filters.search || '';
+        }
+        if (filters.category !== undefined) {
+            setCategoryFilter(filters.category || 'all');
+            categoryRef.current = filters.category || 'all';
+        }
+    }, [filters.search, filters.category]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string) => {
         setLoaderMessage(msg);
@@ -62,39 +101,80 @@ export default function Index({ leaderboard, summary, categories = [], filters, 
         router.get(url, params, {
             preserveState: true,
             preserveScroll: true,
+            replace: true,
+            onSuccess: () => {
+                cleanBrowserUrl();
+            },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, 300 - elapsed);
+                const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsFiltering(false);
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
                 }, remaining);
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
             }
         });
     };
 
+    // Debounced Search Effect (menunggu ketikan berhenti 350ms sebelum request)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            if (searchTerm !== searchQueryRef.current) {
+                searchQueryRef.current = searchTerm;
+                const msg = searchTerm.trim() ? `Mencari rapor "${searchTerm.trim()}"...` : 'Memuat data rapor mutu...';
+                executeFilter(
+                    route('scorecard.index'),
+                    { search: searchTerm.trim(), category: categoryRef.current },
+                    msg
+                );
+            }
+        }, 350);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm]);
+
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
+            e.preventDefault();
+            searchQueryRef.current = searchTerm;
             const msg = searchTerm.trim() ? `Mencari rapor "${searchTerm.trim()}"...` : 'Memuat data rapor...';
-            executeFilter(route('scorecard.index'), { search: searchTerm, category: categoryFilter }, msg);
+            executeFilter(route('scorecard.index'), { search: searchTerm.trim(), category: categoryRef.current }, msg);
         }
+    };
+
+    const handleClearSearch = () => {
+        searchQueryRef.current = '';
+        setSearchTerm('');
+        executeFilter(
+            route('scorecard.index'),
+            { search: '', category: categoryRef.current },
+            'Memuat seluruh data rapor mutu...'
+        );
     };
 
     const handleCategoryChange = (cat: string) => {
         setCategoryFilter(cat);
+        categoryRef.current = cat;
         const msg = cat === 'all' ? 'Memuat seluruh kategori situs...' : `Memuat kategori ${cat}...`;
-        executeFilter(route('scorecard.index'), { search: searchTerm, category: cat }, msg);
+        executeFilter(route('scorecard.index'), { search: searchQueryRef.current, category: cat }, msg);
     };
 
     const handleReset = () => {
+        searchQueryRef.current = '';
+        categoryRef.current = 'all';
         setSearchTerm('');
         setCategoryFilter('all');
-        executeFilter(route('scorecard.index'), {}, 'Mereset filter rapor mutu...');
+        executeFilter(route('scorecard.index'), { search: '', category: 'all' }, 'Mereset filter rapor mutu...');
     };
 
     const handleExportCsv = () => {
@@ -143,6 +223,7 @@ export default function Index({ leaderboard, summary, categories = [], filters, 
                 search={searchTerm}
                 onSearchChange={setSearchTerm}
                 onSearchKeyDown={handleSearch}
+                onClearSearch={handleClearSearch}
                 category={categoryFilter}
                 onCategoryChange={handleCategoryChange}
                 categories={categories}

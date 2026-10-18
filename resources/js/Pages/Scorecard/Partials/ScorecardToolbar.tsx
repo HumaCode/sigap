@@ -4,6 +4,7 @@ interface ScorecardToolbarProps {
     search: string;
     onSearchChange: (val: string) => void;
     onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    onClearSearch?: () => void;
     category: string;
     onCategoryChange: (cat: string) => void;
     categories: string[];
@@ -17,6 +18,7 @@ export default function ScorecardToolbar({
     search,
     onSearchChange,
     onSearchKeyDown,
+    onClearSearch,
     category,
     onCategoryChange,
     categories = [],
@@ -31,7 +33,7 @@ export default function ScorecardToolbar({
             <div style={{ position: 'relative', minWidth: '240px', maxWidth: '340px', flex: 1 }}>
                 <i 
                     className="bi bi-search position-absolute text-muted" 
-                    style={{ left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem' }} 
+                    style={{ left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', pointerEvents: 'none' }} 
                 />
                 <input 
                     type="text" 
@@ -42,7 +44,7 @@ export default function ScorecardToolbar({
                     style={{
                         borderRadius: '12px',
                         border: '1.5px solid rgba(15, 42, 63, 0.12)',
-                        padding: '0.55rem 2.2rem 0.55rem 2.3rem',
+                        padding: '0.55rem 2.4rem 0.55rem 2.3rem',
                         fontSize: '0.84rem',
                         width: '100%',
                         background: '#ffffff',
@@ -53,12 +55,26 @@ export default function ScorecardToolbar({
                 {search && (
                     <button
                         type="button"
-                        onClick={() => onSearchChange('')}
+                        onClick={onClearSearch ? onClearSearch : () => onSearchChange('')}
                         className="btn btn-sm btn-link position-absolute text-muted p-0"
-                        style={{ right: '0.75rem', top: '50%', transform: 'translateY(-50%)', textDecoration: 'none' }}
+                        style={{ 
+                            right: '0.75rem', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)', 
+                            textDecoration: 'none',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px'
+                        }}
                         title="Bersihkan pencarian"
+                        aria-label="Bersihkan pencarian"
                     >
-                        <i className="bi bi-x-circle-fill"></i>
+                        <i className="bi bi-x-circle-fill" style={{ fontSize: '0.95rem' }}></i>
                     </button>
                 )}
             </div>

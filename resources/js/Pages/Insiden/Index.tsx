@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
@@ -55,16 +55,56 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
     // Custom Styled Confirmation Modal State
     const [showResolveConfirm, setShowResolveConfirm] = useState(false);
 
-    // URL parameter masking (hide queries like ?status=critical&search= from address bar)
-    React.useEffect(() => {
+    const searchQueryRef = useRef(safeFilters.search || '');
+    const siteFilterRef = useRef(safeFilters.site_id || 'all');
+    const statusFilterRef = useRef(safeFilters.status || 'all');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/incidents) tanpa query string
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState(
-                {},
-                document.title,
-                window.location.pathname
-            );
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props incidents atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
     }, [incidents, filters]);
+
+    // Sinkronisasi state internal saat props berubah
+    useEffect(() => {
+        if (safeFilters.search !== undefined) {
+            setSearchTerm(safeFilters.search || '');
+            searchQueryRef.current = safeFilters.search || '';
+        }
+        if (safeFilters.site_id !== undefined) {
+            setSiteFilter(safeFilters.site_id || 'all');
+            siteFilterRef.current = safeFilters.site_id || 'all';
+        }
+        if (safeFilters.status !== undefined) {
+            setStatusFilter(safeFilters.status || 'all');
+            statusFilterRef.current = safeFilters.status || 'all';
+        }
+    }, [safeFilters.search, safeFilters.site_id, safeFilters.status]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string, isPost = false) => {
         setLoaderMessage(msg);
@@ -76,25 +116,23 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
             preserveScroll: true,
             replace: true,
             onSuccess: (page: any) => {
-                if (typeof window !== 'undefined') {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                cleanBrowserUrl();
                 if (isPost) {
                     const successMsg = page?.props?.flash?.success || 'Seluruh insiden aktif berhasil ditandai sebagai selesai.';
                     toast.success('Berhasil', successMsg);
                 }
             },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, 400 - elapsed);
+                const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsFiltering(false);
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
                 }, remaining);
             },
             onError: (errors: any) => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
                 toast.error('Gagal', 'Terjadi kesalahan saat memproses permintaan.');
             },
@@ -107,28 +145,68 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
         }
     };
 
+    // Debounced search (menunggu ketikan berhenti 350ms sebelum request)
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            if (searchTerm !== searchQueryRef.current) {
+                searchQueryRef.current = searchTerm;
+                const msg = searchTerm.trim() ? `Mencari insiden "${searchTerm.trim()}"...` : 'Memuat data insiden...';
+                executeFilter(
+                    route('incidents.index'),
+                    { site_id: siteFilterRef.current, search: searchTerm.trim(), status: statusFilterRef.current, page: 1 },
+                    msg
+                );
+            }
+        }, 350);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm]);
+
     const handleSiteFilterChange = (siteId: string) => {
         setSiteFilter(siteId);
+        siteFilterRef.current = siteId;
         const targetSite = (sites || []).find((s: any) => s.id === siteId);
         const msg = siteId && siteId !== 'all'
             ? `Memfilter insiden "${targetSite?.name || 'Situs'}"...`
             : 'Memuat insiden seluruh situs...';
         executeFilter(
             route('incidents.index'),
-            { site_id: siteId, search: searchTerm, status: statusFilter },
+            { site_id: siteId, search: searchQueryRef.current, status: statusFilterRef.current, page: 1 },
             msg
         );
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
+            e.preventDefault();
+            searchQueryRef.current = searchTerm;
             const msg = searchTerm.trim() ? `Mencari insiden "${searchTerm.trim()}"...` : 'Memuat data insiden...';
-            executeFilter(route('incidents.index'), { site_id: siteFilter, search: searchTerm, status: statusFilter }, msg);
+            executeFilter(
+                route('incidents.index'),
+                { site_id: siteFilterRef.current, search: searchTerm.trim(), status: statusFilterRef.current, page: 1 },
+                msg
+            );
         }
+    };
+
+    const handleClearSearch = () => {
+        searchQueryRef.current = '';
+        setSearchTerm('');
+        executeFilter(
+            route('incidents.index'),
+            { site_id: siteFilterRef.current, search: '', status: statusFilterRef.current, page: 1 },
+            'Memuat semua data insiden...'
+        );
     };
 
     const handleStatusFilterChange = (status: string) => {
         setStatusFilter(status);
+        statusFilterRef.current = status;
         const statusMap: Record<string, string> = {
             all: 'semua insiden',
             critical: 'insiden Kritis',
@@ -138,16 +216,19 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
         };
         executeFilter(
             route('incidents.index'),
-            { site_id: siteFilter, search: searchTerm, status },
+            { site_id: siteFilterRef.current, search: searchQueryRef.current, status, page: 1 },
             `Memuat ${statusMap[status] || status}...`
         );
     };
 
     const handleReset = () => {
+        searchQueryRef.current = '';
+        siteFilterRef.current = 'all';
+        statusFilterRef.current = 'all';
         setSiteFilter('all');
         setSearchTerm('');
         setStatusFilter('all');
-        executeFilter(route('incidents.index'), {}, 'Mereset filter insiden...');
+        executeFilter(route('incidents.index'), { site_id: 'all', search: '', status: 'all', page: 1 }, 'Mereset filter insiden...');
     };
 
     const handleExportCsv = () => {
@@ -223,6 +304,7 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     onSearchKeyDown={handleSearchKeyDown}
+                    onClearSearch={handleClearSearch}
                     statusFilter={statusFilter}
                     onStatusFilterChange={handleStatusFilterChange}
                     onReset={handleReset}
@@ -240,6 +322,13 @@ export default function Index({ incidents, filters, sites = [], stats, can }: In
                     meta={safeIncidents.meta}
                     links={safeIncidents.links}
                     itemLabel="insiden"
+                    onPageChange={(page) => {
+                        executeFilter(
+                            route('incidents.index'),
+                            { site_id: siteFilterRef.current, search: searchQueryRef.current, status: statusFilterRef.current, page },
+                            `Memuat halaman ${page}...`
+                        );
+                    }}
                 />
             </div>
 

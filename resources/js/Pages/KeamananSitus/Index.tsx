@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { toast } from '@/Components/DynamicToast';
@@ -55,16 +55,51 @@ export default function SecurityIndex({
     const [isFiltering, setIsFiltering] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Mohon tunggu sebentar...');
 
-    // URL parameter masking (hide queries like ?filter=critical&search= from address bar)
-    useEffect(() => {
+    const searchQueryRef = useRef(safeFilters.search || '');
+    const filterRef = useRef(safeFilters.filter || 'all');
+    const isMounted = useRef(false);
+
+    // Helper untuk menjaga URL browser SELALU bersih (/security) tanpa query string
+    const cleanBrowserUrl = () => {
         if (typeof window !== 'undefined' && window.location.search) {
-            window.history.replaceState(
-                {}, 
-                document.title, 
-                window.location.pathname
-            );
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
+    };
+
+    // Bersihkan URL saat initial mount dan pasang router listener
+    useEffect(() => {
+        cleanBrowserUrl();
+
+        const removeNavigateListener = router.on('navigate', () => {
+            cleanBrowserUrl();
+        });
+
+        const removeFinishListener = router.on('finish', () => {
+            cleanBrowserUrl();
+        });
+
+        return () => {
+            removeNavigateListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    // Jalankan juga saat props securities atau filters berubah
+    useEffect(() => {
+        cleanBrowserUrl();
     }, [securities, filters]);
+
+    // Sinkronisasi state internal saat props berubah
+    useEffect(() => {
+        if (safeFilters.search !== undefined) {
+            setSearchTerm(safeFilters.search || '');
+            searchQueryRef.current = safeFilters.search || '';
+        }
+        if (safeFilters.filter !== undefined) {
+            setActiveFilter(safeFilters.filter || 'all');
+            filterRef.current = safeFilters.filter || 'all';
+        }
+    }, [safeFilters.search, safeFilters.filter]);
 
     const executeFilter = (url: string, params: Record<string, any>, msg: string, isPost = false) => {
         setLoaderMessage(msg);
@@ -74,20 +109,24 @@ export default function SecurityIndex({
         const options = {
             preserveState: true,
             preserveScroll: true,
+            replace: true,
+            onSuccess: () => {
+                cleanBrowserUrl();
+            },
             onFinish: () => {
+                cleanBrowserUrl();
                 const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, 400 - elapsed);
+                const remaining = Math.max(0, 350 - elapsed);
                 setTimeout(() => {
+                    cleanBrowserUrl();
                     setIsFiltering(false);
                     if (isPost) {
                         setIsScanningAll(false);
                     }
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
                 }, remaining);
             },
             onError: () => {
+                cleanBrowserUrl();
                 setIsFiltering(false);
                 if (isPost) {
                     setIsScanningAll(false);
@@ -103,12 +142,18 @@ export default function SecurityIndex({
         }
     };
 
-    // Debounced search
+    // Debounced search (menunggu ketikan berhenti 350ms sebelum request)
     useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+
         const delayDebounce = setTimeout(() => {
-            if (searchTerm !== (safeFilters.search || '')) {
+            if (searchTerm !== searchQueryRef.current) {
+                searchQueryRef.current = searchTerm;
                 const msg = searchTerm.trim() ? `Mencari situs "${searchTerm.trim()}"...` : 'Memuat data audit keamanan...';
-                executeFilter(route('security.index'), { search: searchTerm, filter: activeFilter }, msg);
+                executeFilter(route('security.index'), { search: searchTerm.trim(), filter: filterRef.current, page: 1 }, msg);
             }
         }, 350);
 
@@ -117,24 +162,36 @@ export default function SecurityIndex({
 
     const handleFilterChange = (filterType: string) => {
         setActiveFilter(filterType);
+        filterRef.current = filterType;
         const filterNameMap: Record<string, string> = {
             'all': 'semua laporan keamanan',
             'critical': 'temuan kritis (Grade F)',
             'warn': 'situs ada peringatan (Grade B & C)',
             'clean': 'situs aman (Grade A)'
         };
-        executeFilter(route('security.index'), { search: searchTerm, filter: filterType }, `Memuat ${filterNameMap[filterType] || filterType}...`);
+        executeFilter(route('security.index'), { search: searchQueryRef.current, filter: filterType, page: 1 }, `Memuat ${filterNameMap[filterType] || filterType}...`);
     };
 
     const handleClearSearch = () => {
+        searchQueryRef.current = '';
         setSearchTerm('');
-        executeFilter(route('security.index'), { search: '', filter: activeFilter }, 'Memuat semua laporan keamanan...');
+        executeFilter(route('security.index'), { search: '', filter: filterRef.current, page: 1 }, 'Memuat semua laporan keamanan...');
+    };
+
+    const handleReset = () => {
+        searchQueryRef.current = '';
+        filterRef.current = 'all';
+        setSearchTerm('');
+        setActiveFilter('all');
+        executeFilter(route('security.index'), { search: '', filter: 'all', page: 1 }, 'Mereset filter audit keamanan...');
     };
 
     const handleRefresh = () => {
+        searchQueryRef.current = '';
+        filterRef.current = 'all';
         setSearchTerm('');
         setActiveFilter('all');
-        executeFilter(route('security.index'), { search: '', filter: 'all' }, 'Menyegarkan data audit keamanan...');
+        executeFilter(route('security.index'), { search: '', filter: 'all', page: 1 }, 'Menyegarkan data audit keamanan...');
     };
 
     const handleScanAll = () => {
@@ -145,7 +202,7 @@ export default function SecurityIndex({
     const handlePageChange = (page: number) => {
         executeFilter(
             route('security.index'),
-            { search: searchTerm, filter: activeFilter, page },
+            { search: searchQueryRef.current, filter: filterRef.current, page },
             `Memuat halaman ${page}...`
         );
     };
@@ -190,6 +247,7 @@ export default function SecurityIndex({
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     onClearSearch={handleClearSearch}
+                    onReset={handleReset}
                     activeFilter={activeFilter}
                     onFilterChange={handleFilterChange}
                     onScanAll={handleScanAll}

@@ -4,22 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
-use Spatie\Activitylog\Support\LogOptions;
-
 class DetectionLog extends Model
 {
-    use HasFactory, LogsActivity;
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->useLogName('detection_log')
-            ->logFillable()
-            ->logOnlyDirty()
-            ->dontLogEmptyChanges()
-            ->setDescriptionForEvent(fn(string $eventName) => "Log deteksi \"{$this->title}\" telah di-{$eventName}");
-    }
+    use HasFactory;
 
     protected $fillable = [
         'site_id',

@@ -36,6 +36,15 @@ class NotificationService implements NotificationServiceInterface
                     'parse_mode' => 'Markdown',
                 ]);
 
+                if (!$response->successful()) {
+                    // Fallback kirim plain text jika parsing Markdown ditolak Telegram (misal ada karakter khusus/garis bawah di URL/judul)
+                    $fallback = Http::timeout(5)->post($url, [
+                        'chat_id' => $chatId,
+                        'text' => "🛡️ [SIGAP SECURITY MONITORING]\n\n" . strip_tags($message),
+                    ]);
+                    return $fallback->successful();
+                }
+
                 return $response->successful();
             } catch (\Exception $e) {
                 Log::error("Failed to send Telegram alert: " . $e->getMessage());

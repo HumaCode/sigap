@@ -38,7 +38,7 @@ class SiteApiController extends Controller
                 COUNT(CASE WHEN status = 'up' THEN 1 END) as operational,
                 COUNT(CASE WHEN status = 'down' THEN 1 END) as outage,
                 COUNT(CASE WHEN status = 'warn' THEN 1 END) as warn,
-                COUNT(CASE WHEN ssl_days_left <= 14 OR (ssl_status IS NOT NULL AND ssl_status != 'valid') THEN 1 END) as ssl
+                COUNT(CASE WHEN ssl_days_left <= 14 OR (ssl_status IS NOT NULL AND ssl_status != 'valid') THEN 1 END) as ssl_count
             ")->first();
 
             $counts = [
@@ -46,7 +46,7 @@ class SiteApiController extends Controller
                 'operational' => (int) ($statsRow->operational ?? 0),
                 'outage'      => (int) ($statsRow->outage ?? 0),
                 'warn'        => (int) ($statsRow->warn ?? 0),
-                'ssl'         => (int) ($statsRow->ssl ?? 0),
+                'ssl'         => (int) ($statsRow->ssl_count ?? 0),
             ];
 
             // 2. Query with search and filter (Eager load 30d uptime counts to prevent N+1 queries)

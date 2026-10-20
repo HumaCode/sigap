@@ -146,85 +146,101 @@ class DashboardApiController extends Controller
      */
     protected function build24HourLatencySparkline(int $totalSites): array
     {
-        return Cache::remember('dashboard_sparkline_24h', 120, function () use ($totalSites) {
-            $sparklineLabels = [];
-            $sparklineValues = [];
-            $hourlyPoints = [];
+        try {
+            return Cache::remember('dashboard_sparkline_24h', 120, function () use ($totalSites) {
+                return $this->computeSparklineData($totalSites);
+            });
+        } catch (\Throwable $e) {
+            Log::warning('Redis/Cache sparkline error: ' . $e->getMessage());
+            return $this->computeSparklineData($totalSites);
+        }
+    }
 
-            if ($totalSites === 0) {
-                for ($i = 23; $i >= 0; $i--) {
-                    $time = Carbon::now()->subHours($i);
-                    $label = $time->format('H:00');
-                    $sparklineLabels[] = $label;
-                    $sparklineValues[] = 0;
-                    $hourlyPoints[] = [
-                        'hour' => $label,
-                        'latency_ms' => 0,
-                    ];
-                }
+    /**
+     * Internal calculator for 24-hour latency sparkline (fast & non-blocking).
+     */
+    protected function computeSparklineData(int $totalSites): array
+    {
+        $sparklineLabels = [];
+        $sparklineValues = [];
+        $hourlyPoints = [];
 
-                return [
-                    'current_avg_latency_ms' => 0,
-                    'current_avg_latency_formatted' => '0 ms',
-                    'labels' => $sparklineLabels,
-                    'values' => $sparklineValues,
-                    'points' => $hourlyPoints,
-                ];
-            }
-
-            // Batasi query maksimal 250 log terkini untuk menghindari timeout 30s di database besar
-            $twentyFourHoursAgo = Carbon::now()->subHours(24);
-            $uptimeLogs = DetectionLog::where('category', 'uptime')
-                ->where('created_at', '>=', $twentyFourHoursAgo)
-                ->latest('id')
-                ->take(250)
-                ->get(['created_at', 'context']);
-
-            $currentAvgLatency = 95;
-
+        if ($totalSites === 0) {
             for ($i = 23; $i >= 0; $i--) {
-                $hourStart = Carbon::now()->subHours($i)->startOfHour();
-                $hourEnd = (clone $hourStart)->endOfHour();
-                $label = $hourStart->format('H:00');
-
-                // Filter log pada jam ini
-                $matchingLogs = $uptimeLogs->filter(function ($log) use ($hourStart, $hourEnd) {
-                    return $log->created_at >= $hourStart && $log->created_at <= $hourEnd;
-                });
-
-                $hourLatencies = [];
-                foreach ($matchingLogs as $log) {
-                    if (is_string($log->context) && preg_match('/Latensi:\s*(\d+)ms/i', $log->context, $matches)) {
-                        $hourLatencies[] = (int) $matches[1];
-                    }
-                }
-
-                if (!empty($hourLatencies)) {
-                    $hourAvg = (int) round(array_sum($hourLatencies) / count($hourLatencies));
-                } else {
-                    $variance = (($i * 7 + 11) % 9 - 4) * 3;
-                    $hourAvg = max(65, 110 + $variance);
-                }
-
+                $time = Carbon::now()->subHours($i);
+                $label = $time->format('H:00');
                 $sparklineLabels[] = $label;
-                $sparklineValues[] = $hourAvg;
+                $sparklineValues[] = 0;
                 $hourlyPoints[] = [
                     'hour' => $label,
-                    'latency_ms' => $hourAvg,
+                    'latency_ms' => 0,
                 ];
-
-                if ($i === 0) {
-                    $currentAvgLatency = $hourAvg;
-                }
             }
 
             return [
-                'current_avg_latency_ms' => $currentAvgLatency,
-                'current_avg_latency_formatted' => "{$currentAvgLatency} ms",
+                'current_avg_latency_ms' => 0,
+                'current_avg_latency_formatted' => '0 ms',
                 'labels' => $sparklineLabels,
                 'values' => $sparklineValues,
                 'points' => $hourlyPoints,
             ];
-        });
+        }
+
+        // Ambil 50 log uptime terkini secara cepat menggunakan index PRIMARY tanpa table scan
+        $uptimeLogs = collect();
+        try {
+            $uptimeLogs = DetectionLog::where('category', 'uptime')
+                ->latest('id')
+                ->limit(50)
+                ->get(['created_at', 'context']);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to fetch uptime logs for sparkline: ' . $e->getMessage());
+        }
+
+        $currentAvgLatency = 95;
+
+        for ($i = 23; $i >= 0; $i--) {
+            $hourStart = Carbon::now()->subHours($i)->startOfHour();
+            $hourEnd = (clone $hourStart)->endOfHour();
+            $label = $hourStart->format('H:00');
+
+            // Filter log pada jam ini
+            $matchingLogs = $uptimeLogs->filter(function ($log) use ($hourStart, $hourEnd) {
+                return $log->created_at >= $hourStart && $log->created_at <= $hourEnd;
+            });
+
+            $hourLatencies = [];
+            foreach ($matchingLogs as $log) {
+                if (is_string($log->context) && preg_match('/Latensi:\s*(\d+)ms/i', $log->context, $matches)) {
+                    $hourLatencies[] = (int) $matches[1];
+                }
+            }
+
+            if (!empty($hourLatencies)) {
+                $hourAvg = (int) round(array_sum($hourLatencies) / count($hourLatencies));
+            } else {
+                $variance = (($i * 7 + 11) % 9 - 4) * 3;
+                $hourAvg = max(65, 110 + $variance);
+            }
+
+            $sparklineLabels[] = $label;
+            $sparklineValues[] = $hourAvg;
+            $hourlyPoints[] = [
+                'hour' => $label,
+                'latency_ms' => $hourAvg,
+            ];
+
+            if ($i === 0) {
+                $currentAvgLatency = $hourAvg;
+            }
+        }
+
+        return [
+            'current_avg_latency_ms' => $currentAvgLatency,
+            'current_avg_latency_formatted' => "{$currentAvgLatency} ms",
+            'labels' => $sparklineLabels,
+            'values' => $sparklineValues,
+            'points' => $hourlyPoints,
+        ];
     }
 }

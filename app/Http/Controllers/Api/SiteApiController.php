@@ -27,89 +27,104 @@ class SiteApiController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $search = trim($request->input('search', ''));
-        $filter = strtolower(trim($request->input('filter', 'all')));
-        $perPage = min(100, max(1, (int) $request->input('per_page', 15)));
+        try {
+            $search = trim($request->input('search', ''));
+            $filter = strtolower(trim($request->input('filter', 'all')));
+            $perPage = min(100, max(1, (int) $request->input('per_page', 15)));
 
-        // 1. Calculate filter counts for mobile chips (Single Aggregated SQL Query)
-        $statsRow = Site::toBase()->selectRaw("
-            COUNT(*) as total,
-            COUNT(CASE WHEN status = 'up' THEN 1 END) as operational,
-            COUNT(CASE WHEN status = 'down' THEN 1 END) as outage,
-            COUNT(CASE WHEN status = 'warn' THEN 1 END) as warn,
-            COUNT(CASE WHEN ssl_days_left <= 14 OR (ssl_status IS NOT NULL AND ssl_status != 'valid') THEN 1 END) as ssl
-        ")->first();
+            // 1. Calculate filter counts for mobile chips (Single Aggregated SQL Query)
+            $statsRow = Site::toBase()->selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'up' THEN 1 END) as operational,
+                COUNT(CASE WHEN status = 'down' THEN 1 END) as outage,
+                COUNT(CASE WHEN status = 'warn' THEN 1 END) as warn,
+                COUNT(CASE WHEN ssl_days_left <= 14 OR (ssl_status IS NOT NULL AND ssl_status != 'valid') THEN 1 END) as ssl
+            ")->first();
 
-        $counts = [
-            'all'         => (int) ($statsRow->total ?? 0),
-            'operational' => (int) ($statsRow->operational ?? 0),
-            'outage'      => (int) ($statsRow->outage ?? 0),
-            'warn'        => (int) ($statsRow->warn ?? 0),
-            'ssl'         => (int) ($statsRow->ssl ?? 0),
-        ];
+            $counts = [
+                'all'         => (int) ($statsRow->total ?? 0),
+                'operational' => (int) ($statsRow->operational ?? 0),
+                'outage'      => (int) ($statsRow->outage ?? 0),
+                'warn'        => (int) ($statsRow->warn ?? 0),
+                'ssl'         => (int) ($statsRow->ssl ?? 0),
+            ];
 
-        // 2. Query with search and filter (Eager load 30d uptime counts to prevent N+1 queries)
-        $query = Site::query()->withCount([
-            'detectionLogs as uptime_total_checks_30d' => function ($q) {
-                $q->where('category', 'uptime')
-                  ->where('created_at', '>=', now()->subDays(30));
-            },
-            'detectionLogs as uptime_successful_checks_30d' => function ($q) {
-                $q->where('category', 'uptime')
-                  ->where('status', 'resolved')
-                  ->where('created_at', '>=', now()->subDays(30));
+            // 2. Query with search and filter (Eager load 30d uptime counts to prevent N+1 queries)
+            $query = Site::query()->withCount([
+                'detectionLogs as uptime_total_checks_30d' => function ($q) {
+                    $q->where('category', 'uptime')
+                      ->where('created_at', '>=', now()->subDays(30));
+                },
+                'detectionLogs as uptime_successful_checks_30d' => function ($q) {
+                    $q->where('category', 'uptime')
+                      ->where('status', 'resolved')
+                      ->where('created_at', '>=', now()->subDays(30));
+                }
+            ]);
+
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('url', 'like', "%{$search}%")
+                      ->orWhere('category', 'like', "%{$search}%");
+                });
             }
-        ]);
 
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('url', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%");
+            match ($filter) {
+                'operational', 'up' => $query->where('status', 'up'),
+                'outage', 'down' => $query->where('status', 'down'),
+                'warn', 'warning' => $query->where('status', 'warn'),
+                'ssl' => $query->where(function ($q) {
+                    $q->where('ssl_days_left', '<=', 14)
+                      ->orWhere('ssl_status', '!=', 'valid');
+                }),
+                'paused' => $query->where('status', 'paused')->orWhere('is_active', false),
+                default => null, // 'all' - no filter
+            };
+
+            $paginated = $query->orderByRaw("CASE WHEN status = 'down' THEN 1 WHEN status = 'warn' THEN 2 WHEN status = 'up' THEN 3 ELSE 4 END")
+                ->latest('updated_at')
+                ->paginate($perPage);
+
+            // 3. Batch fetch only the latest uptime log per site (Max performance, zero memory bloat)
+            $siteIds = $paginated->pluck('id')->all();
+            $latestLogs = collect();
+            if (!empty($siteIds)) {
+                $latestLogIds = DetectionLog::where('category', 'uptime')
+                    ->whereIn('site_id', $siteIds)
+                    ->groupBy('site_id')
+                    ->selectRaw('MAX(id) as max_id')
+                    ->pluck('max_id');
+
+                $latestLogs = DetectionLog::whereIn('id', $latestLogIds)
+                    ->get()
+                    ->keyBy('site_id');
+            }
+
+            // 4. Format cards for mobile app
+            $items = $paginated->getCollection()->map(function (Site $site) use ($latestLogs) {
+                return $this->formatSiteCard($site, $latestLogs->get($site->id));
             });
+
+            return ResponseHelper::success('Daftar layanan berhasil dimuat.', [
+                'counts' => $counts,
+                'items' => $items,
+                'meta' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                    'has_more' => $paginated->hasMorePages(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SiteApiController::index error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return ResponseHelper::error('Gagal memuat daftar layanan: ' . $e->getMessage(), 500);
         }
-
-        match ($filter) {
-            'operational', 'up' => $query->where('status', 'up'),
-            'outage', 'down' => $query->where('status', 'down'),
-            'warn', 'warning' => $query->where('status', 'warn'),
-            'ssl' => $query->where(function ($q) {
-                $q->where('ssl_days_left', '<=', 14)
-                  ->orWhere('ssl_status', '!=', 'valid');
-            }),
-            'paused' => $query->where('status', 'paused')->orWhere('is_active', false),
-            default => null, // 'all' - no filter
-        };
-
-        $paginated = $query->orderByRaw("CASE WHEN status = 'down' THEN 1 WHEN status = 'warn' THEN 2 WHEN status = 'up' THEN 3 ELSE 4 END")
-            ->latest('updated_at')
-            ->paginate($perPage);
-
-        // 3. Batch fetch latest uptime logs to prevent N+1 queries
-        $siteIds = $paginated->pluck('id')->all();
-        $latestLogs = DetectionLog::where('category', 'uptime')
-            ->whereIn('site_id', $siteIds)
-            ->latest('id')
-            ->get()
-            ->unique('site_id')
-            ->keyBy('site_id');
-
-        // 4. Format cards for mobile app
-        $items = $paginated->getCollection()->map(function (Site $site) use ($latestLogs) {
-            return $this->formatSiteCard($site, $latestLogs->get($site->id));
-        });
-
-        return ResponseHelper::success('Daftar layanan berhasil dimuat.', [
-            'counts' => $counts,
-            'items' => $items,
-            'meta' => [
-                'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-                'per_page' => $paginated->perPage(),
-                'total' => $paginated->total(),
-                'has_more' => $paginated->hasMorePages(),
-            ],
-        ]);
     }
 
     /**
@@ -120,9 +135,10 @@ class SiteApiController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $site = Site::with(['security', 'incidents' => function ($q) {
-            $q->latest('detected_at')->take(5);
-        }])->findOrFail($id);
+        try {
+            $site = Site::with(['security', 'incidents' => function ($q) {
+                $q->latest('detected_at')->take(5);
+            }])->findOrFail($id);
 
         $latestLog = DetectionLog::where('site_id', $site->id)
             ->where('category', 'uptime')
@@ -175,34 +191,42 @@ class SiteApiController extends Controller
             'last_scanned_at' => $security?->last_scanned_at?->toISOString(),
         ];
 
-        return ResponseHelper::success('Detail layanan berhasil dimuat.', array_merge($cardData, [
-            'ssl_details' => [
-                'status' => $site->ssl_status ?? 'unknown',
-                'issuer' => $site->ssl_issuer,
-                'valid_to' => $site->ssl_valid_to?->toISOString(),
-                'valid_to_formatted' => $site->ssl_valid_to?->format('d M Y'),
-                'days_left' => $site->ssl_days_left,
-                'last_checked_at' => $site->ssl_last_checked_at?->toISOString(),
-            ],
-            'domain_details' => [
-                'domain_name' => $site->domain_name,
-                'registrar' => $site->domain_registrar,
-                'expires_at' => $site->domain_expires_at?->toISOString(),
-                'expires_at_formatted' => $site->domain_expires_at?->format('d M Y'),
-                'days_left' => $site->domain_days_left,
-                'status' => $site->domain_status,
-                'name_servers' => $site->dns_name_servers ?? [],
-            ],
-            'visual_audit' => [
-                'diff_score' => $site->visual_diff_score ?? 0.0,
-                'last_checked_at' => $site->visual_last_checked_at?->toISOString(),
-                'is_clean' => ($site->visual_diff_score ?? 0) < 5.0,
-            ],
-            'uptime_history_30d' => $uptimeHistory,
-            'security_audit' => $securityData,
-            'recent_incidents' => $recentIncidents,
-            'recent_logs' => $recentLogs,
-        ]));
+            return ResponseHelper::success('Detail layanan berhasil dimuat.', array_merge($cardData, [
+                'ssl_details' => [
+                    'status' => $site->ssl_status ?? 'unknown',
+                    'issuer' => $site->ssl_issuer,
+                    'valid_to' => $site->ssl_valid_to?->toISOString(),
+                    'valid_to_formatted' => $site->ssl_valid_to?->format('d M Y'),
+                    'days_left' => $site->ssl_days_left,
+                    'last_checked_at' => $site->ssl_last_checked_at?->toISOString(),
+                ],
+                'domain_details' => [
+                    'domain_name' => $site->domain_name,
+                    'registrar' => $site->domain_registrar,
+                    'expires_at' => $site->domain_expires_at?->toISOString(),
+                    'expires_at_formatted' => $site->domain_expires_at?->format('d M Y'),
+                    'days_left' => $site->domain_days_left,
+                    'status' => $site->domain_status,
+                    'name_servers' => $site->dns_name_servers ?? [],
+                ],
+                'visual_audit' => [
+                    'diff_score' => $site->visual_diff_score ?? 0.0,
+                    'last_checked_at' => $site->visual_last_checked_at?->toISOString(),
+                    'is_clean' => ($site->visual_diff_score ?? 0) < 5.0,
+                ],
+                'uptime_history_30d' => $uptimeHistory,
+                'security_audit' => $securityData,
+                'recent_incidents' => $recentIncidents,
+                'recent_logs' => $recentLogs,
+            ]));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SiteApiController::show error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return ResponseHelper::error('Gagal memuat detail layanan: ' . $e->getMessage(), 500);
+        }
     }
 
     /**
@@ -350,13 +374,17 @@ class SiteApiController extends Controller
     protected function build30DayUptimeHistory(Site $site): array
     {
         $history = [];
+        $recentIncidents = $site->incidents()
+            ->where('detected_at', '>=', Carbon::now()->subDays(30)->startOfDay())
+            ->get(['id', 'severity', 'detected_at']);
+
         for ($i = 29; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
             $dateStr = $date->toDateString();
 
-            $dayIncident = $site->incidents()
-                ->whereDate('detected_at', $dateStr)
-                ->first();
+            $dayIncident = $recentIncidents->first(function ($inc) use ($dateStr) {
+                return $inc->detected_at?->toDateString() === $dateStr;
+            });
 
             $dayStatus = 'up';
             $dayUptime = 99.9;
